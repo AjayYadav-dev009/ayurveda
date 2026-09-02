@@ -56,6 +56,7 @@ $categories = getCategories($conn);
     .btn-edit {
         background-color: #ffc107;
         color: #212529;
+        margin-bottom: 10px;
     }
 
     .btn-edit:hover {
