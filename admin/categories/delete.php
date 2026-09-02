@@ -3,6 +3,10 @@
 
 <?php
 
+/** Slug used to find/create the fallback category for orphaned products. */
+const UNCATEGORIZED_SLUG = 'uncategorised';
+const UNCATEGORIZED_NAME = 'Uncategorised';
+
 /**
  * Thrown when a delete is blocked pending user confirmation. Carries a
  * full breakdown of what the delete will do, so the caller can show it
@@ -13,19 +17,60 @@ class CategoryDeletionImpactException extends InvalidArgumentException
     /** @var array<int,array{id:int,name:string}> Subcategories that will be deleted (excludes the category itself). */
     public array $subcategories;
 
-    /** @var array<int,array{id:int,title:string}> Products that will be permanently deleted (no category left). */
-    public array $productsToDelete;
+    /** @var array<int,array{id:int,title:string}> Products that will be moved to "Uncategorised" (no other category). */
+    public array $productsToUncategorize;
 
     /** @var array<int,array{id:int,title:string}> Products that will just be unlinked from this category/subtree but kept. */
     public array $productsToUnlink;
 
-    public function __construct(array $subcategories, array $productsToDelete, array $productsToUnlink, string $message)
+    public function __construct(array $subcategories, array $productsToUncategorize, array $productsToUnlink, string $message)
     {
         parent::__construct($message);
         $this->subcategories = $subcategories;
-        $this->productsToDelete = $productsToDelete;
+        $this->productsToUncategorize = $productsToUncategorize;
         $this->productsToUnlink = $productsToUnlink;
     }
+}
+
+/**
+ * Find the "Uncategorised" category, creating it if it doesn't exist yet.
+ * Used as the fallback home for products that would otherwise be left
+ * with zero categories after a category (sub)tree is deleted.
+ *
+ * @param mysqli $conn
+ * @return int Category id.
+ * @throws Exception
+ */
+function getOrCreateUncategorizedCategory($conn)
+{
+    $stmt = mysqli_prepare($conn, "SELECT id FROM categories WHERE slug = ? LIMIT 1");
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    $slug = UNCATEGORIZED_SLUG;
+    mysqli_stmt_bind_param($stmt, 's', $slug);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error looking up uncategorised category: " . mysqli_error($conn));
+    }
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+    if ($row) {
+        return (int) $row['id'];
+    }
+
+    $name = UNCATEGORIZED_NAME;
+    $sql = "INSERT INTO categories (parent_id, name, slug, description, image, status, sort_order, created_at, updated_at)
+            VALUES (NULL, ?, ?, 'Automatically created holding category for products left without a category.', NULL, 'Active', 0, NOW(), NOW())";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    mysqli_stmt_bind_param($stmt, 'ss', $name, $slug);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error creating uncategorised category: " . mysqli_error($conn));
+    }
+
+    return mysqli_insert_id($conn);
 }
 
 /**
@@ -44,10 +89,10 @@ class CategoryDeletionImpactException extends InvalidArgumentException
  *   2. If the user confirms, call again with $force = true:
  *        - The category and every descendant category are deleted.
  *        - For every product linked to any of those categories:
- *            - if it has NO other category outside this subtree,
- *              the product itself is deleted (cascades to its
- *              details/images/variants/reviews/wishlist/cart rows,
- *              and nulls out any historical order_items reference).
+ *            - if it has NO other category outside this subtree, it
+ *              is re-linked to the "Uncategorised" category (created
+ *              automatically if it doesn't exist yet) instead of
+ *              being deleted, so no product data is ever lost.
  *            - if it still has at least one category outside this
  *              subtree, it is simply unlinked from the deleted
  *              categories and otherwise left untouched.
@@ -62,7 +107,7 @@ class CategoryDeletionImpactException extends InvalidArgumentException
  * @param int $id
  * @param bool $force  Set true only after the user has explicitly
  *                      confirmed the deletion after seeing the impact.
- * @return array{deletedCategoryIds: int[], deletedProductIds: int[], unlinkedProductIds: int[]}
+ * @return array{deletedCategoryIds: int[], uncategorizedProductIds: int[], unlinkedProductIds: int[]}
  * @throws Exception
  * @throws InvalidArgumentException
  * @throws CategoryDeletionImpactException
@@ -75,6 +120,10 @@ function deleteCategory($conn, $id, $force = false)
     $categoryRow = mysqli_fetch_assoc($existing);
     if (!$categoryRow) {
         throw new InvalidArgumentException('Category not found.');
+    }
+
+    if (strcasecmp($categoryRow['slug'], UNCATEGORIZED_SLUG) === 0) {
+        throw new InvalidArgumentException('The "Uncategorised" category cannot be deleted; it is used as the fallback for orphaned products.');
     }
 
     $subtreeIds = getCategorySubtreeIds($conn, $id);
@@ -104,10 +153,10 @@ function deleteCategory($conn, $id, $force = false)
     }
 
     $productImpact = getProductImpactForSubtree($conn, $subtreeIds);
-    $productsToDelete = $productImpact['toDelete'];
+    $productsToUncategorize = $productImpact['toDelete'];
     $productsToUnlink = $productImpact['toUnlink'];
 
-    $hasImpact = !empty($subcategories) || !empty($productsToDelete) || !empty($productsToUnlink);
+    $hasImpact = !empty($subcategories) || !empty($productsToUncategorize) || !empty($productsToUnlink);
 
     if ($hasImpact && !$force) {
         $parts = [];
@@ -115,10 +164,10 @@ function deleteCategory($conn, $id, $force = false)
             $parts[] = count($subcategories) . ' subcategor' . (count($subcategories) === 1 ? 'y' : 'ies') .
                 ' (' . implode(', ', array_column($subcategories, 'name')) . ')';
         }
-        if (!empty($productsToDelete)) {
-            $parts[] = count($productsToDelete) . ' product' . (count($productsToDelete) === 1 ? '' : 's') .
-                ' that will be permanently deleted, since ' . (count($productsToDelete) === 1 ? 'it has' : 'they have') .
-                ' no other category (' . implode(', ', array_column($productsToDelete, 'title')) . ')';
+        if (!empty($productsToUncategorize)) {
+            $parts[] = count($productsToUncategorize) . ' product' . (count($productsToUncategorize) === 1 ? '' : 's') .
+                ' that will be moved to "' . UNCATEGORIZED_NAME . '", since ' . (count($productsToUncategorize) === 1 ? 'it has' : 'they have') .
+                ' no other category (' . implode(', ', array_column($productsToUncategorize, 'title')) . ')';
         }
         if (!empty($productsToUnlink)) {
             $parts[] = count($productsToUnlink) . ' product' . (count($productsToUnlink) === 1 ? '' : 's') .
@@ -128,7 +177,7 @@ function deleteCategory($conn, $id, $force = false)
 
         throw new CategoryDeletionImpactException(
             $subcategories,
-            $productsToDelete,
+            $productsToUncategorize,
             $productsToUnlink,
             'Deleting "' . $categoryRow['name'] . '" will also affect: ' . implode('; ', $parts) . '. Do you still want to delete it?'
         );
@@ -139,6 +188,13 @@ function deleteCategory($conn, $id, $force = false)
     mysqli_begin_transaction($conn);
 
     try {
+        // Resolve (or create) the fallback category *before* deleting
+        // anything, so if this fails we haven't touched real data yet.
+        $uncategorizedId = null;
+        if (!empty($productsToUncategorize)) {
+            $uncategorizedId = getOrCreateUncategorizedCategory($conn);
+        }
+
         // Deleting the categories cascades to product_categories rows
         // automatically (fk_pc_category ON DELETE CASCADE).
         $placeholders = implode(',', array_fill(0, count($subtreeIds), '?'));
@@ -158,25 +214,21 @@ function deleteCategory($conn, $id, $force = false)
             throw new Exception('Error deleting categories: ' . mysqli_error($conn));
         }
 
-        // Delete products that no longer belong to any category. This
-        // cascades to product_details/product_images/product_variants/
-        // reviews/wishlist/cart, and nulls out order_items.product_id.
-        $deletedProductIds = array_column($productsToDelete, 'id');
-        if (!empty($deletedProductIds)) {
-            $placeholders = implode(',', array_fill(0, count($deletedProductIds), '?'));
-            $types = str_repeat('i', count($deletedProductIds));
-            $sql = "DELETE FROM products WHERE id IN ($placeholders)";
+        // Re-link orphaned products to "Uncategorised" instead of
+        // deleting them. Their old product_categories rows for the
+        // deleted subtree are already gone via the cascade above.
+        if (!empty($productsToUncategorize) && $uncategorizedId !== null) {
+            $sql = "INSERT INTO product_categories (product_id, category_id, is_primary) VALUES (?, ?, 1)";
             $stmt = mysqli_prepare($conn, $sql);
             if (!$stmt) {
                 throw new Exception("Error preparing statement: " . mysqli_error($conn));
             }
-            $bindArgs = [$types];
-            foreach ($deletedProductIds as $key => $value) {
-                $bindArgs[] = &$deletedProductIds[$key];
-            }
-            call_user_func_array('mysqli_stmt_bind_param', array_merge([$stmt], $bindArgs));
-            if (!mysqli_stmt_execute($stmt)) {
-                throw new Exception('Error deleting orphaned products: ' . mysqli_error($conn));
+            foreach ($productsToUncategorize as $product) {
+                $productId = (int) $product['id'];
+                mysqli_stmt_bind_param($stmt, 'ii', $productId, $uncategorizedId);
+                if (!mysqli_stmt_execute($stmt)) {
+                    throw new Exception('Error moving product to Uncategorised: ' . mysqli_error($conn));
+                }
             }
         }
 
@@ -188,7 +240,7 @@ function deleteCategory($conn, $id, $force = false)
 
     return [
         'deletedCategoryIds' => $subtreeIds,
-        'deletedProductIds' => array_column($productsToDelete, 'id'),
+        'uncategorizedProductIds' => array_column($productsToUncategorize, 'id'),
         'unlinkedProductIds' => array_column($productsToUnlink, 'id'),
     ];
 }
