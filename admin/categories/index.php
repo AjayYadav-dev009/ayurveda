@@ -88,29 +88,38 @@ $categories = getCategories($conn);
 </div>
 
 <table>
-    <th>Name</th>
-    <th>Slug</th>
-    <th>Description</th>
-    <th>Image</th>
-    <th>Status</th>
-    <th>Sort Order</th>
-    <th>Created At</th>
-    <th>Updated At</th>
-    <th>Actions</th>
-    <?php foreach ($categories as $category) : ?>
+    <thead>
         <tr>
-            <td><?php echo htmlspecialchars($category['name']); ?></td>
-            <td><?php echo htmlspecialchars($category['slug']); ?></td>
-            <td><?php echo htmlspecialchars($category['description']); ?></td>
-            <td><?php echo htmlspecialchars($category['image']); ?></td>
-            <td><?php echo htmlspecialchars($category['status']); ?></td>
-            <td><?php echo $category['sort_order']; ?></td>
-            <td><?php echo $category['created_at']; ?></td>
-            <td><?php echo $category['updated_at']; ?></td>
-            <td>
-                <a href="edit.php?id=<?php echo $category['id']; ?>" class="btn btn-edit">Edit</a>
-                <a href="delete.php?id=<?php echo $category['id']; ?>" class="btn btn-delete">Delete</a>
-            </td>
+            <th>Name</th>
+            <th>Slug</th>
+            <th>Description</th>
+            <th>Image</th>
+            <th>Status</th>
+            <th>Sort Order</th>
+            <th>Created At</th>
+            <th>Updated At</th>
+            <th>Actions</th>
         </tr>
-    <?php endforeach; ?>
+    </thead>
+    <tbody>
+        <?php foreach ($categories as $category) : ?>
+            <tr>
+                <td><?php echo htmlspecialchars($category['name']); ?></td>
+                <td><?php echo htmlspecialchars($category['slug']); ?></td>
+                <td><?php echo htmlspecialchars($category['description']); ?></td>
+                <td><?php echo htmlspecialchars($category['image']); ?></td>
+                <td><?php echo htmlspecialchars($category['status']); ?></td>
+                <td><?php echo $category['sort_order']; ?></td>
+                <td><?php echo htmlspecialchars($category['created_at']); ?></td>
+                <td><?php echo htmlspecialchars($category['updated_at']); ?></td>
+                <td>
+                    <a href="edit.php?id=<?php echo $category['id']; ?>" class="btn btn-edit">Edit</a>
+                    <form method="POST" action="delete.php" style="display:inline;">
+                        <input type="hidden" name="id" value="<?= (int)$category['id']; ?>">
+                        <button type="submit" class="btn btn-delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
 </table>

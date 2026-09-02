@@ -23,6 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         $category_id = addCategory($conn, $parent_id, $name, $slug, $meta_title, $meta_description, $description, $image, $status, $sort_order);
 
+        header("Location: index.php");
+
     } catch (Exception $e) {
 
         echo "Error: " . htmlspecialchars($e->getMessage());
