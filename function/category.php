@@ -1,0 +1,665 @@
+<?php require_once __DIR__ . '/../config.php'; ?>
+<?php
+
+/**
+ * Insert a new category.
+ *
+ * @param mysqli $conn
+ * @param int|null $parent_id
+ * @param string $name
+ * @param string $slug
+ * @param string|null $description
+ * @param string|null $image
+ * @param string $status   Must be one of CATEGORY_STATUSES.
+ * @param int $sort_order
+ * @return int Newly created category id.
+ * @throws Exception
+ * @throws InvalidArgumentException
+ */
+function addCategory($conn, $parent_id, $name, $slug, $description, $image, $status, $sort_order)
+{
+    $name = trim($name);
+    $slug = trim($slug);
+
+    if ($name === '') {
+        throw new InvalidArgumentException('Category name is required.');
+    }
+
+    if ($slug === '') {
+        throw new InvalidArgumentException('Category slug is required.');
+    }
+
+    if (!in_array($status, CATEGORY_STATUSES, true)) {
+        throw new InvalidArgumentException(
+            'Invalid status. Allowed values: ' . implode(', ', CATEGORY_STATUSES)
+        );
+    }
+
+    // Normalize optional fields.
+    $parent_id = ($parent_id === '' || $parent_id === null) ? null : (int) $parent_id;
+    $sort_order = (int) $sort_order;
+
+    if ($parent_id !== null) {
+        // Make sure the chosen parent actually exists.
+        $parentResult = getCategoryById($conn, $parent_id);
+        if (mysqli_num_rows($parentResult) === 0) {
+            throw new InvalidArgumentException('Selected parent category does not exist.');
+        }
+    }
+
+    if (slugExists($conn, $slug)) {
+        throw new InvalidArgumentException('A category with this slug already exists.');
+    }
+
+    $sql = "INSERT INTO categories
+            (parent_id, name, slug, description, image, status, sort_order, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+
+    mysqli_stmt_bind_param($stmt, 'isssssi', $parent_id, $name, $slug, $description, $image, $status, $sort_order);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        // 1062 = duplicate entry (race condition guard, in addition to the
+        // slugExists() pre-check above).
+        if (mysqli_errno($conn) === 1062) {
+            throw new InvalidArgumentException('A category with this slug already exists.');
+        }
+        throw new Exception('Error adding category: ' . mysqli_error($conn));
+    }
+
+    return mysqli_insert_id($conn);
+}
+
+
+/**
+ * Walk up the parent chain starting at $startId and check whether
+ * $targetId appears anywhere in it. Used to stop a category being
+ * re-parented under one of its own descendants (which would create
+ * a cycle in the tree).
+ *
+ * @param mysqli $conn
+ * @param int $startId   The proposed new parent_id.
+ * @param int $targetId  The category being edited.
+ * @return bool True if $targetId is an ancestor of $startId (i.e. a cycle).
+ * @throws Exception
+ */
+function wouldCreateCircularReference($conn, $startId, $targetId)
+{
+    $currentId = $startId;
+    $visited = [];
+
+    while ($currentId !== null) {
+        if ($currentId === $targetId) {
+            return true;
+        }
+
+        // Guard against any pre-existing bad data looping forever.
+        if (isset($visited[$currentId])) {
+            break;
+        }
+        $visited[$currentId] = true;
+
+        $result = getCategoryById($conn, $currentId);
+        $row = mysqli_fetch_assoc($result);
+        if (!$row) {
+            break;
+        }
+
+        $currentId = $row['parent_id'] !== null ? (int) $row['parent_id'] : null;
+    }
+
+    return false;
+}
+
+/**
+ * Update an existing category.
+ *
+ * @param mysqli $conn
+ * @param int $id
+ * @param int|null $parent_id
+ * @param string $name
+ * @param string $slug
+ * @param string|null $description
+ * @param string|null $image
+ * @param string $status   Must be one of CATEGORY_STATUSES.
+ * @param int $sort_order
+ * @return bool
+ * @throws Exception
+ * @throws InvalidArgumentException
+ */
+function updateCategory($conn, $id, $parent_id, $name, $slug, $description, $image, $status, $sort_order)
+{
+    $id = (int) $id;
+    $name = trim($name);
+    $slug = trim($slug);
+
+    if ($name === '') {
+        throw new InvalidArgumentException('Category name is required.');
+    }
+
+    if ($slug === '') {
+        throw new InvalidArgumentException('Category slug is required.');
+    }
+
+    if (!in_array($status, CATEGORY_STATUSES, true)) {
+        throw new InvalidArgumentException(
+            'Invalid status. Allowed values: ' . implode(', ', CATEGORY_STATUSES)
+        );
+    }
+
+    $parent_id = ($parent_id === '' || $parent_id === null) ? null : (int) $parent_id;
+    $sort_order = (int) $sort_order;
+
+    if ($parent_id !== null) {
+        if ($parent_id === $id) {
+            throw new InvalidArgumentException('A category cannot be its own parent.');
+        }
+
+        $parentResult = getCategoryById($conn, $parent_id);
+        if (mysqli_num_rows($parentResult) === 0) {
+            throw new InvalidArgumentException('Selected parent category does not exist.');
+        }
+
+        if (wouldCreateCircularReference($conn, $parent_id, $id)) {
+            throw new InvalidArgumentException('Cannot set parent: this would create a circular category tree.');
+        }
+    }
+
+    if (slugExists($conn, $slug, $id)) {
+        throw new InvalidArgumentException('A category with this slug already exists.');
+    }
+
+    $sql = "UPDATE categories
+            SET parent_id = ?, name = ?, slug = ?, description = ?, image = ?, status = ?, sort_order = ?, updated_at = NOW()
+            WHERE id = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+
+    mysqli_stmt_bind_param($stmt, 'isssssii', $parent_id, $name, $slug, $description, $image, $status, $sort_order, $id);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        if (mysqli_errno($conn) === 1062) {
+            throw new InvalidArgumentException('A category with this slug already exists.');
+        }
+        throw new Exception('Error updating category: ' . mysqli_error($conn));
+    }
+
+    return true;
+}
+
+
+/** Slug used to find/create the fallback category for orphaned products. */
+const UNCATEGORIZED_SLUG = 'uncategorised';
+const UNCATEGORIZED_NAME = 'Uncategorised';
+
+/**
+ * Thrown when a delete is blocked pending user confirmation. Carries a
+ * full breakdown of what the delete will do, so the caller can show it
+ * to the user before they confirm.
+ */
+class CategoryDeletionImpactException extends InvalidArgumentException
+{
+    /** @var array<int,array{id:int,name:string}> Subcategories that will be deleted (excludes the category itself). */
+    public array $subcategories;
+
+    /** @var array<int,array{id:int,title:string}> Products that will be moved to "Uncategorised" (no other category). */
+    public array $productsToUncategorize;
+
+    /** @var array<int,array{id:int,title:string}> Products that will just be unlinked from this category/subtree but kept. */
+    public array $productsToUnlink;
+
+    public function __construct(array $subcategories, array $productsToUncategorize, array $productsToUnlink, string $message)
+    {
+        parent::__construct($message);
+        $this->subcategories = $subcategories;
+        $this->productsToUncategorize = $productsToUncategorize;
+        $this->productsToUnlink = $productsToUnlink;
+    }
+}
+
+/**
+ * Find the "Uncategorised" category, creating it if it doesn't exist yet.
+ * Used as the fallback home for products that would otherwise be left
+ * with zero categories after a category (sub)tree is deleted.
+ *
+ * @param mysqli $conn
+ * @return int Category id.
+ * @throws Exception
+ */
+function getOrCreateUncategorizedCategory($conn)
+{
+    $stmt = mysqli_prepare($conn, "SELECT id FROM categories WHERE slug = ? LIMIT 1");
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    $slug = UNCATEGORIZED_SLUG;
+    mysqli_stmt_bind_param($stmt, 's', $slug);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error looking up uncategorised category: " . mysqli_error($conn));
+    }
+    $result = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($result);
+    if ($row) {
+        return (int) $row['id'];
+    }
+
+    $name = UNCATEGORIZED_NAME;
+    $sql = "INSERT INTO categories (parent_id, name, slug, description, image, status, sort_order, created_at, updated_at)
+            VALUES (NULL, ?, ?, 'Automatically created holding category for products left without a category.', NULL, 'Active', 0, NOW(), NOW())";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    mysqli_stmt_bind_param($stmt, 'ss', $name, $slug);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error creating uncategorised category: " . mysqli_error($conn));
+    }
+
+    return mysqli_insert_id($conn);
+}
+
+/**
+ * Delete a category and its entire subtree (all descendant categories,
+ * at any depth).
+ *
+ * Two-step confirmation flow:
+ *
+ *   1. Call with $force = false (default). If deleting would affect
+ *      anything beyond the category itself (it has subcategories,
+ *      and/or products are linked to it or its subcategories),
+ *      nothing is deleted. A CategoryDeletionImpactException is thrown
+ *      with a full breakdown so the caller can show the user exactly
+ *      what will happen and ask for confirmation.
+ *
+ *   2. If the user confirms, call again with $force = true:
+ *        - The category and every descendant category are deleted.
+ *        - For every product linked to any of those categories:
+ *            - if it has NO other category outside this subtree, it
+ *              is re-linked to the "Uncategorised" category (created
+ *              automatically if it doesn't exist yet) instead of
+ *              being deleted, so no product data is ever lost.
+ *            - if it still has at least one category outside this
+ *              subtree, it is simply unlinked from the deleted
+ *              categories and otherwise left untouched.
+ *
+ *   A category with no subcategories and no linked products is
+ *   deleted immediately regardless of $force.
+ *
+ * The whole operation runs in a single transaction: if any step
+ * fails, everything is rolled back.
+ *
+ * @param mysqli $conn
+ * @param int $id
+ * @param bool $force  Set true only after the user has explicitly
+ *                      confirmed the deletion after seeing the impact.
+ * @return array{deletedCategoryIds: int[], uncategorizedProductIds: int[], unlinkedProductIds: int[]}
+ * @throws Exception
+ * @throws InvalidArgumentException
+ * @throws CategoryDeletionImpactException
+ */
+function deleteCategory($conn, $id, $force = false)
+{
+    $id = (int) $id;
+
+    $existing = getCategoryById($conn, $id);
+    $categoryRow = mysqli_fetch_assoc($existing);
+    if (!$categoryRow) {
+        throw new InvalidArgumentException('Category not found.');
+    }
+
+    if (strcasecmp($categoryRow['slug'], UNCATEGORIZED_SLUG) === 0) {
+        throw new InvalidArgumentException('The "Uncategorised" category cannot be deleted; it is used as the fallback for orphaned products.');
+    }
+
+    $subtreeIds = getCategorySubtreeIds($conn, $id);
+    $subcategoryIds = array_values(array_diff($subtreeIds, [$id]));
+
+    $subcategories = [];
+    if (!empty($subcategoryIds)) {
+        $placeholders = implode(',', array_fill(0, count($subcategoryIds), '?'));
+        $types = str_repeat('i', count($subcategoryIds));
+        $sql = "SELECT id, name FROM categories WHERE id IN ($placeholders)";
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        $bindArgs = [$types];
+        foreach ($subcategoryIds as $key => $value) {
+            $bindArgs[] = &$subcategoryIds[$key];
+        }
+        call_user_func_array('mysqli_stmt_bind_param', array_merge([$stmt], $bindArgs));
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new Exception("Error fetching subcategories: " . mysqli_error($conn));
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($result)) {
+            $subcategories[] = ['id' => (int) $row['id'], 'name' => $row['name']];
+        }
+    }
+
+    $productImpact = getProductImpactForSubtree($conn, $subtreeIds);
+    $productsToUncategorize = $productImpact['toDelete'];
+    $productsToUnlink = $productImpact['toUnlink'];
+
+    $hasImpact = !empty($subcategories) || !empty($productsToUncategorize) || !empty($productsToUnlink);
+
+    if ($hasImpact && !$force) {
+        $parts = [];
+        if (!empty($subcategories)) {
+            $parts[] = count($subcategories) . ' subcategor' . (count($subcategories) === 1 ? 'y' : 'ies') .
+                ' (' . implode(', ', array_column($subcategories, 'name')) . ')';
+        }
+        if (!empty($productsToUncategorize)) {
+            $parts[] = count($productsToUncategorize) . ' product' . (count($productsToUncategorize) === 1 ? '' : 's') .
+                ' that will be moved to "' . UNCATEGORIZED_NAME . '", since ' . (count($productsToUncategorize) === 1 ? 'it has' : 'they have') .
+                ' no other category (' . implode(', ', array_column($productsToUncategorize, 'title')) . ')';
+        }
+        if (!empty($productsToUnlink)) {
+            $parts[] = count($productsToUnlink) . ' product' . (count($productsToUnlink) === 1 ? '' : 's') .
+                ' that will just be unlinked from this category but kept, since ' .
+                (count($productsToUnlink) === 1 ? 'it still has' : 'they still have') . ' another category';
+        }
+
+        throw new CategoryDeletionImpactException(
+            $subcategories,
+            $productsToUncategorize,
+            $productsToUnlink,
+            'Deleting "' . $categoryRow['name'] . '" will also affect: ' . implode('; ', $parts) . '. Do you still want to delete it?'
+        );
+    }
+
+    // Either nothing but the category itself is affected, or the user has
+    // already confirmed (force = true). Run everything atomically.
+    mysqli_begin_transaction($conn);
+
+    try {
+        // Resolve (or create) the fallback category *before* deleting
+        // anything, so if this fails we haven't touched real data yet.
+        $uncategorizedId = null;
+        if (!empty($productsToUncategorize)) {
+            $uncategorizedId = getOrCreateUncategorizedCategory($conn);
+        }
+
+        // Deleting the categories cascades to product_categories rows
+        // automatically (fk_pc_category ON DELETE CASCADE).
+        $placeholders = implode(',', array_fill(0, count($subtreeIds), '?'));
+        $types = str_repeat('i', count($subtreeIds));
+        $sql = "DELETE FROM categories WHERE id IN ($placeholders)";
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        $bindArgs = [$types];
+        $idsForBind = $subtreeIds;
+        foreach ($idsForBind as $key => $value) {
+            $bindArgs[] = &$idsForBind[$key];
+        }
+        call_user_func_array('mysqli_stmt_bind_param', array_merge([$stmt], $bindArgs));
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new Exception('Error deleting categories: ' . mysqli_error($conn));
+        }
+
+        // Re-link orphaned products to "Uncategorised" instead of
+        // deleting them. Their old product_categories rows for the
+        // deleted subtree are already gone via the cascade above.
+        if (!empty($productsToUncategorize) && $uncategorizedId !== null) {
+            $sql = "INSERT INTO product_categories (product_id, category_id, is_primary) VALUES (?, ?, 1)";
+            $stmt = mysqli_prepare($conn, $sql);
+            if (!$stmt) {
+                throw new Exception("Error preparing statement: " . mysqli_error($conn));
+            }
+            foreach ($productsToUncategorize as $product) {
+                $productId = (int) $product['id'];
+                mysqli_stmt_bind_param($stmt, 'ii', $productId, $uncategorizedId);
+                if (!mysqli_stmt_execute($stmt)) {
+                    throw new Exception('Error moving product to Uncategorised: ' . mysqli_error($conn));
+                }
+            }
+        }
+
+        mysqli_commit($conn);
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        throw $e;
+    }
+
+    return [
+        'deletedCategoryIds' => $subtreeIds,
+        'uncategorizedProductIds' => array_column($productsToUncategorize, 'id'),
+        'unlinkedProductIds' => array_column($productsToUnlink, 'id'),
+    ];
+}
+
+const CATEGORY_STATUSES = ['Active', 'Inactive'];
+
+/**
+ * Fetch all categories.
+ *
+ * @param mysqli $conn
+ * @return mysqli_result
+ * @throws Exception
+ */
+function getCategories($conn)
+{
+    $sql = "SELECT * FROM categories ORDER BY sort_order ASC, id ASC";
+    $result = mysqli_query($conn, $sql);
+
+    if (!$result) {
+        throw new Exception("Error fetching categories: " . mysqli_error($conn));
+    }
+
+    return $result;
+}
+
+/**
+ * Fetch a single category by id.
+ *
+ * @param mysqli $conn
+ * @param int $id
+ * @return mysqli_result
+ * @throws Exception
+ */
+function getCategoryById($conn, $id)
+{
+    $sql = "SELECT * FROM categories WHERE id = ? LIMIT 1";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+
+    mysqli_stmt_bind_param($stmt, 'i', $id);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching category by ID: " . mysqli_error($conn));
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+    if ($result === false) {
+        throw new Exception("Error fetching category by ID: " . mysqli_error($conn));
+    }
+
+    return $result;
+}
+
+/**
+ * Fetch all direct children of a given category (used for delete guards
+ * and building a tree view).
+ *
+ * @param mysqli $conn
+ * @param int $parentId
+ * @return mysqli_result
+ * @throws Exception
+ */
+function getChildCategories($conn, $parentId)
+{
+    $sql = "SELECT id, name FROM categories WHERE parent_id = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+
+    mysqli_stmt_bind_param($stmt, 'i', $parentId);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching child categories: " . mysqli_error($conn));
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+    if ($result === false) {
+        throw new Exception("Error fetching child categories: " . mysqli_error($conn));
+    }
+
+    return $result;
+}
+
+/**
+ * Check whether a slug is already used by another category.
+ *
+ * @param mysqli $conn
+ * @param string $slug
+ * @param int|null $excludeId  Category id to exclude (used when editing).
+ * @return bool
+ * @throws Exception
+ */
+function slugExists($conn, $slug, $excludeId = null)
+{
+    if ($excludeId !== null) {
+        $sql = "SELECT id FROM categories WHERE slug = ? AND id != ? LIMIT 1";
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        mysqli_stmt_bind_param($stmt, 'si', $slug, $excludeId);
+    } else {
+        $sql = "SELECT id FROM categories WHERE slug = ? LIMIT 1";
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        mysqli_stmt_bind_param($stmt, 's', $slug);
+    }
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error checking slug: " . mysqli_error($conn));
+    }
+
+    mysqli_stmt_store_result($stmt);
+    return mysqli_stmt_num_rows($stmt) > 0;
+}
+
+/**
+ * Get every descendant category id of $rootId, at any depth, including
+ * $rootId itself. Used when cascade-deleting a whole category subtree.
+ *
+ * @param mysqli $conn
+ * @param int $rootId
+ * @return int[]
+ * @throws Exception
+ */
+function getCategorySubtreeIds($conn, $rootId)
+{
+    $ids = [(int) $rootId];
+    $levelIds = [(int) $rootId];
+
+    while (!empty($levelIds)) {
+        $placeholders = implode(',', array_fill(0, count($levelIds), '?'));
+        $types = str_repeat('i', count($levelIds));
+
+        $sql = "SELECT id FROM categories WHERE parent_id IN ($placeholders)";
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+
+        $bindArgs = [];
+        $bindArgs[] = $types;
+        foreach ($levelIds as $key => $value) {
+            $bindArgs[] = &$levelIds[$key];
+        }
+        call_user_func_array('mysqli_stmt_bind_param', array_merge([$stmt], $bindArgs));
+
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new Exception("Error fetching category subtree: " . mysqli_error($conn));
+        }
+
+        $result = mysqli_stmt_get_result($stmt);
+        $nextLevel = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $nextLevel[] = (int) $row['id'];
+        }
+
+        $ids = array_merge($ids, $nextLevel);
+        $levelIds = $nextLevel;
+    }
+
+    return $ids;
+}
+
+/**
+ * Work out exactly what deleting a category subtree will do to products:
+ * which ones will be fully deleted (no category left outside the subtree)
+ * vs. which ones will simply be unlinked from these categories but survive
+ * (because they're still linked to at least one category outside the subtree).
+ *
+ * @param mysqli $conn
+ * @param int[] $subtreeIds
+ * @return array{toDelete: array<int,array{id:int,title:string}>, toUnlink: array<int,array{id:int,title:string}>}
+ * @throws Exception
+ */
+function getProductImpactForSubtree($conn, array $subtreeIds)
+{
+    $placeholders = implode(',', array_fill(0, count($subtreeIds), '?'));
+    $types = str_repeat('i', count($subtreeIds));
+
+    // Every distinct product linked to any category in the subtree, plus
+    // how many category links that product has OUTSIDE the subtree.
+    $sql = "SELECT p.id, p.title,
+                   (
+                       SELECT COUNT(*) FROM product_categories pc_out
+                       WHERE pc_out.product_id = p.id
+                         AND pc_out.category_id NOT IN ($placeholders)
+                   ) AS other_category_count
+            FROM products p
+            INNER JOIN (
+                SELECT DISTINCT product_id FROM product_categories WHERE category_id IN ($placeholders)
+            ) affected ON affected.product_id = p.id";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+
+    // Same subtree ids are needed twice (once per IN clause).
+    $allIds = array_merge($subtreeIds, $subtreeIds);
+    $allTypes = $types . $types;
+
+    $bindArgs = [$allTypes];
+    foreach ($allIds as $key => $value) {
+        $bindArgs[] = &$allIds[$key];
+    }
+    call_user_func_array('mysqli_stmt_bind_param', array_merge([$stmt], $bindArgs));
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error checking product impact: " . mysqli_error($conn));
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    $toDelete = [];
+    $toUnlink = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $entry = ['id' => (int) $row['id'], 'title' => $row['title']];
+        if ((int) $row['other_category_count'] === 0) {
+            $toDelete[] = $entry;
+        } else {
+            $toUnlink[] = $entry;
+        }
+    }
+
+    return ['toDelete' => $toDelete, 'toUnlink' => $toUnlink];
+}
