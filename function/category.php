@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/../config.php'; ?>
+<?php require_once __DIR__ . '/../config/database.php'; ?>
 <?php
 
 /**
@@ -8,6 +8,8 @@
  * @param int|null $parent_id
  * @param string $name
  * @param string $slug
+ * @param string $meta_title
+ * @param string $meta_description
  * @param string|null $description
  * @param string|null $image
  * @param string $status   Must be one of CATEGORY_STATUSES.
@@ -16,18 +18,17 @@
  * @throws Exception
  * @throws InvalidArgumentException
  */
-function addCategory($conn, $parent_id, $name, $slug, $description, $image, $status, $sort_order)
+function addCategory($conn, $parent_id, $name, $slug, $meta_title, $meta_description, $description, $image, $status, $sort_order)
 {
     $name = trim($name);
-    $slug = trim($slug);
 
     if ($name === '') {
         throw new InvalidArgumentException('Category name is required.');
     }
 
-    if ($slug === '') {
-        throw new InvalidArgumentException('Category slug is required.');
-    }
+    $meta_title = createMetaTitle($meta_title);
+    $meta_description = createMetaDescription($meta_description);
+    $slug = createSlug($name);
 
     if (!in_array($status, CATEGORY_STATUSES, true)) {
         throw new InvalidArgumentException(
@@ -52,14 +53,14 @@ function addCategory($conn, $parent_id, $name, $slug, $description, $image, $sta
     }
 
     $sql = "INSERT INTO categories
-            (parent_id, name, slug, description, image, status, sort_order, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+            (parent_id, name, slug, meta_title, meta_description, description, image, status, sort_order, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         throw new Exception("Error preparing statement: " . mysqli_error($conn));
     }
 
-    mysqli_stmt_bind_param($stmt, 'isssssi', $parent_id, $name, $slug, $description, $image, $status, $sort_order);
+    mysqli_stmt_bind_param($stmt, 'isssssssi', $parent_id, $name, $slug, $meta_title, $meta_description, $description, $image, $status, $sort_order);
 
     if (!mysqli_stmt_execute($stmt)) {
         // 1062 = duplicate entry (race condition guard, in addition to the
@@ -70,7 +71,9 @@ function addCategory($conn, $parent_id, $name, $slug, $description, $image, $sta
         throw new Exception('Error adding category: ' . mysqli_error($conn));
     }
 
-    return mysqli_insert_id($conn);
+    $result = mysqli_insert_id($conn);
+    mysqli_stmt_close($stmt);
+    return $result;
 }
 
 
@@ -130,19 +133,18 @@ function wouldCreateCircularReference($conn, $startId, $targetId)
  * @throws Exception
  * @throws InvalidArgumentException
  */
-function updateCategory($conn, $id, $parent_id, $name, $slug, $description, $image, $status, $sort_order)
+function updateCategory($conn, $id, $parent_id, $name, $slug, $meta_title, $meta_description, $description, $image, $status, $sort_order)
 {
     $id = (int) $id;
     $name = trim($name);
-    $slug = trim($slug);
 
     if ($name === '') {
         throw new InvalidArgumentException('Category name is required.');
     }
 
-    if ($slug === '') {
-        throw new InvalidArgumentException('Category slug is required.');
-    }
+    $meta_title = createMetaTitle($meta_title);
+    $meta_description = createMetaDescription($meta_description);
+    $slug = createSlug($name);
 
     if (!in_array($status, CATEGORY_STATUSES, true)) {
         throw new InvalidArgumentException(
@@ -173,14 +175,14 @@ function updateCategory($conn, $id, $parent_id, $name, $slug, $description, $ima
     }
 
     $sql = "UPDATE categories
-            SET parent_id = ?, name = ?, slug = ?, description = ?, image = ?, status = ?, sort_order = ?, updated_at = NOW()
+            SET parent_id = ?, name = ?, slug = ?, meta_title = ?, meta_description = ?, description = ?, image = ?, status = ?, sort_order = ?, updated_at = NOW()
             WHERE id = ?";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         throw new Exception("Error preparing statement: " . mysqli_error($conn));
     }
 
-    mysqli_stmt_bind_param($stmt, 'isssssii', $parent_id, $name, $slug, $description, $image, $status, $sort_order, $id);
+    mysqli_stmt_bind_param($stmt, 'isssssssii', $parent_id, $name, $slug, $meta_title, $meta_description, $description, $image, $status, $sort_order, $id);
 
     if (!mysqli_stmt_execute($stmt)) {
         if (mysqli_errno($conn) === 1062) {
@@ -249,8 +251,8 @@ function getOrCreateUncategorizedCategory($conn)
     }
 
     $name = UNCATEGORIZED_NAME;
-    $sql = "INSERT INTO categories (parent_id, name, slug, description, image, status, sort_order, created_at, updated_at)
-            VALUES (NULL, ?, ?, 'Automatically created holding category for products left without a category.', NULL, 'Active', 0, NOW(), NOW())";
+    $sql = "INSERT INTO categories (parent_id, name, slug, meta_title, meta_description, description, image, status, sort_order, created_at, updated_at)
+            VALUES (NULL, ?, ?, '', '', 'Automatically created holding category for products left without a category.', NULL, 'Active', 0, NOW(), NOW())";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         throw new Exception("Error preparing statement: " . mysqli_error($conn));
