@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$admin) {
 
             $errors['login'] = 'Invalid email or password.';
-        } elseif ((int) $admin['status'] !== 1) {
+        } elseif ($admin['status'] !== 'Active') {
 
             $errors['login'] = 'Your account is inactive.';
         } elseif (!password_verify($password, $admin['password'])) {

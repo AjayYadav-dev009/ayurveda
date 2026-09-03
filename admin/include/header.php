@@ -17,9 +17,8 @@ $activeNav = $activeNav ?? '';
         <aside class="sidebar">
             <p class="sidebar__brand">Ayurveda Admin</p>
             <nav>
-                <a href="/admin/index.php" class="<?= $activeNav === 'dashboard' ? 'active' : '' ?>">Dashboard</a>
-                <a href="/admin/products/index.php" class="<?= $activeNav === 'products' ? 'active' : '' ?>">Products</a>
-                <a href="/admin/categories/index.php" class="<?= $activeNav === 'categories' ? 'active' : '' ?>">Categories</a>
+                <a href="products/index.php" class="<?= $activeNav === 'products' ? 'active' : '' ?>">Products</a>
+                <a href="categories/index.php" class="<?= $activeNav === 'categories' ? 'active' : '' ?>">Categories</a>
             </nav>
         </aside>
         <main class="main">
