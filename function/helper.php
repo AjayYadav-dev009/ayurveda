@@ -1,5 +1,11 @@
 <?php
 
+function redirect($url)
+{
+    header("Location: " . $url);
+    exit;
+}
+
 function createMetaTitle($title)
 {
     $meta_title = trim($title);

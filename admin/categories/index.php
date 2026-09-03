@@ -2,6 +2,12 @@
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
 
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
+
+<?php
 $categories = getCategories($conn);
 ?>
 
@@ -102,24 +108,30 @@ $categories = getCategories($conn);
         </tr>
     </thead>
     <tbody>
-        <?php foreach ($categories as $category) : ?>
+        <?php if (mysqli_num_rows($categories) === 0) : ?>
             <tr>
-                <td><?php echo htmlspecialchars($category['name']); ?></td>
-                <td><?php echo htmlspecialchars($category['slug']); ?></td>
-                <td><?php echo htmlspecialchars($category['description']); ?></td>
-                <td><?php echo htmlspecialchars($category['image']); ?></td>
-                <td><?php echo htmlspecialchars($category['status']); ?></td>
-                <td><?php echo $category['sort_order']; ?></td>
-                <td><?php echo htmlspecialchars($category['created_at']); ?></td>
-                <td><?php echo htmlspecialchars($category['updated_at']); ?></td>
-                <td>
-                    <a href="edit.php?id=<?php echo $category['id']; ?>" class="btn btn-edit">Edit</a>
-                    <form method="POST" action="delete.php" style="display:inline;">
-                        <input type="hidden" name="id" value="<?= (int)$category['id']; ?>">
-                        <button type="submit" class="btn btn-delete">Delete</button>
-                    </form>
-                </td>
+                <td colspan="9" style="text-align:center;">No category found.</td>
             </tr>
+        <?php else : ?>
+            <?php foreach ($categories as $category) : ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($category['name']); ?></td>
+                    <td><?php echo htmlspecialchars($category['slug']); ?></td>
+                    <td><?php echo htmlspecialchars($category['description']); ?></td>
+                    <td><?php echo htmlspecialchars($category['image']); ?></td>
+                    <td><?php echo htmlspecialchars($category['status']); ?></td>
+                    <td><?php echo $category['sort_order']; ?></td>
+                    <td><?php echo htmlspecialchars($category['created_at']); ?></td>
+                    <td><?php echo htmlspecialchars($category['updated_at']); ?></td>
+                    <td>
+                        <a href="edit.php?id=<?php echo $category['id']; ?>" class="btn btn-edit">Edit</a>
+                        <form method="POST" action="delete.php" style="display:inline;">
+                            <input type="hidden" name="id" value="<?= (int)$category['id']; ?>">
+                            <button type="submit" class="btn btn-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
             <?php endforeach; ?>
-        </tbody>
+        <?php endif ?>
+    </tbody>
 </table>

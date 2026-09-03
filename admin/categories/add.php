@@ -3,6 +3,12 @@
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
 
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
+
+<?php
 $categories = getCategories($conn);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -24,11 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $category_id = addCategory($conn, $parent_id, $name, $slug, $meta_title, $meta_description, $description, $image, $status, $sort_order);
 
         header("Location: index.php");
-
     } catch (Exception $e) {
 
         echo "Error: " . htmlspecialchars($e->getMessage());
-
     }
 }
 ?>
@@ -118,6 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <option value="Inactive" <?php if (isset($_POST['status']) && $_POST['status'] == 'Inactive') echo 'selected'; ?>>Inactive</option>
     </select>
     <label for="image">Image:</label>
-    <input type="file" name="image" id="image"?>
+    <input type="file" name="image" id="image" ?>
     <input type="submit">
 </form>

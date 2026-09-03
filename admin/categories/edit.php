@@ -3,6 +3,12 @@
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
 
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
+
+<?php
 
 $id = $_GET['id'] ?? null;
 
