@@ -101,6 +101,29 @@ function getProductById($conn, $id)
 }
 
 /**
+ * Check whether a product with the given id exists.
+ *
+ * @param mysqli $conn
+ * @param int $id
+ * @return bool
+ * @throws Exception
+ */
+function productExists($conn, $id)
+{
+    $id = (int) $id;
+    $stmt = mysqli_prepare($conn, "SELECT id FROM products WHERE id = ? LIMIT 1");
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    mysqli_stmt_bind_param($stmt, 'i', $id);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error checking product: " . mysqli_error($conn));
+    }
+    mysqli_stmt_store_result($stmt);
+    return mysqli_stmt_num_rows($stmt) > 0;
+}
+
+/**
  * Fetch a product plus every related row (details, images, variants,
  * categories) for the edit/detail admin page.
  *
@@ -119,17 +142,26 @@ function getProductWithRelations($conn, $id)
         return ['product' => null, 'details' => null, 'images' => [], 'variants' => [], 'categories' => []];
     }
 
-    $details = null;
     $stmt = mysqli_prepare($conn, "SELECT * FROM product_details WHERE product_id = ? LIMIT 1");
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
     mysqli_stmt_bind_param($stmt, 'i', $id);
-    mysqli_stmt_execute($stmt);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching product details: " . mysqli_error($conn));
+    }
     $detailsResult = mysqli_stmt_get_result($stmt);
     $details = mysqli_fetch_assoc($detailsResult) ?: null;
 
     $images = [];
     $stmt = mysqli_prepare($conn, "SELECT * FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC");
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
     mysqli_stmt_bind_param($stmt, 'i', $id);
-    mysqli_stmt_execute($stmt);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching product images: " . mysqli_error($conn));
+    }
     $imagesResult = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($imagesResult)) {
         $images[] = $row;
@@ -137,8 +169,13 @@ function getProductWithRelations($conn, $id)
 
     $variants = [];
     $stmt = mysqli_prepare($conn, "SELECT * FROM product_variants WHERE product_id = ? ORDER BY sort_order ASC, id ASC");
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
     mysqli_stmt_bind_param($stmt, 'i', $id);
-    mysqli_stmt_execute($stmt);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching product variants: " . mysqli_error($conn));
+    }
     $variantsResult = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($variantsResult)) {
         $variants[] = $row;
@@ -153,8 +190,13 @@ function getProductWithRelations($conn, $id)
          WHERE pc.product_id = ?
          ORDER BY pc.is_primary DESC, c.name ASC"
     );
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
     mysqli_stmt_bind_param($stmt, 'i', $id);
-    mysqli_stmt_execute($stmt);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching product categories: " . mysqli_error($conn));
+    }
     $categoriesResult = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($categoriesResult)) {
         $categories[] = $row;
@@ -206,7 +248,7 @@ function productSlugExists($conn, $slug, $excludeId = null)
 
 /**
  * Make sure every category id in the array actually exists.
- * Throws on the first missing id.
+ * Throws listing every missing id (single query, not N+1).
  *
  * @param mysqli $conn
  * @param int[] $categoryIds
@@ -215,19 +257,33 @@ function productSlugExists($conn, $slug, $excludeId = null)
  */
 function assertCategoriesExist($conn, array $categoryIds)
 {
-    foreach ($categoryIds as $categoryId) {
-        $sql = "SELECT id FROM categories WHERE id = ? LIMIT 1";
-        $stmt = mysqli_prepare($conn, $sql);
-        if (!$stmt) {
-            throw new Exception("Error preparing statement: " . mysqli_error($conn));
-        }
-        $categoryId = (int) $categoryId;
-        mysqli_stmt_bind_param($stmt, 'i', $categoryId);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_store_result($stmt);
-        if (mysqli_stmt_num_rows($stmt) === 0) {
-            throw new InvalidArgumentException("Category ID {$categoryId} does not exist.");
-        }
+    if (empty($categoryIds)) {
+        return;
+    }
+
+    $categoryIds = array_values(array_unique(array_map('intval', $categoryIds)));
+    $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+    $types = str_repeat('i', count($categoryIds));
+
+    $sql = "SELECT id FROM categories WHERE id IN ($placeholders)";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    mysqli_stmt_bind_param($stmt, $types, ...$categoryIds);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error checking categories: " . mysqli_error($conn));
+    }
+    $result = mysqli_stmt_get_result($stmt);
+
+    $found = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $found[] = (int) $row['id'];
+    }
+
+    $missing = array_diff($categoryIds, $found);
+    if (!empty($missing)) {
+        throw new InvalidArgumentException('Category ID(s) do not exist: ' . implode(', ', $missing));
     }
 }
 
@@ -267,7 +323,7 @@ function assertCategoriesExist($conn, array $categoryIds)
  *     ...
  *   ],
  *
- *   'variants' => [                      // required if has_variants = true
+ *   'variants' => [                      // required if has_variants = true, ignored otherwise
  *     ['variant_name' => string, 'sku' => string, 'price' => float,
  *      'sale_price' => float|null, 'stock' => int, 'weight_grams' => int|null,
  *      'is_default' => bool, 'status' => string, 'sort_order' => int],
@@ -306,7 +362,8 @@ function addProduct($conn, array $data)
     }
 
     $hasVariants = !empty($data['has_variants']) ? 1 : 0;
-    $variants = $data['variants'] ?? [];
+    // Variants are only meaningful (and only stored) when has_variants is true.
+    $variants = $hasVariants ? ($data['variants'] ?? []) : [];
     if ($hasVariants && empty($variants)) {
         throw new InvalidArgumentException('At least one variant is required when "has variants" is enabled.');
     }
@@ -325,6 +382,9 @@ function addProduct($conn, array $data)
 
     $basePrice = (float) $basePrice;
     $baseSalePrice = isset($data['base_sale_price']) && $data['base_sale_price'] !== '' ? (float) $data['base_sale_price'] : null;
+    if ($baseSalePrice !== null && $baseSalePrice > $basePrice) {
+        throw new InvalidArgumentException('Sale price cannot be higher than the base price.');
+    }
     $featured = !empty($data['featured']) ? 1 : 0;
     $bestseller = !empty($data['bestseller']) ? 1 : 0;
     $trending = !empty($data['trending']) ? 1 : 0;
@@ -420,21 +480,30 @@ function addProduct($conn, array $data)
             }
         }
 
-        // Images.
+        // Images. Only one image may be marked primary: the last
+        // image in the array with is_primary truthy wins, all others
+        // are forced to 0.
         if (!empty($data['images'])) {
+            $primaryIndex = null;
+            foreach ($data['images'] as $idx => $img) {
+                if (!empty($img['is_primary'])) {
+                    $primaryIndex = $idx;
+                }
+            }
+
             $sql = "INSERT INTO product_images (product_id, image, alt_text, is_primary, sort_order, created_at)
                     VALUES (?, ?, ?, ?, ?, NOW())";
             $stmt = mysqli_prepare($conn, $sql);
             if (!$stmt) {
                 throw new Exception("Error preparing statement: " . mysqli_error($conn));
             }
-            foreach ($data['images'] as $img) {
+            foreach ($data['images'] as $idx => $img) {
                 $image = trim($img['image'] ?? '');
                 if ($image === '') {
                     continue;
                 }
                 $altText = $img['alt_text'] ?? null;
-                $isPrimary = !empty($img['is_primary']) ? 1 : 0;
+                $isPrimary = ($primaryIndex !== null && $idx === $primaryIndex) ? 1 : 0;
                 $sortOrder = (int) ($img['sort_order'] ?? 0);
                 mysqli_stmt_bind_param($stmt, 'issii', $productId, $image, $altText, $isPrimary, $sortOrder);
                 if (!mysqli_stmt_execute($stmt)) {
@@ -443,8 +512,18 @@ function addProduct($conn, array $data)
             }
         }
 
-        // Variants (only meaningful when has_variants = true, but stored if provided regardless).
+        // Variants (only present when has_variants = true, enforced above).
+        // Only one variant may be marked default: the last variant in
+        // the array with is_default truthy wins, all others are
+        // forced to 0.
         if (!empty($variants)) {
+            $defaultIndex = null;
+            foreach ($variants as $idx => $v) {
+                if (!empty($v['is_default'])) {
+                    $defaultIndex = $idx;
+                }
+            }
+
             $sql = "INSERT INTO product_variants
                     (product_id, variant_name, sku, price, sale_price, stock, weight_grams, is_default, status, sort_order, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
@@ -452,7 +531,7 @@ function addProduct($conn, array $data)
             if (!$stmt) {
                 throw new Exception("Error preparing statement: " . mysqli_error($conn));
             }
-            foreach ($variants as $v) {
+            foreach ($variants as $idx => $v) {
                 $variantName = trim($v['variant_name'] ?? '');
                 $sku = trim($v['sku'] ?? '');
                 if ($variantName === '' || $sku === '') {
@@ -464,9 +543,18 @@ function addProduct($conn, array $data)
                 }
                 $price = (float) ($v['price'] ?? 0);
                 $salePrice = isset($v['sale_price']) && $v['sale_price'] !== '' ? (float) $v['sale_price'] : null;
+                if ($salePrice !== null && $salePrice > $price) {
+                    throw new InvalidArgumentException("Sale price cannot be higher than the price for variant '{$variantName}'.");
+                }
                 $stock = (int) ($v['stock'] ?? 0);
+                if ($stock < 0) {
+                    throw new InvalidArgumentException("Stock cannot be negative for variant '{$variantName}'.");
+                }
                 $weightGrams = isset($v['weight_grams']) && $v['weight_grams'] !== '' ? (int) $v['weight_grams'] : null;
-                $isDefault = !empty($v['is_default']) ? 1 : 0;
+                if ($weightGrams !== null && $weightGrams < 0) {
+                    throw new InvalidArgumentException("Weight cannot be negative for variant '{$variantName}'.");
+                }
+                $isDefault = ($defaultIndex !== null && $idx === $defaultIndex) ? 1 : 0;
                 $sortOrder = (int) ($v['sort_order'] ?? 0);
                 mysqli_stmt_bind_param(
                     $stmt,
@@ -659,6 +747,9 @@ function updateProduct($conn, $id, array $data)
     $hasVariants = !empty($data['has_variants']) ? 1 : 0;
     $basePrice = (float) $basePrice;
     $baseSalePrice = isset($data['base_sale_price']) && $data['base_sale_price'] !== '' ? (float) $data['base_sale_price'] : null;
+    if ($baseSalePrice !== null && $baseSalePrice > $basePrice) {
+        throw new InvalidArgumentException('Sale price cannot be higher than the base price.');
+    }
     $featured = !empty($data['featured']) ? 1 : 0;
     $bestseller = !empty($data['bestseller']) ? 1 : 0;
     $trending = !empty($data['trending']) ? 1 : 0;
@@ -801,13 +892,21 @@ function addProductImage($conn, $productId, $image, $altText = null, $isPrimary 
     if ($image === '') {
         throw new InvalidArgumentException('Image path/URL is required.');
     }
+    if (!productExists($conn, $productId)) {
+        throw new InvalidArgumentException('Product not found.');
+    }
 
     mysqli_begin_transaction($conn);
     try {
         if ($isPrimary) {
             $stmt = mysqli_prepare($conn, "UPDATE product_images SET is_primary = 0 WHERE product_id = ?");
+            if (!$stmt) {
+                throw new Exception("Error preparing statement: " . mysqli_error($conn));
+            }
             mysqli_stmt_bind_param($stmt, 'i', $productId);
-            mysqli_stmt_execute($stmt);
+            if (!mysqli_stmt_execute($stmt)) {
+                throw new Exception('Error clearing existing primary image: ' . mysqli_error($conn));
+            }
         }
 
         $isPrimaryInt = $isPrimary ? 1 : 0;
@@ -882,11 +981,23 @@ function addProductVariant($conn, $productId, array $variant)
     if (!in_array($status, PRODUCT_VARIANT_STATUSES, true)) {
         throw new InvalidArgumentException('Invalid variant status: ' . $status);
     }
+    if (!productExists($conn, $productId)) {
+        throw new InvalidArgumentException('Product not found.');
+    }
 
     $price = (float) ($variant['price'] ?? 0);
     $salePrice = isset($variant['sale_price']) && $variant['sale_price'] !== '' ? (float) $variant['sale_price'] : null;
+    if ($salePrice !== null && $salePrice > $price) {
+        throw new InvalidArgumentException('Sale price cannot be higher than the price.');
+    }
     $stock = (int) ($variant['stock'] ?? 0);
+    if ($stock < 0) {
+        throw new InvalidArgumentException('Stock cannot be negative.');
+    }
     $weightGrams = isset($variant['weight_grams']) && $variant['weight_grams'] !== '' ? (int) $variant['weight_grams'] : null;
+    if ($weightGrams !== null && $weightGrams < 0) {
+        throw new InvalidArgumentException('Weight cannot be negative.');
+    }
     $isDefault = !empty($variant['is_default']) ? 1 : 0;
     $sortOrder = (int) ($variant['sort_order'] ?? 0);
 
@@ -894,8 +1005,13 @@ function addProductVariant($conn, $productId, array $variant)
     try {
         if ($isDefault) {
             $stmt = mysqli_prepare($conn, "UPDATE product_variants SET is_default = 0 WHERE product_id = ?");
+            if (!$stmt) {
+                throw new Exception("Error preparing statement: " . mysqli_error($conn));
+            }
             mysqli_stmt_bind_param($stmt, 'i', $productId);
-            mysqli_stmt_execute($stmt);
+            if (!mysqli_stmt_execute($stmt)) {
+                throw new Exception('Error clearing existing default variant: ' . mysqli_error($conn));
+            }
         }
 
         $sql = "INSERT INTO product_variants
@@ -961,46 +1077,83 @@ function updateProductVariant($conn, $variantId, array $variant)
 
     $price = (float) ($variant['price'] ?? 0);
     $salePrice = isset($variant['sale_price']) && $variant['sale_price'] !== '' ? (float) $variant['sale_price'] : null;
+    if ($salePrice !== null && $salePrice > $price) {
+        throw new InvalidArgumentException('Sale price cannot be higher than the price.');
+    }
     $stock = (int) ($variant['stock'] ?? 0);
+    if ($stock < 0) {
+        throw new InvalidArgumentException('Stock cannot be negative.');
+    }
     $weightGrams = isset($variant['weight_grams']) && $variant['weight_grams'] !== '' ? (int) $variant['weight_grams'] : null;
+    if ($weightGrams !== null && $weightGrams < 0) {
+        throw new InvalidArgumentException('Weight cannot be negative.');
+    }
     $sortOrder = (int) ($variant['sort_order'] ?? 0);
+    $isDefault = !empty($variant['is_default']) ? 1 : 0;
 
-    $sql = "UPDATE product_variants
-            SET variant_name = ?, sku = ?, price = ?, sale_price = ?, stock = ?, weight_grams = ?,
-                status = ?, sort_order = ?, updated_at = NOW()
-            WHERE id = ?";
-    $stmt = mysqli_prepare($conn, $sql);
+    // Look up the product this variant belongs to, so we can keep the
+    // "only one default variant per product" rule consistent with
+    // addProductVariant() when is_default is being set here too.
+    $stmt = mysqli_prepare($conn, "SELECT product_id FROM product_variants WHERE id = ?");
     if (!$stmt) {
         throw new Exception("Error preparing statement: " . mysqli_error($conn));
     }
-    mysqli_stmt_bind_param(
-        $stmt,
-        'ssddiisii',
-        $variantName,
-        $sku,
-        $price,
-        $salePrice,
-        $stock,
-        $weightGrams,
-        $status,
-        $sortOrder,
-        $variantId
-    );
+    mysqli_stmt_bind_param($stmt, 'i', $variantId);
     if (!mysqli_stmt_execute($stmt)) {
-        if (mysqli_errno($conn) === 1062) {
-            throw new InvalidArgumentException("Variant SKU '{$sku}' already exists.");
-        }
-        throw new Exception('Error updating product variant: ' . mysqli_error($conn));
+        throw new Exception("Error fetching variant: " . mysqli_error($conn));
     }
-    if (mysqli_stmt_affected_rows($stmt) === 0) {
-        // Either not found, or no actual change -- check existence to disambiguate.
-        $check = mysqli_prepare($conn, "SELECT id FROM product_variants WHERE id = ?");
-        mysqli_stmt_bind_param($check, 'i', $variantId);
-        mysqli_stmt_execute($check);
-        mysqli_stmt_store_result($check);
-        if (mysqli_stmt_num_rows($check) === 0) {
-            throw new InvalidArgumentException('Variant not found.');
+    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    if (!$row) {
+        throw new InvalidArgumentException('Variant not found.');
+    }
+    $productId = (int) $row['product_id'];
+
+    mysqli_begin_transaction($conn);
+    try {
+        if ($isDefault) {
+            $stmt = mysqli_prepare($conn, "UPDATE product_variants SET is_default = 0 WHERE product_id = ?");
+            if (!$stmt) {
+                throw new Exception("Error preparing statement: " . mysqli_error($conn));
+            }
+            mysqli_stmt_bind_param($stmt, 'i', $productId);
+            if (!mysqli_stmt_execute($stmt)) {
+                throw new Exception('Error clearing existing default variant: ' . mysqli_error($conn));
+            }
         }
+
+        $sql = "UPDATE product_variants
+                SET variant_name = ?, sku = ?, price = ?, sale_price = ?, stock = ?, weight_grams = ?,
+                    is_default = ?, status = ?, sort_order = ?, updated_at = NOW()
+                WHERE id = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        mysqli_stmt_bind_param(
+            $stmt,
+            'ssddiiisii',
+            $variantName,
+            $sku,
+            $price,
+            $salePrice,
+            $stock,
+            $weightGrams,
+            $isDefault,
+            $status,
+            $sortOrder,
+            $variantId
+        );
+        if (!mysqli_stmt_execute($stmt)) {
+            if (mysqli_errno($conn) === 1062) {
+                throw new InvalidArgumentException("Variant SKU '{$sku}' already exists.");
+            }
+            throw new Exception('Error updating product variant: ' . mysqli_error($conn));
+        }
+
+        mysqli_commit($conn);
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        throw $e;
     }
 
     return true;
