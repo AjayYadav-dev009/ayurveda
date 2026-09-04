@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 02, 2026 at 05:05 PM
+-- Generation Time: Sep 04, 2026 at 04:15 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -138,6 +138,14 @@ CREATE TABLE `categories` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `categories`
+--
+
+INSERT INTO `categories` (`id`, `parent_id`, `name`, `slug`, `description`, `image`, `status`, `sort_order`, `meta_title`, `meta_description`, `created_at`, `updated_at`) VALUES
+(3, NULL, 'Ashwagandha (Withania somnifera)', 'ashwagandha-withania-somnifera', 'Used to reduce stress and boost energy.', 'Array', 'Active', 2, 'Ashwagandha (Withania somnifera)', 'Used to reduce stress and boost energy.', '2026-09-02 16:17:44', '2026-09-02 16:20:52'),
+(4, NULL, 'Turmeric (Curcuma longa)', 'turmeric-curcuma-longa', 'Used for its anti-inflammatory properties.', 'Array', 'Active', 3, 'Turmeric (Curcuma longa)', 'Used for its anti-inflammatory properties.', '2026-09-02 16:19:30', '2026-09-02 16:20:44');
 
 -- --------------------------------------------------------
 
@@ -306,6 +314,13 @@ CREATE TABLE `products` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `products`
+--
+
+INSERT INTO `products` (`id`, `title`, `slug`, `short_description`, `description`, `base_price`, `base_sale_price`, `has_variants`, `featured`, `bestseller`, `trending`, `status`, `meta_title`, `meta_description`, `created_at`, `updated_at`) VALUES
+(1, 'Asgandha Pill', 'asgandha-pill', 'Asvandha pill', 'khjalujiokp yghujoipklp gyhujoikp ghujiko ', 999.00, 799.00, 0, 1, 1, 1, 'Draft', NULL, NULL, '2026-09-03 02:18:12', '2026-09-03 02:26:06');
+
 -- --------------------------------------------------------
 
 --
@@ -317,6 +332,14 @@ CREATE TABLE `product_categories` (
   `category_id` bigint(20) UNSIGNED NOT NULL,
   `is_primary` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `product_categories`
+--
+
+INSERT INTO `product_categories` (`product_id`, `category_id`, `is_primary`) VALUES
+(1, 3, 1),
+(1, 4, 0);
 
 -- --------------------------------------------------------
 
@@ -338,6 +361,13 @@ CREATE TABLE `product_details` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `product_details`
+--
+
+INSERT INTO `product_details` (`id`, `product_id`, `ingredients`, `benefits`, `directions`, `dosage`, `precautions`, `manufacturer`, `country_of_origin`, `shelf_life`, `created_at`, `updated_at`) VALUES
+(1, 1, 'dfghjkm', 'fghjn', '', '', '', '', 'India', '', '2026-09-03 02:18:12', '2026-09-03 02:26:06');
 
 -- --------------------------------------------------------
 
@@ -679,7 +709,7 @@ ALTER TABLE `cart`
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `coupons`
@@ -727,13 +757,13 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `product_details`
 --
 ALTER TABLE `product_details`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `product_images`

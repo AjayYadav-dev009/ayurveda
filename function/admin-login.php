@@ -27,12 +27,14 @@ function getAdminByEmail($conn, $email)
     return $result->fetch_assoc();
 }
 
-function isAdminLogin() {
+function isAdminLogin()
+{
     return isset($_SESSION['admin_id']);
 }
 
-function logoutAdmin() {
-    unset (
+function logoutAdmin()
+{
+    unset(
         $_SESSION['admin_id'],
         $_SESSION['admin_name'],
         $_SESSION['admin_email']
