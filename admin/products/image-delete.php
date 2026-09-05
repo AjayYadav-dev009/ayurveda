@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../includes/auth.php';
-require_once __DIR__ . '/../../function/product-images.php';
+require_once __DIR__ . '/../../function/product-image.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: images.php');
+    header('Location: image.php');
     exit;
 }
 
@@ -21,7 +21,7 @@ if ($image === null || (int) $image['product_id'] !== $productId) {
 
 try {
     deleteProductImage($conn, $imageId);
-    header('Location: images.php?product_id=' . $productId . '&deleted=1');
+    header('Location: image.php?product_id=' . $productId . '&deleted=1');
     exit;
 } catch (Exception $e) {
     die('Something went wrong while deleting the image.');

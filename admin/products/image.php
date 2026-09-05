@@ -209,13 +209,13 @@ try {
                         <?php endif; ?>
                         <div class="image-card-actions">
                             <?php if ((int) $image['is_primary'] !== 1): ?>
-                                <form method="POST" action="images-set-primary.php">
+                                <form method="POST" action="image-set.php">
                                     <input type="hidden" name="product_id" value="<?= (int) $productId ?>">
                                     <input type="hidden" name="image_id" value="<?= (int) $image['id'] ?>">
                                     <button type="submit" class="btn btn-star btn-sm">Make Primary</button>
                                 </form>
                             <?php endif; ?>
-                            <form method="POST" action="images-delete.php" onsubmit="return confirm('Delete this image? This cannot be undone.');">
+                            <form method="POST" action="image-delete.php" onsubmit="return confirm('Delete this image? This cannot be undone.');">
                                 <input type="hidden" name="product_id" value="<?= (int) $productId ?>">
                                 <input type="hidden" name="image_id" value="<?= (int) $image['id'] ?>">
                                 <button type="submit" class="btn btn-delete btn-sm">Delete</button>

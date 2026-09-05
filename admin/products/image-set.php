@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/../../includes/auth.php';
-require_once __DIR__ . '/../../function/product-images.php';
+require_once __DIR__ . '/../../function/product-image.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: images.php');
+    header('Location: image.php');
     exit;
 }
 
@@ -16,7 +16,7 @@ if ($productId <= 0 || $imageId <= 0) {
 
 try {
     setPrimaryProductImage($conn, $productId, $imageId);
-    header('Location: images.php?product_id=' . $productId . '&primary_set=1');
+    header('Location: image.php?product_id=' . $productId . '&primary_set=1');
     exit;
 } catch (InvalidArgumentException $e) {
     die(htmlspecialchars($e->getMessage()));
