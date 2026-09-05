@@ -1,7 +1,6 @@
 <?php include __DIR__ . '/../../function/product.php'; ?>
 <?php include __DIR__ . '/../../function/category.php'; ?>
 <?php include __DIR__ . '/../../function/helper.php'; ?>
-<?php include __DIR__ . '/../../includes/auth.php'; ?>
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
 
 <?php
@@ -252,7 +251,7 @@ $statusClass = match ($product['status']) {
     <div>
         <?php foreach ($images as $image) : ?>
             <div style="display:inline-block; text-align:center; margin: 0 10px 10px 0;">
-                <img class="product-thumb" src="<?php echo htmlspecialchars($image['image']); ?>" alt="<?php echo htmlspecialchars($image['alt_text'] ?? ''); ?>"><br>
+                <img class="product-thumb" src="<?php echo htmlspecialchars(getProductImageUrl($image['image'])); ?>" alt="<?php echo htmlspecialchars($image['alt_text'] ?? ''); ?>"><br>
                 <?php if ((int) $image['is_primary'] === 1) : ?>
                     <span class="badge badge-active">Primary</span>
                 <?php endif; ?>

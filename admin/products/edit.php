@@ -1,7 +1,6 @@
 <?php include __DIR__ . '/../../function/product.php'; ?>
 <?php include __DIR__ . '/../../function/category.php'; ?>
 <?php include __DIR__ . '/../../function/helper.php'; ?>
-<?php include __DIR__ . '/../../includes/auth.php'; ?>
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
 
 <?php
@@ -114,22 +113,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        foreach ($_POST['new_images'] ?? [] as $img) {
-            if (trim($img['image'] ?? '') !== '') {
-                try {
-                    addProductImage(
-                        $conn,
-                        $id,
-                        $img['image'],
-                        $img['alt_text'] ?? null,
-                        isset($img['is_primary']),
-                        (int) ($img['sort_order'] ?? 0)
-                    );
-                } catch (InvalidArgumentException $e) {
-                    $errors[] = $e->getMessage();
-                } catch (Exception $e) {
-                    $errors[] = 'Something went wrong while adding an image.';
-                }
+        // PHP groups a nested file input like new_images[i][file] as
+        // $_FILES['new_images']['name'][i]['file'], ['tmp_name'][i]['file'],
+        // etc — reshape that into one plain file array per image slot.
+        $newImageFiles = [];
+        foreach (['name', 'type', 'tmp_name', 'error', 'size'] as $attr) {
+            foreach ($_FILES['new_images'][$attr] ?? [] as $i => $group) {
+                $newImageFiles[$i][$attr] = $group['file'] ?? null;
+            }
+        }
+
+        foreach ($newImageFiles as $i => $file) {
+            if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue; // No file chosen for this slot.
+            }
+            $meta = $_POST['new_images'][$i] ?? [];
+            try {
+                $relativePath = uploadProductImage($file, $id);
+                addProductImage(
+                    $conn,
+                    $id,
+                    $relativePath,
+                    trim($meta['alt_text'] ?? '') !== '' ? $meta['alt_text'] : null,
+                    isset($meta['is_primary']),
+                    (int) ($meta['sort_order'] ?? 0)
+                );
+            } catch (InvalidArgumentException $e) {
+                $errors[] = 'Image ' . ($i + 1) . ': ' . $e->getMessage();
+            } catch (Exception $e) {
+                $errors[] = 'Something went wrong while adding image ' . ($i + 1) . '.';
             }
         }
     }
@@ -298,7 +310,7 @@ $val = function ($postKey, $dbValue) {
     }
 </style>
 
-<form method="POST" action="edit.php?id=<?php echo (int) $id; ?>">
+<form method="POST" action="edit.php?id=<?php echo (int) $id; ?>" enctype="multipart/form-data">
 
     <h3>Basic info</h3>
 
@@ -401,7 +413,7 @@ $val = function ($postKey, $dbValue) {
 
     <?php foreach ($images as $image) : ?>
         <p>
-            <img src="<?php echo htmlspecialchars($image['image']); ?>" alt="<?php echo htmlspecialchars($image['alt_text'] ?? ''); ?>" width="80"><br>
+            <img src="<?php echo htmlspecialchars(getProductImageUrl($image['image'])); ?>" alt="<?php echo htmlspecialchars($image['alt_text'] ?? ''); ?>" width="80"><br>
             <?php echo htmlspecialchars($image['image']); ?>
             <?php if ((int) $image['is_primary'] === 1) : ?>
                 (primary)
@@ -419,8 +431,8 @@ $val = function ($postKey, $dbValue) {
     <?php for ($i = 0; $i < 3; $i++) : ?>
         <p>
             New image <?php echo $i + 1; ?><br>
-            <label>Path/URL</label>
-            <input type="text" name="new_images[<?php echo $i; ?>][image]"><br>
+            <label>Image file</label>
+            <input type="file" name="new_images[<?php echo $i; ?>][file]" accept="image/jpeg,image/png,image/webp,image/gif"><br>
             <label>Alt text</label>
             <input type="text" name="new_images[<?php echo $i; ?>][alt_text]"><br>
             <label>

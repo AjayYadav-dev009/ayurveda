@@ -1,6 +1,5 @@
 <?php include __DIR__ . '/../../function/product.php'; ?>
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
-<?php include __DIR__ . '/../../includes/auth.php'; ?>
 
 <?php
 if (session_status() === PHP_SESSION_NONE) {
@@ -201,7 +200,7 @@ $products = getProducts($conn);
                 <tr>
                     <td>
                         <?php if (!empty($product['primary_image'])) : ?>
-                            <img class="product-thumb" src="<?php echo htmlspecialchars($product['primary_image']); ?>" alt="<?php echo htmlspecialchars($product['title']); ?>">
+                            <img class="product-thumb" src="<?php echo htmlspecialchars(getProductImageUrl($product['primary_image'])); ?>" alt="<?php echo htmlspecialchars($product['title']); ?>">
                         <?php else : ?>
                             <div class="no-thumb">No image</div>
                         <?php endif; ?>

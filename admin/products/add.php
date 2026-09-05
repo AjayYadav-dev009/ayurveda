@@ -1,7 +1,6 @@
 <?php include __DIR__ . '/../../function/product.php'; ?>
 <?php include __DIR__ . '/../../function/category.php'; ?>
 <?php include __DIR__ . '/../../function/helper.php'; ?>
-<?php include __DIR__ . '/../../includes/auth.php'; ?>
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
 
 <?php
@@ -51,17 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $categoryIds = array_map('intval', $_POST['category_ids'] ?? []);
 
-    $images = [];
-    foreach ($_POST['images'] ?? [] as $img) {
-        if (trim($img['image'] ?? '') !== '') {
-            $images[] = [
-                'image' => $img['image'],
-                'alt_text' => $img['alt_text'] ?? null,
-                'is_primary' => isset($img['is_primary']),
-                'sort_order' => (int) ($img['sort_order'] ?? 0),
-            ];
-        }
-    }
+    // Images are handled after the product is saved (see below) — actual
+    // files need to be uploaded and validated, and uploadProductImage()
+    // needs a real product id to build the storage path, which doesn't
+    // exist yet at this point for a brand new product.
 
     $variants = [];
     foreach ($_POST['variants'] ?? [] as $v) {
@@ -107,12 +99,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ],
             'category_ids' => $categoryIds,
             'primary_category_id' => isset($_POST['primary_category_id']) ? (int) $_POST['primary_category_id'] : null,
-            'images' => $images,
             'variants' => $variants,
         ];
 
         try {
             $newProductId = addProduct($conn, $data);
+
+            // Now that the product exists, actually upload and attach any
+            // image files the admin selected. PHP groups a nested file
+            // input like images[i][file] as $_FILES['images']['name'][i]['file'],
+            // ['tmp_name'][i]['file'], etc — reshape that into one plain
+            // file array per image slot before touching uploadProductImage().
+            $imageErrors = [];
+            $files = [];
+            foreach (['name', 'type', 'tmp_name', 'error', 'size'] as $attr) {
+                foreach ($_FILES['images'][$attr] ?? [] as $i => $group) {
+                    $files[$i][$attr] = $group['file'] ?? null;
+                }
+            }
+
+            foreach ($files as $i => $file) {
+                if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                    continue; // No file chosen for this slot — fine, skip it.
+                }
+                $meta = $_POST['images'][$i] ?? [];
+                try {
+                    $relativePath = uploadProductImage($file, $newProductId);
+                    addProductImage(
+                        $conn,
+                        $newProductId,
+                        $relativePath,
+                        trim($meta['alt_text'] ?? '') !== '' ? $meta['alt_text'] : null,
+                        isset($meta['is_primary']),
+                        (int) ($meta['sort_order'] ?? 0)
+                    );
+                } catch (Exception $e) {
+                    $imageErrors[] = 'Image ' . ($i + 1) . ': ' . $e->getMessage();
+                }
+            }
+
+            if (!empty($imageErrors)) {
+                // The product itself saved fine; only some images failed.
+                // Send the admin to the product's image manager so they can
+                // see what went in and retry the failed ones there.
+                header('Location: image.php?product_id=' . $newProductId . '&image_errors=' . urlencode(implode(' | ', $imageErrors)));
+                exit;
+            }
+
             header('Location: index.php?added=1');
             exit;
         } catch (InvalidArgumentException $e) {
@@ -199,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </style>
 
 
-<form method="POST" action="add.php">
+<form method="POST" action="add.php" enctype="multipart/form-data">
 
     <h3>Basic info</h3>
 
@@ -296,8 +329,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php for ($i = 0; $i < 5; $i++) : ?>
         <p>
             Image <?php echo $i + 1; ?><br>
-            <label>Path/URL</label>
-            <input type="text" name="images[<?php echo $i; ?>][image]"><br>
+            <label>Image file</label>
+            <input type="file" name="images[<?php echo $i; ?>][file]" accept="image/jpeg,image/png,image/webp,image/gif"><br>
             <label>Alt text</label>
             <input type="text" name="images[<?php echo $i; ?>][alt_text]"><br>
             <label>
@@ -308,6 +341,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="number" name="images[<?php echo $i; ?>][sort_order]" value="0">
         </p>
     <?php endfor; ?>
+    <small>Leave a slot empty to skip it. You can always add, remove, or reorder images later from the product's image manager.</small><br>
 
     <h3>Variants</h3>
 

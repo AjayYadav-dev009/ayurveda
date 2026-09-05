@@ -872,91 +872,13 @@ function updateProduct($conn, $id, array $data)
     return true;
 }
 
-/**
- * Add a single image to a product.
- *
- * @param mysqli $conn
- * @param int $productId
- * @param string $image
- * @param string|null $altText
- * @param bool $isPrimary  If true, unsets is_primary on the product's other images first.
- * @param int $sortOrder
- * @return int New image id.
- * @throws Exception
- * @throws InvalidArgumentException
- */
-function addProductImage($conn, $productId, $image, $altText = null, $isPrimary = false, $sortOrder = 0)
-{
-    $productId = (int) $productId;
-    $image = trim($image);
-    if ($image === '') {
-        throw new InvalidArgumentException('Image path/URL is required.');
-    }
-    if (!productExists($conn, $productId)) {
-        throw new InvalidArgumentException('Product not found.');
-    }
-
-    mysqli_begin_transaction($conn);
-    try {
-        if ($isPrimary) {
-            $stmt = mysqli_prepare($conn, "UPDATE product_images SET is_primary = 0 WHERE product_id = ?");
-            if (!$stmt) {
-                throw new Exception("Error preparing statement: " . mysqli_error($conn));
-            }
-            mysqli_stmt_bind_param($stmt, 'i', $productId);
-            if (!mysqli_stmt_execute($stmt)) {
-                throw new Exception('Error clearing existing primary image: ' . mysqli_error($conn));
-            }
-        }
-
-        $isPrimaryInt = $isPrimary ? 1 : 0;
-        $sortOrder = (int) $sortOrder;
-        $sql = "INSERT INTO product_images (product_id, image, alt_text, is_primary, sort_order, created_at)
-                VALUES (?, ?, ?, ?, ?, NOW())";
-        $stmt = mysqli_prepare($conn, $sql);
-        if (!$stmt) {
-            throw new Exception("Error preparing statement: " . mysqli_error($conn));
-        }
-        mysqli_stmt_bind_param($stmt, 'issii', $productId, $image, $altText, $isPrimaryInt, $sortOrder);
-        if (!mysqli_stmt_execute($stmt)) {
-            throw new Exception('Error adding product image: ' . mysqli_error($conn));
-        }
-        $imageId = mysqli_insert_id($conn);
-
-        mysqli_commit($conn);
-        return $imageId;
-    } catch (Exception $e) {
-        mysqli_rollback($conn);
-        throw $e;
-    }
-}
-
-/**
- * Delete a single product image.
- *
- * @param mysqli $conn
- * @param int $imageId
- * @return bool
- * @throws Exception
- * @throws InvalidArgumentException
- */
-function deleteProductImage($conn, $imageId)
-{
-    $imageId = (int) $imageId;
-    $sql = "DELETE FROM product_images WHERE id = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    if (!$stmt) {
-        throw new Exception("Error preparing statement: " . mysqli_error($conn));
-    }
-    mysqli_stmt_bind_param($stmt, 'i', $imageId);
-    if (!mysqli_stmt_execute($stmt)) {
-        throw new Exception('Error deleting product image: ' . mysqli_error($conn));
-    }
-    if (mysqli_stmt_affected_rows($stmt) === 0) {
-        throw new InvalidArgumentException('Image not found.');
-    }
-    return true;
-}
+// NOTE: addProductImage() and deleteProductImage() used to be duplicated
+// here with a second, weaker implementation (no file validation, no upload
+// handling, and deleteProductImage() didn't remove the file from disk or
+// re-promote a new primary image). That's now removed — the real
+// implementations live in function/product-image.php and are required
+// below so every page uses the same, correct behavior.
+require_once __DIR__ . '/product-image.php';
 
 /**
  * Add a variant to a product.
