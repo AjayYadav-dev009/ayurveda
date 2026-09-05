@@ -1,5 +1,6 @@
 <?php include __DIR__ . '/../../function/category.php'; ?>
 <?php include __DIR__ . '/../../function/helper.php'; ?>
+<?php include __DIR__ . '/../../includes/auth.php'; ?>
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
 
 <?php
@@ -17,8 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $parent_id = $_POST['parent_id'] ?? null;
         $name = $_POST['name'] ?? null;
         $description = $_POST['description'] ?? null;
-        // $image = $_FILES['image'] ?? null;
-        $image = null;
+        // uploadCategoryImage() validates the upload and returns a plain
+        // filename string (or null if no file was chosen) — safe to pass
+        // straight into addCategory().
+        $image = uploadCategoryImage($_FILES['image'] ?? null);
         $status = $_POST['status'] ?? null;
 
         $sort_order = 0;

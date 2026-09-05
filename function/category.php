@@ -1,6 +1,126 @@
 <?php require_once __DIR__ . '/../config/database.php'; ?>
 <?php
 
+// Absolute path on disk where category images are physically stored.
+if (!defined('CATEGORY_IMAGE_UPLOAD_DIR')) {
+    define('CATEGORY_IMAGE_UPLOAD_DIR', __DIR__ . '/../uploads/categories/');
+}
+
+// Public web path used to build <img src="..."> URLs.
+if (!defined('CATEGORY_IMAGE_PUBLIC_PATH')) {
+    define('CATEGORY_IMAGE_PUBLIC_PATH', '/uploads/categories/');
+}
+
+if (!defined('CATEGORY_IMAGE_MAX_BYTES')) {
+    define('CATEGORY_IMAGE_MAX_BYTES', 5 * 1024 * 1024); // 5 MB
+}
+
+/**
+ * Validate and store an uploaded category image, returning the relative
+ * path to save in the `categories.image` column.
+ *
+ * This is the piece that was missing before: $_FILES['image'] is an array
+ * (tmp_name, error, size, ...), never something you can hand straight to a
+ * mysqli string bind_param. Always run it through this function first and
+ * pass the returned *string* (or null) into addCategory()/updateCategory().
+ *
+ * @param array|null $file One entry from $_FILES, e.g. $_FILES['image']
+ * @return string|null Relative path to store in the DB, or null if no file was chosen
+ * @throws InvalidArgumentException If a file was chosen but is invalid
+ * @throws RuntimeException If a valid file can't be moved to disk
+ */
+function uploadCategoryImage($file)
+{
+    // No file input, or the field was left empty — that's fine, just keep
+    // whatever image the category already has.
+    if (!is_array($file) || !isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $uploadErrors = [
+            UPLOAD_ERR_INI_SIZE   => 'The image exceeds the server upload_max_filesize limit.',
+            UPLOAD_ERR_FORM_SIZE  => 'The image exceeds the form MAX_FILE_SIZE limit.',
+            UPLOAD_ERR_PARTIAL    => 'The image was only partially uploaded.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary upload folder on the server.',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write the image to disk.',
+            UPLOAD_ERR_EXTENSION  => 'A PHP extension stopped the image upload.',
+        ];
+        throw new InvalidArgumentException($uploadErrors[$file['error']] ?? 'Unknown upload error.');
+    }
+
+    if (!is_uploaded_file($file['tmp_name'])) {
+        throw new InvalidArgumentException('Invalid upload.');
+    }
+
+    if ($file['size'] <= 0) {
+        throw new InvalidArgumentException('The uploaded image is empty.');
+    }
+
+    if ($file['size'] > CATEGORY_IMAGE_MAX_BYTES) {
+        throw new InvalidArgumentException('The image is larger than ' . (CATEGORY_IMAGE_MAX_BYTES / 1024 / 1024) . 'MB.');
+    }
+
+    $allowedMimeToExt = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+        'image/gif'  => 'gif',
+    ];
+
+    // Detect the real MIME type from file contents; never trust the
+    // client-supplied Content-Type header.
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $finfo->file($file['tmp_name']);
+
+    if (!isset($allowedMimeToExt[$mime])) {
+        throw new InvalidArgumentException('Unsupported file type. Allowed types: JPG, PNG, WEBP, GIF.');
+    }
+
+    if (@getimagesize($file['tmp_name']) === false) {
+        throw new InvalidArgumentException('The file does not appear to be a valid image.');
+    }
+
+    $extension = $allowedMimeToExt[$mime];
+
+    $base = pathinfo($file['name'], PATHINFO_FILENAME);
+    $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $base), '-'));
+    if ($slug === '') {
+        $slug = 'category';
+    }
+    $slug = substr($slug, 0, 60);
+
+    $filename = $slug . '-' . bin2hex(random_bytes(6)) . '.' . $extension;
+
+    if (!is_dir(CATEGORY_IMAGE_UPLOAD_DIR) && !mkdir(CATEGORY_IMAGE_UPLOAD_DIR, 0755, true) && !is_dir(CATEGORY_IMAGE_UPLOAD_DIR)) {
+        throw new RuntimeException('Could not create the upload directory.');
+    }
+
+    $destination = rtrim(CATEGORY_IMAGE_UPLOAD_DIR, '/') . '/' . $filename;
+
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        throw new RuntimeException('Could not move the uploaded image to its destination.');
+    }
+
+    chmod($destination, 0644);
+
+    return $filename;
+}
+
+/**
+ * Build the public URL for a stored category image path.
+ *
+ * @param ?string $imagePath As stored in categories.image
+ * @return ?string
+ */
+function getCategoryImageUrl($imagePath)
+{
+    if ($imagePath === null || $imagePath === '') {
+        return null;
+    }
+    return rtrim(CATEGORY_IMAGE_PUBLIC_PATH, '/') . '/' . ltrim($imagePath, '/');
+}
+
 /**
  * Insert a new category.
  *

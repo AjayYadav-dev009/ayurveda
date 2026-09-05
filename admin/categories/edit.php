@@ -1,5 +1,6 @@
 <?php include __DIR__ . '/../../function/category.php'; ?>
 <?php include __DIR__ . '/../../function/helper.php'; ?>
+<?php include __DIR__ . '/../../includes/auth.php'; ?>
 <?php require_once __DIR__ . '/../../config/database.php'; ?>
 
 <?php
@@ -32,9 +33,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $parent_id = $_POST['parent_id'] ?? null;
         $name = $_POST['name'] ?? null;
         $description = $_POST['description'] ?? null;
-        $image = $_FILES['image'] ?? null;
         $status = $_POST['status'] ?? null;
         $sort_order = $_POST['sort_order'] ?? null;
+
+        // uploadCategoryImage() validates the upload and returns a plain
+        // filename string (or null if no new file was chosen). Never pass
+        // $_FILES['image'] straight into updateCategory() — it's an array,
+        // not the string the DB column/bind_param expects.
+        $newImage = uploadCategoryImage($_FILES['image'] ?? null);
+
+        // Keep the existing image on disk/DB unless the admin uploaded a
+        // replacement.
+        $image = $newImage ?? $category['image'];
 
         $slug = createSlug($name);
         $meta_title = createMetaTitle($name);
@@ -117,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </style>
 
 <form action="#" method="post" enctype="multipart/form-data">
-    <input type="hidden" name="id" value="<?= $category['id']; ?>">
+    <input type="hidden" name="id" value="<?= htmlspecialchars($category['id']); ?>">
     <label for="parent_id">Parent Category:</label>
     <select name="parent_id" id="parent_id">
         <option value="">None</option>
@@ -126,9 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endforeach; ?>
     </select>
     <label for="name">Name:</label>
-    <input type="text" name="name" id="name" value="<?= $category['name']; ?>">
+    <input type="text" name="name" id="name" value="<?= htmlspecialchars($category['name']); ?>">
     <label for="description">Description:</label>
-    <textarea name="description" id="description"><?= $category['description']; ?></textarea>
+    <textarea name="description" id="description"><?= htmlspecialchars($category['description']); ?></textarea>
     <label for="image">Image:</label>
     <input type="file" name="image" id="image">
     <label for="status">Status:</label>
@@ -137,6 +147,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <option value="Inactive" <?= $category['status'] === 'Inactive' ? 'selected' : ''; ?>>Inactive</option>
     </select>
     <label for="sort_order">Sort Order:</label>
-    <input type="number" name="sort_order" id="sort_order" value="<?= $category['sort_order']; ?>">
+    <input type="number" name="sort_order" id="sort_order" value="<?= htmlspecialchars($category['sort_order']); ?>">
     <input type="submit" value="Save">
 </form>
