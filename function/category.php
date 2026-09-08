@@ -557,6 +557,70 @@ function deleteCategory($conn, $id, $force = false)
     ];
 }
 
+/**
+ *
+ * @param mysqli $conn
+ * @param int $id
+ * @return array{
+ *     category: array,
+ *     subcategories: array<int,array{id:int,name:string}>,
+ *     productsToUncategorize: array<int,array{id:int,title:string}>,
+ *     productsToUnlink: array<int,array{id:int,title:string}>,
+ *     hasImpact: bool
+ * }
+ * @throws Exception
+ * @throws InvalidArgumentException
+ */
+function previewCategoryDeletion($conn, $id)
+{
+    $id = (int) $id;
+
+    $categoryRow = mysqli_fetch_assoc(getCategoryById($conn, $id));
+    if (!$categoryRow) {
+        throw new InvalidArgumentException('Category not found.');
+    }
+
+    if (strcasecmp($categoryRow['slug'], UNCATEGORIZED_SLUG) === 0) {
+        throw new InvalidArgumentException('The "Uncategorised" category cannot be deleted; it is used as the fallback for orphaned products.');
+    }
+
+    $subtreeIds = getCategorySubtreeIds($conn, $id);
+    $subcategoryIds = array_values(array_diff($subtreeIds, [$id]));
+
+    $subcategories = [];
+    if (!empty($subcategoryIds)) {
+        $placeholders = implode(',', array_fill(0, count($subcategoryIds), '?'));
+        $types = str_repeat('i', count($subcategoryIds));
+        $sql = "SELECT id, name FROM categories WHERE id IN ($placeholders)";
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        $bindArgs = [$types];
+        foreach ($subcategoryIds as $key => $value) {
+            $bindArgs[] = &$subcategoryIds[$key];
+        }
+        call_user_func_array('mysqli_stmt_bind_param', array_merge([$stmt], $bindArgs));
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new Exception("Error fetching subcategories: " . mysqli_error($conn));
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($result)) {
+            $subcategories[] = ['id' => (int) $row['id'], 'name' => $row['name']];
+        }
+    }
+
+    $productImpact = getProductImpactForSubtree($conn, $subtreeIds);
+
+    return [
+        'category' => $categoryRow,
+        'subcategories' => $subcategories,
+        'productsToUncategorize' => $productImpact['toDelete'],
+        'productsToUnlink' => $productImpact['toUnlink'],
+        'hasImpact' => !empty($subcategories) || !empty($productImpact['toDelete']) || !empty($productImpact['toUnlink']),
+    ];
+}
+
 const CATEGORY_STATUSES = ['Active', 'Inactive'];
 
 /**
