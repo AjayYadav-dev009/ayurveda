@@ -368,6 +368,11 @@ function addProduct($conn, array $data)
         throw new InvalidArgumentException('At least one variant is required when "has variants" is enabled.');
     }
 
+    // Simple products (no variants) track stock directly on the product
+    // row; variant products track it per-variant instead, so this is just
+    // stored as 0/ignored for them.
+    $stock = $hasVariants ? 0 : max(0, (int) ($data['stock'] ?? 0));
+
     if (productSlugExists($conn, $slug)) {
         throw new InvalidArgumentException('A product with this slug already exists.');
     }
@@ -398,16 +403,16 @@ function addProduct($conn, array $data)
     try {
         $sql = "INSERT INTO products
                 (title, slug, short_description, description, base_price, base_sale_price,
-                 has_variants, featured, bestseller, trending, status, meta_title, meta_description,
+                 has_variants, stock, featured, bestseller, trending, status, meta_title, meta_description,
                  created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
         $stmt = mysqli_prepare($conn, $sql);
         if (!$stmt) {
             throw new Exception("Error preparing statement: " . mysqli_error($conn));
         }
         mysqli_stmt_bind_param(
             $stmt,
-            'ssssddiiiisss',
+            'ssssddiiiiisss',
             $title,
             $slug,
             $shortDescription,
@@ -415,6 +420,7 @@ function addProduct($conn, array $data)
             $basePrice,
             $baseSalePrice,
             $hasVariants,
+            $stock,
             $featured,
             $bestseller,
             $trending,
@@ -758,36 +764,73 @@ function updateProduct($conn, $id, array $data)
     $metaTitle = $data['meta_title'] ?? null;
     $metaDescription = $data['meta_description'] ?? null;
 
+    // Simple products (no variants) track stock directly on the product
+    // row; variant products keep tracking it per-variant, so this is left
+    // untouched (not zeroed out) here — updateProductVariant() owns stock
+    // once has_variants is true.
+    $stock = $hasVariants ? null : max(0, (int) ($data['stock'] ?? 0));
+
     mysqli_begin_transaction($conn);
 
     try {
-        $sql = "UPDATE products
-                SET title = ?, slug = ?, short_description = ?, description = ?, base_price = ?,
-                    base_sale_price = ?, has_variants = ?, featured = ?, bestseller = ?, trending = ?,
-                    status = ?, meta_title = ?, meta_description = ?, updated_at = NOW()
-                WHERE id = ?";
-        $stmt = mysqli_prepare($conn, $sql);
-        if (!$stmt) {
-            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        if ($stock !== null) {
+            $sql = "UPDATE products
+                    SET title = ?, slug = ?, short_description = ?, description = ?, base_price = ?,
+                        base_sale_price = ?, has_variants = ?, stock = ?, featured = ?, bestseller = ?, trending = ?,
+                        status = ?, meta_title = ?, meta_description = ?, updated_at = NOW()
+                    WHERE id = ?";
+            $stmt = mysqli_prepare($conn, $sql);
+            if (!$stmt) {
+                throw new Exception("Error preparing statement: " . mysqli_error($conn));
+            }
+            mysqli_stmt_bind_param(
+                $stmt,
+                'ssssddiiiiisssi',
+                $title,
+                $slug,
+                $shortDescription,
+                $description,
+                $basePrice,
+                $baseSalePrice,
+                $hasVariants,
+                $stock,
+                $featured,
+                $bestseller,
+                $trending,
+                $status,
+                $metaTitle,
+                $metaDescription,
+                $id
+            );
+        } else {
+            $sql = "UPDATE products
+                    SET title = ?, slug = ?, short_description = ?, description = ?, base_price = ?,
+                        base_sale_price = ?, has_variants = ?, featured = ?, bestseller = ?, trending = ?,
+                        status = ?, meta_title = ?, meta_description = ?, updated_at = NOW()
+                    WHERE id = ?";
+            $stmt = mysqli_prepare($conn, $sql);
+            if (!$stmt) {
+                throw new Exception("Error preparing statement: " . mysqli_error($conn));
+            }
+            mysqli_stmt_bind_param(
+                $stmt,
+                'ssssddiiiisssi',
+                $title,
+                $slug,
+                $shortDescription,
+                $description,
+                $basePrice,
+                $baseSalePrice,
+                $hasVariants,
+                $featured,
+                $bestseller,
+                $trending,
+                $status,
+                $metaTitle,
+                $metaDescription,
+                $id
+            );
         }
-        mysqli_stmt_bind_param(
-            $stmt,
-            'ssssddiiiisssi',
-            $title,
-            $slug,
-            $shortDescription,
-            $description,
-            $basePrice,
-            $baseSalePrice,
-            $hasVariants,
-            $featured,
-            $bestseller,
-            $trending,
-            $status,
-            $metaTitle,
-            $metaDescription,
-            $id
-        );
         if (!mysqli_stmt_execute($stmt)) {
             if (mysqli_errno($conn) === 1062) {
                 throw new InvalidArgumentException('A product with this slug already exists.');
@@ -879,6 +922,29 @@ function updateProduct($conn, $id, array $data)
 // implementations live in function/product-image.php and are required
 // below so every page uses the same, correct behavior.
 require_once __DIR__ . '/product-image.php';
+
+/**
+ * Fetch a single product variant by id.
+ *
+ * @param mysqli $conn
+ * @param int $variantId
+ * @return array|null
+ * @throws Exception
+ */
+function getProductVariantById($conn, $variantId)
+{
+    $sql = "SELECT * FROM product_variants WHERE id = ? LIMIT 1";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception('Error preparing statement: ' . mysqli_error($conn));
+    }
+    $variantId = (int) $variantId;
+    mysqli_stmt_bind_param($stmt, 'i', $variantId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    return mysqli_fetch_assoc($result) ?: null;
+}
 
 /**
  * Add a variant to a product.
