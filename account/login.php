@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <p class="auth-links">
-            <a href="forgot-password.php">Forgot your password?</a>
+            <a href="forget-password.php">Forgot your password?</a>
         </p>
 
         <button type="submit">Log In</button>

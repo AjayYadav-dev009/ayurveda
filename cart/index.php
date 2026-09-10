@@ -4,11 +4,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/function/customer-auth.php';
-require_once __DIR__ . '/function/cart.php';
-require_once __DIR__ . '/function/helper.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../function/customer.php';
+require_once __DIR__ . '/../function/cart.php';
+require_once __DIR__ . '/../function/helper.php';
 
 // Cart rows belong to a user_id (there's no guest-cart support in the
 // schema), so you have to be logged in to have a cart at all.
