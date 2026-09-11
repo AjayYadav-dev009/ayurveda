@@ -79,6 +79,17 @@ if ($hasVariants) {
 $addToCartProductId = (int) $product['id'];
 $addToCartVariantId = $hasVariants ? (int) $defaultVariant['id'] : '';
 
+// Full snapshot, not just the two cart fields above: header.php's mega-menu
+// does `foreach ($products as $product) { ... }` while building its panels
+// (confirmed in header.php directly) — that's the exact same shared-scope
+// collision already fixed once for $category/$products in
+// categories-product.php, except this time it clobbers $product itself.
+// Everything below that renders after the header include (title, breadcrumb,
+// image alt text, badges, description) must read from this copy, never
+// from $product directly, or it silently shows whatever product the
+// mega-menu happened to loop through last.
+$viewProduct = $product;
+
 $hasSale = $currentSalePrice !== null && $currentSalePrice < $currentPrice;
 $isOutOfStock = $currentStock <= 0;
 
@@ -531,7 +542,7 @@ $detailSections = [
             <a href="<?php echo BASE_URL; ?>products.php?category_slug=<?php echo urlencode($primaryCategory['slug']); ?>"><?php echo htmlspecialchars($primaryCategory['name']); ?></a>
             <span aria-hidden="true"> / </span>
         <?php endif; ?>
-        <span aria-current="page"><?php echo htmlspecialchars($product['title']); ?></span>
+        <span aria-current="page"><?php echo htmlspecialchars($viewProduct['title']); ?></span>
     </nav>
 
     <div class="pd-layout">
@@ -543,11 +554,11 @@ $detailSections = [
                     <span class="pd-badge pd-badge--discount" id="js-discount-badge" style="<?php echo $hasSale ? '' : 'display:none;'; ?>">
                         <?php echo $hasSale ? (int) round((1 - ($currentSalePrice / $currentPrice)) * 100) : 0; ?>% off
                     </span>
-                    <?php if (!empty($product['bestseller'])): ?>
+                    <?php if (!empty($viewProduct['bestseller'])): ?>
                         <span class="pd-badge">Bestseller</span>
-                    <?php elseif (!empty($product['featured'])): ?>
+                    <?php elseif (!empty($viewProduct['featured'])): ?>
                         <span class="pd-badge">Featured</span>
-                    <?php elseif (!empty($product['trending'])): ?>
+                    <?php elseif (!empty($viewProduct['trending'])): ?>
                         <span class="pd-badge">Trending</span>
                     <?php endif; ?>
                 </div>
@@ -557,7 +568,7 @@ $detailSections = [
                 <?php if (!empty($images)): ?>
                     <img
                         src="<?php echo BASE_URL . ltrim($images[0]['image'], '/'); ?>"
-                        alt="<?php echo htmlspecialchars($images[0]['alt_text'] ?: $product['title']); ?>"
+                        alt="<?php echo htmlspecialchars($images[0]['alt_text'] ?: $viewProduct['title']); ?>"
                         class="pd-main-image"
                         id="js-main-image">
                 <?php else: ?>
@@ -582,7 +593,7 @@ $detailSections = [
                             aria-label="View image <?php echo $i + 1; ?>">
                             <img
                                 src="<?php echo BASE_URL . ltrim($image['image'], '/'); ?>"
-                                alt="<?php echo htmlspecialchars($image['alt_text'] ?: $product['title']); ?>">
+                                alt="<?php echo htmlspecialchars($image['alt_text'] ?: $viewProduct['title']); ?>">
                         </button>
                     <?php endforeach; ?>
                 </div>
@@ -595,7 +606,7 @@ $detailSections = [
                 <span class="pd-category-tag"><?php echo htmlspecialchars($primaryCategory['name']); ?></span>
             <?php endif; ?>
 
-            <h1 class="pd-title"><?php echo htmlspecialchars($product['title']); ?></h1>
+            <h1 class="pd-title"><?php echo htmlspecialchars($viewProduct['title']); ?></h1>
 
             <div class="pd-price-row">
                 <span class="pd-price-current" id="js-price-current">
@@ -606,8 +617,8 @@ $detailSections = [
                 </span>
             </div>
 
-            <?php if (!empty($product['short_description'])): ?>
-                <p class="pd-short-desc"><?php echo htmlspecialchars($product['short_description']); ?></p>
+            <?php if (!empty($viewProduct['short_description'])): ?>
+                <p class="pd-short-desc"><?php echo htmlspecialchars($viewProduct['short_description']); ?></p>
             <?php endif; ?>
 
             <span class="pd-stock<?php echo $isOutOfStock ? ' is-out' : ''; ?>" id="js-stock-status">
@@ -679,7 +690,7 @@ $detailSections = [
 
     <div class="pd-details">
 
-        <?php if (!empty($product['description'])): ?>
+        <?php if (!empty($viewProduct['description'])): ?>
             <div class="pd-accordion-item is-open">
                 <button type="button" class="pd-accordion-trigger">
                     Description
@@ -687,7 +698,7 @@ $detailSections = [
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="pd-accordion-panel"><?php echo htmlspecialchars($product['description']); ?></div>
+                <div class="pd-accordion-panel"><?php echo htmlspecialchars($viewProduct['description']); ?></div>
             </div>
         <?php endif; ?>
 

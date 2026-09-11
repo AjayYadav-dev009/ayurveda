@@ -35,6 +35,22 @@ foreach ($browsableCategories as $category) {
     $megaMenuProducts[$category['id']] = $products;
 }
 
+// Cart item count for the header badge. Cart rows always belong to a
+// logged-in user_id (no guest-cart support), so there's simply nothing to
+// show for a visitor who isn't logged in yet.
+require_once __DIR__ . '/../function/customer.php';
+require_once __DIR__ . '/../function/cart.php';
+
+$headerCartCount = 0;
+if (isCustomerLogin()) {
+    try {
+        $headerCartTotals = getCartTotals($conn, $_SESSION['customer_id']);
+        $headerCartCount = (int) $headerCartTotals['item_count'];
+    } catch (Exception $e) {
+        $headerCartCount = 0;
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -226,6 +242,26 @@ foreach ($browsableCategories as $category) {
             color: var(--color-accent);
         }
 
+        .icon-cart {
+            position: relative;
+        }
+
+        .icon-cart__badge {
+            position: absolute;
+            top: -7px;
+            right: -9px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: var(--color-primary);
+            color: var(--color-white);
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 16px;
+            text-align: center;
+        }
+
         /* =========================================
                 Shop All Mega Menu
                 (scrollable category sidebar + product panel,
@@ -238,7 +274,7 @@ foreach ($browsableCategories as $category) {
 
         .mega-menu {
             position: absolute;
-            top: calc(100% + 12px);
+            top: calc(100% + 2px);
             left: 50%;
             transform: translateX(-50%) translateY(10px);
 
@@ -338,14 +374,15 @@ foreach ($browsableCategories as $category) {
         .mega-menu__products {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 4px 20px;
+            gap: 16px 20px;
         }
 
         .mega-menu__products a {
             display: block;
             padding: 6px 0;
             color: var(--color-text-light);
-            font-size: 13px;
+            font-size: 15px;
+            font-weight: 600;
             text-decoration: none;
             transition: color 0.15s ease;
         }
@@ -360,8 +397,8 @@ foreach ($browsableCategories as $category) {
             padding-top: 12px;
             border-top: 1px solid var(--color-border);
             color: var(--color-primary);
-            font-size: 13px;
-            font-weight: 700;
+            font-size: 17px !important;
+            font-weight: 700 !important;
             text-decoration: none;
         }
 
@@ -509,7 +546,7 @@ foreach ($browsableCategories as $category) {
                                 <div class="mega-menu__panel<?= $index === 0 ? ' is-active' : '' ?>" id="mega-panel-<?= (int) $category['id'] ?>">
                                     <div class="mega-menu__products">
                                         <?php foreach ($products as $product): ?>
-                                            <a href="<?= BASE_URL ?>products.php?slug=<?= urlencode($product['slug']) ?>">
+                                            <a href="<?= BASE_URL ?>product_details.php?slug=<?= urlencode($product['slug']) ?>">
                                                 <?= htmlspecialchars($product['title']) ?>
                                             </a>
                                         <?php endforeach; ?>
@@ -531,23 +568,26 @@ foreach ($browsableCategories as $category) {
             <div class="header-actions">
                 <a href="#" title="Track order">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
-                        <path fill="rgb(149, 138, 194)" d="M64 96c0-35.3 28.7-64 64-64l288 0c35.3 0 64 28.7 64 64l0 32 50.7 0c17 0 33.3 6.7 45.3 18.7L621.3 192c12 12 18.7 28.3 18.7 45.3L640 384c0 35.3-28.7 64-64 64l-3.3 0c-10.4 36.9-44.4 64-84.7 64s-74.2-27.1-84.7-64l-102.6 0c-10.4 36.9-44.4 64-84.7 64s-74.2-27.1-84.7-64l-3.3 0c-35.3 0-64-28.7-64-64l0-48-40 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l112 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L24 240c-13.3 0-24-10.7-24-24s10.7-24 24-24l176 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L24 144c-13.3 0-24-10.7-24-24S10.7 96 24 96l40 0zM576 288l0-50.7-45.3-45.3-50.7 0 0 96 96 0zM256 424a40 40 0 1 0 -80 0 40 40 0 1 0 80 0zm232 40a40 40 0 1 0 0-80 40 40 0 1 0 0 80z" />
+                        <path fill="#17483D" d="M64 96c0-35.3 28.7-64 64-64l288 0c35.3 0 64 28.7 64 64l0 32 50.7 0c17 0 33.3 6.7 45.3 18.7L621.3 192c12 12 18.7 28.3 18.7 45.3L640 384c0 35.3-28.7 64-64 64l-3.3 0c-10.4 36.9-44.4 64-84.7 64s-74.2-27.1-84.7-64l-102.6 0c-10.4 36.9-44.4 64-84.7 64s-74.2-27.1-84.7-64l-3.3 0c-35.3 0-64-28.7-64-64l0-48-40 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l112 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L24 240c-13.3 0-24-10.7-24-24s10.7-24 24-24l176 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L24 144c-13.3 0-24-10.7-24-24S10.7 96 24 96l40 0zM576 288l0-50.7-45.3-45.3-50.7 0 0 96 96 0zM256 424a40 40 0 1 0 -80 0 40 40 0 1 0 80 0zm232 40a40 40 0 1 0 0-80 40 40 0 1 0 0 80z" />
                     </svg>
                 </a>
                 <a href="search.php" title="Search">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                        <path fill="rgb(149, 138, 194)" d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376C296.3 401.1 253.9 416 208 416 93.1 416 0 322.9 0 208S93.1 0 208 0 416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z" />
+                        <path fill="#17483D" d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376C296.3 401.1 253.9 416 208 416 93.1 416 0 322.9 0 208S93.1 0 208 0 416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z" />
                     </svg>
                 </a>
                 <a href="account/index.php" class="icon-account" title="Account">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
-                        <path fill="rgb(149, 138, 194)" d="M224 248a120 120 0 1 0 0-240 120 120 0 1 0 0 240zm-29.7 56C95.8 304 16 383.8 16 482.3 16 498.7 29.3 512 45.7 512l356.6 0c16.4 0 29.7-13.3 29.7-29.7 0-98.5-79.8-178.3-178.3-178.3l-59.4 0z" />
+                        <path fill="#17483D" d="M224 248a120 120 0 1 0 0-240 120 120 0 1 0 0 240zm-29.7 56C95.8 304 16 383.8 16 482.3 16 498.7 29.3 512 45.7 512l356.6 0c16.4 0 29.7-13.3 29.7-29.7 0-98.5-79.8-178.3-178.3-178.3l-59.4 0z" />
                     </svg>
                 </a>
-                <a href="cart/index.php" title="Cart">
+                <a href="<?= BASE_URL ?>cart/index.php" class="icon-cart" title="Cart">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
-                        <path fill="rgb(149, 138, 194)" d="M24-16C10.7-16 0-5.3 0 8S10.7 32 24 32l45.3 0c3.9 0 7.2 2.8 7.9 6.6l52.1 286.3c6.2 34.2 36 59.1 70.8 59.1L456 384c13.3 0 24-10.7 24-24s-10.7-24-24-24l-255.9 0c-11.6 0-21.5-8.3-23.6-19.7l-5.1-28.3 303.6 0c30.8 0 57.2-21.9 62.9-52.2L568.9 69.9C572.6 50.2 557.5 32 537.4 32l-412.7 0-.4-2c-4.8-26.6-28-46-55.1-46L24-16zM208 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm224 0a48 48 0 1 0 0-96 48 48 0 1 0 0 96z" />
+                        <path fill="#17483D" d="M24-16C10.7-16 0-5.3 0 8S10.7 32 24 32l45.3 0c3.9 0 7.2 2.8 7.9 6.6l52.1 286.3c6.2 34.2 36 59.1 70.8 59.1L456 384c13.3 0 24-10.7 24-24s-10.7-24-24-24l-255.9 0c-11.6 0-21.5-8.3-23.6-19.7l-5.1-28.3 303.6 0c30.8 0 57.2-21.9 62.9-52.2L568.9 69.9C572.6 50.2 557.5 32 537.4 32l-412.7 0-.4-2c-4.8-26.6-28-46-55.1-46L24-16zM208 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm224 0a48 48 0 1 0 0-96 48 48 0 1 0 0 96z" />
                     </svg>
+                    <?php if ($headerCartCount > 0): ?>
+                        <span class="icon-cart__badge"><?= $headerCartCount > 99 ? '99+' : $headerCartCount ?></span>
+                    <?php endif; ?>
                 </a>
             </div>
         </div>
