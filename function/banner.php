@@ -320,7 +320,7 @@ function addBanner($conn, $title, $subtitle, $image, $button_text, $button_url, 
     $button_text = normalizeNullableBannerText($button_text ?? null);
     $button_url = normalizeNullableBannerText($button_url ?? null);
     $position = normalizeNullableBannerText($position ?? null);
-    $sort_order = (int) $sort_order;
+    $sort_order = max(0, (int) $sort_order); // column is UNSIGNED
 
     $sql = "INSERT INTO banners
             (title, subtitle, image, button_text, button_url, position, status, sort_order, created_at, updated_at)
@@ -379,7 +379,7 @@ function updateBanner($conn, $id, $title, $subtitle, $image, $button_text, $butt
     $button_text = normalizeNullableBannerText($button_text ?? null);
     $button_url = normalizeNullableBannerText($button_url ?? null);
     $position = normalizeNullableBannerText($position ?? null);
-    $sort_order = (int) $sort_order;
+    $sort_order = max(0, (int) $sort_order); // column is UNSIGNED
 
     $sql = "UPDATE banners
             SET title = ?, subtitle = ?, image = ?, button_text = ?, button_url = ?, position = ?, status = ?, sort_order = ?, updated_at = NOW()
@@ -457,7 +457,7 @@ function reorderBanners($conn, array $order)
 
         foreach ($order as $id => $sortOrder) {
             $id = (int) $id;
-            $sortOrder = (int) $sortOrder;
+            $sortOrder = max(0, (int) $sortOrder); // column is UNSIGNED
             mysqli_stmt_bind_param($stmt, 'ii', $sortOrder, $id);
             if (!mysqli_stmt_execute($stmt)) {
                 throw new Exception('Error saving banner order: ' . mysqli_error($conn));

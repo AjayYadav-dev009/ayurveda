@@ -20,6 +20,7 @@ $activeNav = $activeNav ?? '';
                 <a href="products/index.php" class="<?= $activeNav === 'products' ? 'active' : '' ?>">Products</a>
                 <a href="categories/index.php" class="<?= $activeNav === 'categories' ? 'active' : '' ?>">Categories</a>
                 <a href="users/index.php" class="<?= $activeNav === 'users' ? 'active' : '' ?>">Users</a>
+                <a href="banner-management.php">Banner Management</a>
             </nav>
         </aside>
         <main class="main">

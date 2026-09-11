@@ -1,4 +1,5 @@
 <?php require_once __DIR__ . '/../config/database.php'; ?>
+<?php require_once __DIR__ . '/product-image.php'; ?>
 
 <?php
 
@@ -718,6 +719,23 @@ function deleteProduct($conn, $id, $force = false)
 
     if (mysqli_stmt_affected_rows($stmt) === 0) {
         throw new InvalidArgumentException('Product not found.');
+    }
+
+    // product_images rows are removed automatically via ON DELETE CASCADE,
+    // but that cascade happens entirely inside MySQL — it never touches the
+    // filesystem. Without this, every image file under the product's upload
+    // folder would be orphaned on disk forever. Since uploadProductImage()
+    // stores every image under uploads/products/{product_id}/, it's simplest
+    // to just remove the whole per-product folder now that the DB row (and
+    // its cascaded product_images rows) are gone.
+    $productDir = rtrim(PRODUCT_IMAGE_UPLOAD_DIR, '/') . '/' . $id;
+    if (is_dir($productDir)) {
+        foreach (glob($productDir . '/*') ?: [] as $file) {
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        }
+        @rmdir($productDir);
     }
 
     return true;

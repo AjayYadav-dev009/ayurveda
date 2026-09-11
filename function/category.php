@@ -274,6 +274,18 @@ function updateCategory($conn, $id, $parent_id, $name, $slug, $meta_title, $meta
         throw new InvalidArgumentException('Category name is required.');
     }
 
+    // Look up the category's current image before we overwrite it. If a
+    // new file was uploaded (edit.php only calls uploadCategoryImage() when
+    // one was chosen), we need the old filename so it can be removed from
+    // disk after the update succeeds -- otherwise every replaced image is
+    // orphaned in uploads/categories/ forever.
+    $existingResult = getCategoryById($conn, $id);
+    $existingRow = mysqli_fetch_assoc($existingResult);
+    if (!$existingRow) {
+        throw new InvalidArgumentException('Category not found.');
+    }
+    $oldImage = $existingRow['image'];
+
     $meta_title = createMetaTitle($meta_title);
     $meta_description = createMetaDescription($meta_description);
     $slug = createSlug($name);
@@ -321,6 +333,17 @@ function updateCategory($conn, $id, $parent_id, $name, $slug, $meta_title, $meta
             throw new InvalidArgumentException('A category with this slug already exists.');
         }
         throw new Exception('Error updating category: ' . mysqli_error($conn));
+    }
+
+    // Only remove the old file once the DB update has committed, and only
+    // when a new image actually replaced it (edit.php passes the existing
+    // path straight through when no new file was chosen, so this correctly
+    // does nothing in that case).
+    if ($oldImage !== null && $oldImage !== '' && $oldImage !== $image) {
+        $oldPath = rtrim(CATEGORY_IMAGE_UPLOAD_DIR, '/') . '/' . ltrim($oldImage, '/');
+        if (is_file($oldPath)) {
+            @unlink($oldPath);
+        }
     }
 
     return true;
@@ -507,6 +530,35 @@ function deleteCategory($conn, $id, $force = false)
         );
     }
 
+    // Grab every image filename in the subtree *before* anything is
+    // deleted. The DELETE below cascades away the category rows (and their
+    // product_categories links) at the database level only — it never
+    // touches the filesystem, so without this the image files for every
+    // deleted category (and subcategory) would be orphaned on disk forever.
+    $imagesToDelete = [];
+    if (!empty($subtreeIds)) {
+        $placeholders = implode(',', array_fill(0, count($subtreeIds), '?'));
+        $types = str_repeat('i', count($subtreeIds));
+        $sql = "SELECT image FROM categories WHERE id IN ($placeholders) AND image IS NOT NULL AND image != ''";
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        $bindArgs = [$types];
+        $idsForImages = $subtreeIds;
+        foreach ($idsForImages as $key => $value) {
+            $bindArgs[] = &$idsForImages[$key];
+        }
+        call_user_func_array('mysqli_stmt_bind_param', array_merge([$stmt], $bindArgs));
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new Exception("Error fetching category images: " . mysqli_error($conn));
+        }
+        $result = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($result)) {
+            $imagesToDelete[] = $row['image'];
+        }
+    }
+
     // Either nothing but the category itself is affected, or the user has
     // already confirmed (force = true). Run everything atomically.
     mysqli_begin_transaction($conn);
@@ -560,6 +612,14 @@ function deleteCategory($conn, $id, $force = false)
     } catch (Exception $e) {
         mysqli_rollback($conn);
         throw $e;
+    }
+
+    // Only remove files from disk once the DB change is safely committed.
+    foreach ($imagesToDelete as $imagePath) {
+        $filePath = rtrim(CATEGORY_IMAGE_UPLOAD_DIR, '/') . '/' . ltrim($imagePath, '/');
+        if (is_file($filePath)) {
+            @unlink($filePath);
+        }
     }
 
     return [
