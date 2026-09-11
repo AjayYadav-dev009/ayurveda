@@ -77,6 +77,38 @@ function getProducts($conn, array $filters = [])
 }
 
 /**
+ * Fetch Product via categories slug.
+ *
+ * @param mysqli $conn
+ * @param $slug
+ * @return mysqli_result
+ * @throws Exception
+ */
+
+function getProductsByCategorySlug($conn, $slug)
+{
+    $sql = "SELECT  p.*, pi.image AS primary_image FROM products AS p INNER JOIN product_categories AS pc ON p.id = pc.product_id INNER JOIN categories AS c ON c.id = pc.category_id LEFT JOIN product_images AS pi ON p.id = pi.product_id AND pi.is_primary = 1 WHERE c.slug = ? AND p.status = 'Active' ORDER BY p.created_at DESC";
+
+    $stmt = mysqli_prepare($conn, $sql);
+
+    if (!$stmt) {
+        throw new Exception(
+            "Error preparing statement: " . mysqli_error($conn)
+        );
+    }
+
+    mysqli_stmt_bind_param($stmt, 's', $slug);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception(
+            "Error fetching products: " . mysqli_stmt_error($stmt)
+        );
+    }
+
+    return mysqli_stmt_get_result($stmt);
+}
+
+/**
  * Fetch a single product's core row (products table only).
  *
  * @param mysqli $conn

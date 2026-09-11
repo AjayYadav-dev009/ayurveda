@@ -1,8 +1,8 @@
 
 <?php 
-require_once __DIR__ . '/../config/config.php'; 
-require_once __DIR__ . '/../config/database.php'; 
-require_once __DIR__ . '/../function/category.php'; 
+require_once __DIR__ . '/config/config.php'; 
+require_once __DIR__ . '/config/database.php'; 
+require_once __DIR__ . '/function/category.php'; 
  
 $categories = getCategories($conn); 
 ?> 
@@ -146,7 +146,7 @@ $categories = getCategories($conn);
                     </p>
 
                     <a 
-                        href="#"
+                        href="<?php echo BASE_URL; ?>categories-product.php?category_slug=<?php echo $category['slug']; ?>"
                         class="category-link"
                     >
                         Explore Category →
