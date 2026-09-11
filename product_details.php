@@ -67,6 +67,18 @@ if ($hasVariants) {
     $currentStock = (int) $product['stock'];
 }
 
+// Snapshot exactly what the Add to Cart form needs into dedicated scalars,
+// taken BEFORE header.php is include()'d below. PHP includes share scope,
+// and header.php's mega-menu is already known to silently overwrite
+// generic variable names declared before it (see the $category/$products
+// collision fixed in categories-product.php) — the form itself renders
+// after the header include, so if it read $product['id'] /
+// $defaultVariant['id'] directly at that point, a same-named variable
+// reused inside header.php would silently swap in the wrong product/variant
+// id without any visible error until the cart rejects the mismatch.
+$addToCartProductId = (int) $product['id'];
+$addToCartVariantId = $hasVariants ? (int) $defaultVariant['id'] : '';
+
 $hasSale = $currentSalePrice !== null && $currentSalePrice < $currentPrice;
 $isOutOfStock = $currentStock <= 0;
 
@@ -624,26 +636,30 @@ $detailSections = [
                 </div>
             <?php endif; ?>
 
-            <div class="pd-qty-row">
-                <span class="pd-block-label" style="margin-bottom:0;">Quantity</span>
-                <div class="pd-qty">
-                    <button type="button" id="js-qty-minus" aria-label="Decrease quantity">&minus;</button>
-                    <input type="number" id="js-qty-input" value="1" min="1" max="<?php echo max($currentStock, 1); ?>" inputmode="numeric">
-                    <button type="button" id="js-qty-plus" aria-label="Increase quantity">+</button>
-                </div>
-            </div>
+            <form method="POST" action="<?php echo BASE_URL; ?>cart/index.php">
+                <input type="hidden" name="action" value="add">
+                <input type="hidden" name="product_id" value="<?php echo $addToCartProductId; ?>">
+                <input type="hidden" id="js-selected-variant-id" name="variant_id" value="<?php echo $addToCartVariantId; ?>">
 
-            <div class="pd-actions">
-                <input type="hidden" id="js-selected-variant-id" value="<?php echo $hasVariants ? (int) $defaultVariant['id'] : ''; ?>">
-                <button
-                    type="button"
-                    class="pd-add-to-cart"
-                    id="js-add-to-cart"
-                    data-product-id="<?php echo (int) $product['id']; ?>"
-                    <?php echo $isOutOfStock ? 'disabled' : ''; ?>>
-                    <?php echo $isOutOfStock ? 'Out of Stock' : 'Add to Cart'; ?>
-                </button>
-            </div>
+                <div class="pd-qty-row">
+                    <span class="pd-block-label" style="margin-bottom:0;">Quantity</span>
+                    <div class="pd-qty">
+                        <button type="button" id="js-qty-minus" aria-label="Decrease quantity">&minus;</button>
+                        <input type="number" id="js-qty-input" name="quantity" value="1" min="1" max="<?php echo max($currentStock, 1); ?>" inputmode="numeric">
+                        <button type="button" id="js-qty-plus" aria-label="Increase quantity">+</button>
+                    </div>
+                </div>
+
+                <div class="pd-actions">
+                    <button
+                        type="submit"
+                        class="pd-add-to-cart"
+                        id="js-add-to-cart"
+                        <?php echo $isOutOfStock ? 'disabled' : ''; ?>>
+                        <?php echo $isOutOfStock ? 'Out of Stock' : 'Add to Cart'; ?>
+                    </button>
+                </div>
+            </form>
 
             <div class="pd-meta">
                 <?php if (!empty($details['manufacturer'])): ?>
@@ -667,7 +683,9 @@ $detailSections = [
             <div class="pd-accordion-item is-open">
                 <button type="button" class="pd-accordion-trigger">
                     Description
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </button>
                 <div class="pd-accordion-panel"><?php echo htmlspecialchars($product['description']); ?></div>
             </div>
@@ -677,7 +695,9 @@ $detailSections = [
             <div class="pd-accordion-item">
                 <button type="button" class="pd-accordion-trigger">
                     Benefits
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </button>
                 <div class="pd-accordion-panel"><?php echo htmlspecialchars($details['benefits']); ?></div>
             </div>
@@ -687,7 +707,9 @@ $detailSections = [
             <div class="pd-accordion-item">
                 <button type="button" class="pd-accordion-trigger">
                     Ingredients
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </button>
                 <div class="pd-accordion-panel"><?php echo htmlspecialchars($details['ingredients']); ?></div>
             </div>
@@ -697,18 +719,19 @@ $detailSections = [
             <div class="pd-accordion-item">
                 <button type="button" class="pd-accordion-trigger">
                     Directions &amp; Dosage
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </button>
-                <div class="pd-accordion-panel"><?php
-                    $parts = [];
-                    if (!empty($details['directions'])) {
-                        $parts[] = $details['directions'];
-                    }
-                    if (!empty($details['dosage'])) {
-                        $parts[] = 'Dosage: ' . $details['dosage'];
-                    }
-                    echo htmlspecialchars(implode("\n\n", $parts));
-                ?></div>
+                <div class="pd-accordion-panel"><?php $parts = [];
+                                                if (!empty($details['directions'])) {
+                                                    $parts[] = $details['directions'];
+                                                }
+                                                if (!empty($details['dosage'])) {
+                                                    $parts[] = 'Dosage: ' . $details['dosage'];
+                                                }
+                                                echo htmlspecialchars(implode("\n\n", $parts)); ?>
+                </div>
             </div>
         <?php endif; ?>
 
@@ -716,7 +739,9 @@ $detailSections = [
             <div class="pd-accordion-item">
                 <button type="button" class="pd-accordion-trigger">
                     Precautions
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </button>
                 <div class="pd-accordion-panel"><?php echo htmlspecialchars($details['precautions']); ?></div>
             </div>
@@ -727,107 +752,106 @@ $detailSections = [
 </section>
 
 <script>
-(function () {
-    var currency = function (n) {
-        return '\u20B9' + Math.round(n).toLocaleString('en-IN');
-    };
-
-    // --- Thumbnail gallery ---
-    var mainImage = document.getElementById('js-main-image');
-    document.querySelectorAll('.pd-thumb').forEach(function (thumb) {
-        thumb.addEventListener('click', function () {
-            document.querySelectorAll('.pd-thumb').forEach(function (t) { t.classList.remove('is-active'); });
-            thumb.classList.add('is-active');
-            if (mainImage && mainImage.tagName === 'IMG') {
-                mainImage.src = thumb.getAttribute('data-full');
-            }
-        });
-    });
-
-    // --- Variant selection ---
-    var priceCurrent = document.getElementById('js-price-current');
-    var priceFull = document.getElementById('js-price-full');
-    var discountBadge = document.getElementById('js-discount-badge');
-    var oosBadge = document.getElementById('js-oos-badge');
-    var stockStatus = document.getElementById('js-stock-status');
-    var stockText = document.getElementById('js-stock-text');
-    var addToCartBtn = document.getElementById('js-add-to-cart');
-    var qtyInput = document.getElementById('js-qty-input');
-    var selectedVariantInput = document.getElementById('js-selected-variant-id');
-
-    function applyStock(stock) {
-        var isOos = stock <= 0;
-        stockStatus.classList.toggle('is-out', isOos);
-        stockText.textContent = isOos ? 'Out of Stock' : (stock <= 5 ? 'Only ' + stock + ' left' : 'In Stock');
-        oosBadge.style.display = isOos ? '' : 'none';
-        addToCartBtn.disabled = isOos;
-        addToCartBtn.textContent = isOos ? 'Out of Stock' : 'Add to Cart';
-        qtyInput.max = Math.max(stock, 1);
-        if (parseInt(qtyInput.value, 10) > stock) {
-            qtyInput.value = Math.max(stock, 1);
-        }
-    }
-
-    document.querySelectorAll('.pd-variant-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            if (btn.disabled) return;
-
-            document.querySelectorAll('.pd-variant-btn').forEach(function (b) { b.classList.remove('is-selected'); });
-            btn.classList.add('is-selected');
-
-            var price = parseFloat(btn.getAttribute('data-price'));
-            var salePriceRaw = btn.getAttribute('data-sale-price');
-            var salePrice = salePriceRaw !== '' ? parseFloat(salePriceRaw) : null;
-            var stock = parseInt(btn.getAttribute('data-stock'), 10);
-
-            var hasSale = salePrice !== null && salePrice < price;
-
-            priceCurrent.textContent = currency(hasSale ? salePrice : price);
-            if (hasSale) {
-                priceFull.textContent = currency(price);
-                priceFull.style.display = '';
-                discountBadge.textContent = Math.round((1 - (salePrice / price)) * 100) + '% off';
-                discountBadge.style.display = '';
-            } else {
-                priceFull.style.display = 'none';
-                discountBadge.style.display = 'none';
-            }
-
-            selectedVariantInput.value = btn.getAttribute('data-variant-id');
-            applyStock(stock);
-        });
-    });
-
-    // --- Quantity stepper ---
-    document.getElementById('js-qty-minus').addEventListener('click', function () {
-        var val = parseInt(qtyInput.value, 10) || 1;
-        if (val > 1) qtyInput.value = val - 1;
-    });
-    document.getElementById('js-qty-plus').addEventListener('click', function () {
-        var val = parseInt(qtyInput.value, 10) || 1;
-        var max = parseInt(qtyInput.max, 10) || 1;
-        if (val < max) qtyInput.value = val + 1;
-    });
-
-    // --- Accordion ---
-    document.querySelectorAll('.pd-accordion-trigger').forEach(function (trigger) {
-        trigger.addEventListener('click', function () {
-            trigger.closest('.pd-accordion-item').classList.toggle('is-open');
-        });
-    });
-
-    // --- Add to cart ---
-    // Cart backend doesn't exist yet (see project notes). Wire this up to
-    // the real add-to-cart endpoint once it's built.
-    addToCartBtn.addEventListener('click', function () {
-        var payload = {
-            product_id: addToCartBtn.getAttribute('data-product-id'),
-            variant_id: selectedVariantInput.value || null,
-            quantity: parseInt(qtyInput.value, 10) || 1
+    (function() {
+        var currency = function(n) {
+            return '\u20B9' + Math.round(n).toLocaleString('en-IN');
         };
-        console.log('Add to cart (not yet wired to a backend):', payload);
-    });
-})();
+
+        // --- Thumbnail gallery ---
+        var mainImage = document.getElementById('js-main-image');
+        document.querySelectorAll('.pd-thumb').forEach(function(thumb) {
+            thumb.addEventListener('click', function() {
+                document.querySelectorAll('.pd-thumb').forEach(function(t) {
+                    t.classList.remove('is-active');
+                });
+                thumb.classList.add('is-active');
+                if (mainImage && mainImage.tagName === 'IMG') {
+                    mainImage.src = thumb.getAttribute('data-full');
+                }
+            });
+        });
+
+        // --- Variant selection ---
+        var priceCurrent = document.getElementById('js-price-current');
+        var priceFull = document.getElementById('js-price-full');
+        var discountBadge = document.getElementById('js-discount-badge');
+        var oosBadge = document.getElementById('js-oos-badge');
+        var stockStatus = document.getElementById('js-stock-status');
+        var stockText = document.getElementById('js-stock-text');
+        var addToCartBtn = document.getElementById('js-add-to-cart');
+        var qtyInput = document.getElementById('js-qty-input');
+        var selectedVariantInput = document.getElementById('js-selected-variant-id');
+
+        function applyStock(stock) {
+            var isOos = stock <= 0;
+            stockStatus.classList.toggle('is-out', isOos);
+            stockText.textContent = isOos ? 'Out of Stock' : (stock <= 5 ? 'Only ' + stock + ' left' : 'In Stock');
+            oosBadge.style.display = isOos ? '' : 'none';
+            addToCartBtn.disabled = isOos;
+            addToCartBtn.textContent = isOos ? 'Out of Stock' : 'Add to Cart';
+            qtyInput.max = Math.max(stock, 1);
+            if (parseInt(qtyInput.value, 10) > stock) {
+                qtyInput.value = Math.max(stock, 1);
+            }
+        }
+
+        document.querySelectorAll('.pd-variant-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (btn.disabled) return;
+
+                document.querySelectorAll('.pd-variant-btn').forEach(function(b) {
+                    b.classList.remove('is-selected');
+                });
+                btn.classList.add('is-selected');
+
+                var price = parseFloat(btn.getAttribute('data-price'));
+                var salePriceRaw = btn.getAttribute('data-sale-price');
+                var salePrice = salePriceRaw !== '' ? parseFloat(salePriceRaw) : null;
+                var stock = parseInt(btn.getAttribute('data-stock'), 10);
+
+                var hasSale = salePrice !== null && salePrice < price;
+
+                priceCurrent.textContent = currency(hasSale ? salePrice : price);
+                if (hasSale) {
+                    priceFull.textContent = currency(price);
+                    priceFull.style.display = '';
+                    discountBadge.textContent = Math.round((1 - (salePrice / price)) * 100) + '% off';
+                    discountBadge.style.display = '';
+                } else {
+                    priceFull.style.display = 'none';
+                    discountBadge.style.display = 'none';
+                }
+
+                selectedVariantInput.value = btn.getAttribute('data-variant-id');
+                applyStock(stock);
+            });
+        });
+
+        // --- Quantity stepper ---
+        document.getElementById('js-qty-minus').addEventListener('click', function() {
+            var val = parseInt(qtyInput.value, 10) || 1;
+            if (val > 1) qtyInput.value = val - 1;
+        });
+        document.getElementById('js-qty-plus').addEventListener('click', function() {
+            var val = parseInt(qtyInput.value, 10) || 1;
+            var max = parseInt(qtyInput.max, 10) || 1;
+            if (val < max) qtyInput.value = val + 1;
+        });
+
+        // --- Accordion ---
+        document.querySelectorAll('.pd-accordion-trigger').forEach(function(trigger) {
+            trigger.addEventListener('click', function() {
+                trigger.closest('.pd-accordion-item').classList.toggle('is-open');
+            });
+        });
+
+        // --- Add to cart ---
+        // The button is now a real submit inside the form above, which
+        // POSTs action=add / product_id / variant_id / quantity straight to
+        // cart.php (same endpoint the cart page's own Update/Remove/Clear
+        // forms already use). No JS needed here beyond what already keeps
+        // js-selected-variant-id and the quantity input in sync above.
+    })();
 </script>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

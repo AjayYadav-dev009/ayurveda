@@ -295,7 +295,7 @@ foreach ($browsableCategories as $category) {
             background: var(--color-primary-light);
         }
 
-        .mega-menu__sidebar-item > a {
+        .mega-menu__sidebar-item>a {
             display: block;
             padding: 10px 12px;
             color: var(--color-text);
@@ -306,11 +306,11 @@ foreach ($browsableCategories as $category) {
             transition: background 0.15s ease, color 0.15s ease;
         }
 
-        .mega-menu__sidebar-item > a:hover {
+        .mega-menu__sidebar-item>a:hover {
             color: var(--color-primary);
         }
 
-        .mega-menu__sidebar-item.is-active > a {
+        .mega-menu__sidebar-item.is-active>a {
             background: var(--color-white);
             color: var(--color-primary);
             box-shadow: var(--shadow-soft);
@@ -461,7 +461,7 @@ foreach ($browsableCategories as $category) {
                         foreach ($announcements as $message):
                     ?>
                             <span><?= $message ?></span>
-                        <?php endforeach;
+                    <?php endforeach;
                     endfor; ?>
                 </div>
             </div>
@@ -530,30 +530,23 @@ foreach ($browsableCategories as $category) {
 
             <div class="header-actions">
                 <a href="#" title="Track order">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="1" y="7" width="14" height="10" rx="1"></rect>
-                        <path d="M15 10h4l3 3v4h-7z"></path>
-                        <circle cx="6" cy="19" r="1.7"></circle>
-                        <circle cx="18" cy="19" r="1.7"></circle>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
+                        <path fill="rgb(149, 138, 194)" d="M64 96c0-35.3 28.7-64 64-64l288 0c35.3 0 64 28.7 64 64l0 32 50.7 0c17 0 33.3 6.7 45.3 18.7L621.3 192c12 12 18.7 28.3 18.7 45.3L640 384c0 35.3-28.7 64-64 64l-3.3 0c-10.4 36.9-44.4 64-84.7 64s-74.2-27.1-84.7-64l-102.6 0c-10.4 36.9-44.4 64-84.7 64s-74.2-27.1-84.7-64l-3.3 0c-35.3 0-64-28.7-64-64l0-48-40 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l112 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L24 240c-13.3 0-24-10.7-24-24s10.7-24 24-24l176 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L24 144c-13.3 0-24-10.7-24-24S10.7 96 24 96l40 0zM576 288l0-50.7-45.3-45.3-50.7 0 0 96 96 0zM256 424a40 40 0 1 0 -80 0 40 40 0 1 0 80 0zm232 40a40 40 0 1 0 0-80 40 40 0 1 0 0 80z" />
                     </svg>
                 </a>
                 <a href="search.php" title="Search">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="7"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                        <path fill="rgb(149, 138, 194)" d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376C296.3 401.1 253.9 416 208 416 93.1 416 0 322.9 0 208S93.1 0 208 0 416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z" />
                     </svg>
                 </a>
                 <a href="account/index.php" class="icon-account" title="Account">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="9" cy="7" r="3.2"></circle>
-                        <path d="M4.5 19c0-3 2.3-5.2 5.2-5.2"></path>
-                        <path d="M17 8l-3.2 5.4h2.6L14 19l6-7h-2.8z" fill="currentColor" stroke="none"></path>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+                        <path fill="rgb(149, 138, 194)" d="M224 248a120 120 0 1 0 0-240 120 120 0 1 0 0 240zm-29.7 56C95.8 304 16 383.8 16 482.3 16 498.7 29.3 512 45.7 512l356.6 0c16.4 0 29.7-13.3 29.7-29.7 0-98.5-79.8-178.3-178.3-178.3l-59.4 0z" />
                     </svg>
                 </a>
                 <a href="cart/index.php" title="Cart">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M6 8h12l-1 12H7z"></path>
-                        <path d="M9 8V6a3 3 0 0 1 6 0v2"></path>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
+                        <path fill="rgb(149, 138, 194)" d="M24-16C10.7-16 0-5.3 0 8S10.7 32 24 32l45.3 0c3.9 0 7.2 2.8 7.9 6.6l52.1 286.3c6.2 34.2 36 59.1 70.8 59.1L456 384c13.3 0 24-10.7 24-24s-10.7-24-24-24l-255.9 0c-11.6 0-21.5-8.3-23.6-19.7l-5.1-28.3 303.6 0c30.8 0 57.2-21.9 62.9-52.2L568.9 69.9C572.6 50.2 557.5 32 537.4 32l-412.7 0-.4-2c-4.8-26.6-28-46-55.1-46L24-16zM208 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm224 0a48 48 0 1 0 0-96 48 48 0 1 0 0 96z" />
                     </svg>
                 </a>
             </div>
