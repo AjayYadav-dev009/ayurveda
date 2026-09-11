@@ -216,7 +216,7 @@ function getProductWithRelations($conn, $id)
     $categories = [];
     $stmt = mysqli_prepare(
         $conn,
-        "SELECT c.id, c.name, pc.is_primary
+        "SELECT c.id, c.name, c.slug, pc.is_primary
          FROM product_categories pc
          INNER JOIN categories c ON c.id = pc.category_id
          WHERE pc.product_id = ?

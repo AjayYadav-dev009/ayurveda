@@ -174,7 +174,7 @@ while ($row = mysqli_fetch_assoc($categoryResult)) {
         <?php foreach ($categories as $category): ?>
 
             <a
-                href="<?php echo BASE_URL; ?>categories-product.php?category_slug=<?php echo urlencode($category['slug']); ?>"
+                href="<?php echo BASE_URL; ?>products.php?category_slug=<?php echo urlencode($category['slug']); ?>"
                 class="category-card"
             >
                 <div class="category-image-wrap">
