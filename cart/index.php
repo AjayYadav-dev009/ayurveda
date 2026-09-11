@@ -572,7 +572,7 @@ $items = $totals['items'];
                     <?php endif; ?>
 
                     <a
-                        href="checkout.php"
+                        href="<?php echo BASE_URL; ?>checkout/checkout.php"
                         class="cart-checkout-btn"
                         <?php echo $totals['can_checkout'] ? '' : 'aria-disabled="true" onclick="return false;"'; ?>>
                         Proceed to Checkout

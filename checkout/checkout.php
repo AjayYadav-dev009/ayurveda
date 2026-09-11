@@ -4,490 +4,786 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/function/checkout.php';
-require_once __DIR__ . '/function/helper.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../function/customer.php';
+require_once __DIR__ . '/../function/helper.php';
 
-// Flat shipping rate used below the free-shipping threshold. There's no
-// column for this in `settings` yet - move it there if you want it
-// editable from the admin panel instead of hardcoded here.
-define('SHIPPING_FLAT_RATE', 50.00);
-
-// ---- Login required ----
-if (!isset($_SESSION['user_id'])) {
-    // NOTE: there's no customer-facing login page in the project yet -
-    // this assumes one will exist at /login.php with a `redirect` param.
-    redirect(BASE_URL . 'login.php?redirect=checkout.php');
+// checkout function file has no per-order shipping row in `settings` yet
+// (see its own note above calculateShipping()) — flat rate lives here until
+// that's moved into the settings table / admin panel.
+if (!defined('SHIPPING_FLAT_RATE')) {
+    define('SHIPPING_FLAT_RATE', 49);
 }
 
-$userId = (int) $_SESSION['user_id'];
+require_once __DIR__ . '/../function/checkout.php';
 
-$pageError = null;
-$pageSuccess = null;
+if (!isCustomerLogin()) {
+    redirect(BASE_URL . 'account/login.php?redirect=checkout.php');
+}
 
-// ---- Handle actions (address selection, coupon, placing the order) ----
+$userId = $_SESSION['customer_id'];
+
+$errors = [];
+$notice = null;
+
+/**
+ * Cart items whose price/stock no longer line up with what checkout needs:
+ * inactive product/variant, or (for variant items) requested qty > live stock.
+ * Base-product-only lines have no stock column here (see getCartItems()'s
+ * own note — stock is only tracked at the variant level in this schema), so
+ * they're only screened on status.
+ *
+ * @param array $cartItems
+ * @return array
+ */
+function getUnavailableCartItems(array $cartItems)
+{
+    $unavailable = [];
+    foreach ($cartItems as $item) {
+        if (!$item['is_available']) {
+            $unavailable[] = $item;
+        } elseif ($item['stock'] !== null && $item['quantity'] > $item['stock']) {
+            $unavailable[] = $item;
+        }
+    }
+    return $unavailable;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     $action = $_POST['action'] ?? '';
 
     if ($action === 'select_address') {
-
-        $addressId = (int) ($_POST['address_id'] ?? 0);
-        $address = getAddressById($conn, $addressId, $userId);
-
-        if ($address) {
-            $_SESSION['checkout_address_id'] = $address['id'];
+        $addressId = isset($_POST['address_id']) ? (int) $_POST['address_id'] : 0;
+        if (getAddressById($conn, $addressId, $userId)) {
+            $_SESSION['checkout_address_id'] = $addressId;
         } else {
-            $pageError = 'Please select a valid address.';
+            $errors['general'] = 'That address could not be found.';
         }
-    } elseif ($action === 'add_address') {
+        $_SESSION['checkout_flash'] = ['notice' => $notice, 'errors' => $errors];
+        redirect('checkout.php');
+    }
+
+    if ($action === 'add_address') {
+        $data = [
+            'full_name' => trim($_POST['full_name'] ?? ''),
+            'phone' => trim($_POST['phone'] ?? ''),
+            'address_line1' => trim($_POST['address_line1'] ?? ''),
+            'address_line2' => trim($_POST['address_line2'] ?? ''),
+            'city' => trim($_POST['city'] ?? ''),
+            'state' => trim($_POST['state'] ?? ''),
+            'country' => trim($_POST['country'] ?? '') ?: 'India',
+            'pincode' => trim($_POST['pincode'] ?? ''),
+            'is_default' => isset($_POST['is_default']) ? 1 : 0,
+        ];
 
         $required = ['full_name', 'phone', 'address_line1', 'city', 'state', 'pincode'];
         $missing = false;
-
         foreach ($required as $field) {
-            if (trim($_POST[$field] ?? '') === '') {
+            if ($data[$field] === '') {
                 $missing = true;
+                break;
             }
         }
 
         if ($missing) {
-            $pageError = 'Please fill in all required address fields.';
-        } else {
-            $newAddressId = addAddress($conn, $userId, [
-                'full_name' => trim($_POST['full_name']),
-                'phone' => trim($_POST['phone']),
-                'address_line1' => trim($_POST['address_line1']),
-                'address_line2' => trim($_POST['address_line2'] ?? ''),
-                'city' => trim($_POST['city']),
-                'state' => trim($_POST['state']),
-                'country' => trim($_POST['country'] ?? 'India'),
-                'pincode' => trim($_POST['pincode']),
-                'is_default' => !empty($_POST['is_default']),
-            ]);
-
-            $_SESSION['checkout_address_id'] = $newAddressId;
+            $errors['general'] = 'Please fill in all required address fields.';
+            $_SESSION['checkout_flash'] = ['notice' => $notice, 'errors' => $errors];
+            redirect('checkout.php');
         }
-    } elseif ($action === 'apply_coupon') {
 
+        try {
+            $newAddressId = addAddress($conn, $userId, $data);
+            $_SESSION['checkout_address_id'] = $newAddressId;
+            $notice = 'Address saved.';
+        } catch (Exception $e) {
+            $errors['general'] = 'Something went wrong while saving this address.';
+        }
+
+        $_SESSION['checkout_flash'] = ['notice' => $notice, 'errors' => $errors];
+        redirect('checkout.php');
+    }
+
+    if ($action === 'apply_coupon') {
         $code = trim($_POST['coupon_code'] ?? '');
         $cartItems = getCartItems($conn, $userId);
         $subtotal = calculateCartSubtotal($cartItems);
 
         if ($code === '') {
-            $pageError = 'Enter a coupon code.';
+            $errors['coupon'] = 'Enter a coupon code.';
         } else {
             $result = applyCouponCode($conn, $code, $userId, $subtotal);
-
             if ($result['valid']) {
-                $_SESSION['checkout_coupon_code'] = $code;
-                $pageSuccess = $result['message'];
+                $_SESSION['checkout_coupon'] = ['code' => strtoupper($code)];
+                $notice = $result['message'];
             } else {
-                unset($_SESSION['checkout_coupon_code']);
-                $pageError = $result['message'];
+                unset($_SESSION['checkout_coupon']);
+                $errors['coupon'] = $result['message'];
             }
         }
-    } elseif ($action === 'remove_coupon') {
 
-        unset($_SESSION['checkout_coupon_code']);
-    } elseif ($action === 'place_order') {
+        $_SESSION['checkout_flash'] = ['notice' => $notice, 'errors' => $errors];
+        redirect('checkout.php');
+    }
 
-        // Everything below is recalculated from the database - nothing
-        // from the submitted form is trusted for pricing.
+    if ($action === 'remove_coupon') {
+        unset($_SESSION['checkout_coupon']);
+        $_SESSION['checkout_flash'] = ['notice' => 'Coupon removed.', 'errors' => []];
+        redirect('checkout.php');
+    }
+
+    if ($action === 'place_order') {
         $cartItems = getCartItems($conn, $userId);
-        $unavailable = array_filter($cartItems, fn($item) => !$item['is_available']);
-        $outOfStock = array_filter($cartItems, fn($item) => $item['stock'] !== null && $item['quantity'] > $item['stock']);
-
-        $addressId = (int) ($_SESSION['checkout_address_id'] ?? 0);
-        $address = $addressId ? getAddressById($conn, $addressId, $userId) : null;
-
-        $paymentMethod = $_POST['payment_method'] ?? '';
-        $validPaymentMethods = ['cod', 'online'];
 
         if (empty($cartItems)) {
-            $pageError = 'Your cart is empty.';
-        } elseif (!empty($unavailable)) {
-            $pageError = 'Some items in your cart are no longer available. Please remove them before checking out.';
-        } elseif (!empty($outOfStock)) {
-            $pageError = 'Some items in your cart no longer have enough stock. Please update your quantities.';
-        } elseif (!$address) {
-            $pageError = 'Please select a delivery address.';
-        } elseif (!in_array($paymentMethod, $validPaymentMethods, true)) {
-            $pageError = 'Please select a payment method.';
-        } else {
+            $_SESSION['cart_flash'] = ['notice' => null, 'errors' => ['general' => 'Your cart is empty.']];
+            redirect(BASE_URL . 'cart/index.php');
+        }
 
-            $subtotal = calculateCartSubtotal($cartItems);
+        $unavailable = getUnavailableCartItems($cartItems);
+        if (!empty($unavailable)) {
+            $_SESSION['cart_flash'] = ['notice' => null, 'errors' => ['general' => 'Some items in your cart are no longer available at the requested quantity. Please review your cart.']];
+            redirect(BASE_URL . 'cart/index.php');
+        }
 
-            $coupon = null;
-            $discount = 0.0;
-            if (!empty($_SESSION['checkout_coupon_code'])) {
-                $couponResult = applyCouponCode($conn, $_SESSION['checkout_coupon_code'], $userId, $subtotal);
-                if ($couponResult['valid']) {
-                    $coupon = $couponResult['coupon'];
-                    $discount = $couponResult['discount'];
-                } else {
-                    unset($_SESSION['checkout_coupon_code']);
-                }
+        $addressId = isset($_POST['address_id']) ? (int) $_POST['address_id'] : (int) ($_SESSION['checkout_address_id'] ?? 0);
+        $address = $addressId ? getAddressById($conn, $addressId, $userId) : null;
+
+        if (!$address) {
+            $errors['general'] = 'Please select or add a delivery address.';
+            $_SESSION['checkout_flash'] = ['notice' => $notice, 'errors' => $errors];
+            redirect('checkout.php');
+        }
+
+        $subtotal = calculateCartSubtotal($cartItems);
+
+        $coupon = null;
+        $discount = 0.0;
+        if (!empty($_SESSION['checkout_coupon']['code'])) {
+            $result = applyCouponCode($conn, $_SESSION['checkout_coupon']['code'], $userId, $subtotal);
+            if ($result['valid']) {
+                $coupon = $result['coupon'];
+                $discount = $result['discount'];
+            } else {
+                // Coupon stopped being valid between applying it and placing
+                // the order (used up, expired, etc.) — drop it and make the
+                // customer confirm again rather than silently re-pricing.
+                unset($_SESSION['checkout_coupon']);
+                $_SESSION['checkout_flash'] = ['notice' => null, 'errors' => ['general' => 'Your coupon is no longer valid (' . $result['message'] . '). Please review your order and try again.']];
+                redirect('checkout.php');
             }
+        }
 
-            $afterDiscount = round($subtotal - $discount, 2);
-            $tax = calculateTax($conn, $afterDiscount);
-            $shipping = calculateShipping($conn, $afterDiscount);
-            $total = round($afterDiscount + $tax + $shipping, 2);
+        $shipping = calculateShipping($conn, $subtotal);
+        $tax = calculateTax($conn, $subtotal - $discount);
+        $total = $subtotal - $discount + $tax + $shipping;
+        $paymentMethod = 'COD';
 
-            try {
-                $orderId = createOrder(
-                    $conn,
-                    $userId,
-                    $address,
-                    $cartItems,
-                    $coupon,
-                    $discount,
-                    $subtotal,
-                    $tax,
-                    $shipping,
-                    $total,
-                    $paymentMethod
-                );
+        try {
+            $orderId = createOrder($conn, $userId, $address, $cartItems, $coupon, $discount, $subtotal, $tax, $shipping, $total, $paymentMethod);
 
-                unset($_SESSION['checkout_coupon_code'], $_SESSION['checkout_address_id']);
+            unset($_SESSION['checkout_coupon']);
+            unset($_SESSION['checkout_address_id']);
 
-                // No order-confirmation page exists yet - redirect there once you build one.
-                redirect(BASE_URL . 'order-success.php?order_id=' . $orderId);
-            } catch (Exception $e) {
-                $pageError = 'We could not place your order: ' . $e->getMessage();
-            }
+            redirect(BASE_URL . 'order-success.php?order_id=' . $orderId);
+        } catch (Exception $e) {
+            $errors['general'] = $e->getMessage() ?: 'Something went wrong while placing your order.';
+            $_SESSION['checkout_flash'] = ['notice' => $notice, 'errors' => $errors];
+            redirect('checkout.php');
         }
     }
 }
 
-// ---- Load current state fresh for rendering ----
-$cartItems = getCartItems($conn, $userId);
-$subtotal = calculateCartSubtotal($cartItems);
-$addresses = getUserAddresses($conn, $userId);
+if (isset($_SESSION['checkout_flash'])) {
+    $notice = $_SESSION['checkout_flash']['notice'];
+    $errors = $_SESSION['checkout_flash']['errors'];
+    unset($_SESSION['checkout_flash']);
+}
 
+$cartItems = getCartItems($conn, $userId);
+
+if (empty($cartItems)) {
+    redirect(BASE_URL . 'cart/index.php');
+}
+
+$unavailableItems = getUnavailableCartItems($cartItems);
+$subtotal = calculateCartSubtotal($cartItems);
+
+$addresses = getUserAddresses($conn, $userId);
 $selectedAddressId = $_SESSION['checkout_address_id'] ?? null;
 if ($selectedAddressId === null) {
     foreach ($addresses as $addr) {
         if ((int) $addr['is_default'] === 1) {
-            $selectedAddressId = $addr['id'];
+            $selectedAddressId = (int) $addr['id'];
             break;
         }
     }
-}
-$selectedAddress = $selectedAddressId ? getAddressById($conn, (int) $selectedAddressId, $userId) : null;
-
-$appliedCoupon = null;
-$discount = 0.0;
-if (!empty($_SESSION['checkout_coupon_code'])) {
-    $couponResult = applyCouponCode($conn, $_SESSION['checkout_coupon_code'], $userId, $subtotal);
-    if ($couponResult['valid']) {
-        $appliedCoupon = $couponResult['coupon'];
-        $discount = $couponResult['discount'];
-    } else {
-        // Coupon no longer valid (e.g. subtotal dropped below minimum) - drop it silently.
-        unset($_SESSION['checkout_coupon_code']);
+    if ($selectedAddressId === null && !empty($addresses)) {
+        $selectedAddressId = (int) $addresses[0]['id'];
     }
 }
 
-$afterDiscount = round($subtotal - $discount, 2);
-$tax = calculateTax($conn, $afterDiscount);
-$shipping = calculateShipping($conn, $afterDiscount);
-$total = round($afterDiscount + $tax + $shipping, 2);
+$appliedCoupon = null;
+$discount = 0.0;
+if (!empty($_SESSION['checkout_coupon']['code'])) {
+    $couponCheck = applyCouponCode($conn, $_SESSION['checkout_coupon']['code'], $userId, $subtotal);
+    if ($couponCheck['valid']) {
+        $appliedCoupon = $couponCheck['coupon'];
+        $discount = $couponCheck['discount'];
+    } else {
+        unset($_SESSION['checkout_coupon']);
+    }
+}
 
-$hasUnavailableItems = count(array_filter($cartItems, fn($item) => !$item['is_available'])) > 0;
-$hasOutOfStockItems = count(array_filter($cartItems, fn($item) => $item['stock'] !== null && $item['quantity'] > $item['stock'])) > 0;
+$shipping = calculateShipping($conn, $subtotal);
+$tax = calculateTax($conn, $subtotal - $discount);
+$total = $subtotal - $discount + $tax + $shipping;
+
+$canPlaceOrder = empty($unavailableItems) && $selectedAddressId !== null;
 ?>
-    <style>
-        body {
-            font-family: sans-serif;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
+
+<?php include __DIR__ . '/../includes/header.php'; ?>
+
+<style>
+    .checkout-section {
+        padding: 48px 40px 80px;
+        background: var(--color-bg);
+    }
+
+    .checkout-wrap {
+        max-width: var(--container-width);
+        margin: 0 auto;
+    }
+
+    .checkout-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--color-text);
+        margin: 0 0 28px;
+    }
+
+    .checkout-alert {
+        padding: 12px 16px;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .checkout-alert--success {
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark);
+        border: 1px solid var(--color-primary);
+    }
+
+    .checkout-alert--error {
+        background: #fdecea;
+        color: #b3261e;
+        border: 1px solid #f2b8b5;
+    }
+
+    .checkout-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+        gap: 32px;
+        align-items: start;
+    }
+
+    @media (max-width: 860px) {
+        .checkout-layout {
+            grid-template-columns: 1fr;
         }
+    }
 
-        section {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
+    .checkout-card {
+        background: var(--color-white);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
 
-        h2 {
-            margin-top: 0;
-            font-size: 1.1rem;
-        }
+    .checkout-card h2 {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--color-text);
+        margin: 0 0 16px;
+    }
 
-        .cart-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
+    /* --- Addresses --- */
 
-        .cart-line img {
-            width: 48px;
-            height: 48px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
+    .address-option {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+    }
 
-        .cart-line-left {
-            display: flex;
-            align-items: center;
-        }
+    .address-option:has(input:checked) {
+        border-color: var(--color-primary);
+        background: var(--color-primary-light);
+    }
 
-        .totals-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-        }
+    .address-option input {
+        margin-top: 3px;
+        accent-color: var(--color-primary);
+    }
 
-        .totals-row.grand-total {
-            font-weight: 700;
-            font-size: 1.1rem;
-            border-top: 1px solid #ccc;
-            margin-top: 6px;
-            padding-top: 10px;
-        }
+    .address-name {
+        font-weight: 700;
+        color: var(--color-text);
+        font-size: 14px;
+        margin: 0 0 2px;
+    }
 
-        .address-card {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 8px;
-        }
+    .address-lines {
+        font-size: 13px;
+        color: var(--color-text-light);
+        line-height: 1.5;
+    }
 
-        .address-card.selected {
-            border-color: #0d6efd;
-            background-color: #f0f6ff;
-        }
+    .address-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 16px;
+    }
 
-        .error-box {
-            background-color: #f8d7da;
-            color: #842029;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 16px;
-        }
+    .address-form .full-width {
+        grid-column: 1 / -1;
+    }
 
-        .success-box {
-            background-color: #d1e7dd;
-            color: #0f5132;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 16px;
-        }
+    .address-form label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text);
+        margin-bottom: 4px;
+    }
 
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            font-size: 1rem;
-            font-weight: 600;
-            text-align: center;
-            text-decoration: none;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            background-color: #0d6efd;
-        }
+    .address-form input[type="text"],
+    .address-form input[type="tel"] {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        color: var(--color-text);
+    }
 
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 0.85rem;
-        }
+    .address-form input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
 
-        input[type="text"],
-        input[type="tel"],
-        select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 8px;
-            box-sizing: border-box;
-        }
-    </style>
+    .address-form-toggle {
+        background: none;
+        border: none;
+        color: var(--color-primary);
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 0;
+        margin-top: 8px;
+    }
 
-    <h1>Checkout</h1>
+    .address-form-toggle:hover {
+        color: var(--color-primary-dark);
+    }
 
-    <?php if ($pageError): ?>
-        <div class="error-box"><?= htmlspecialchars($pageError) ?></div>
-    <?php endif; ?>
+    .checkout-default-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--color-text-light);
+        margin-top: 4px;
+    }
 
-    <?php if ($pageSuccess): ?>
-        <div class="success-box"><?= htmlspecialchars($pageSuccess) ?></div>
-    <?php endif; ?>
+    /* --- Items review --- */
 
-    <?php if (empty($cartItems)): ?>
+    .checkout-item {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--color-border);
+    }
 
-        <section>
-            <p>Your cart is empty.</p>
-        </section>
+    .checkout-item:last-child {
+        border-bottom: none;
+    }
 
-    <?php else: ?>
+    .checkout-item-image img,
+    .checkout-item-image svg {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: var(--radius-sm);
+        background: var(--color-primary-light);
+        color: var(--color-accent);
+        padding: 6px;
+    }
 
-        <!-- Review products -->
-        <section>
-            <h2>1. Review Your Cart</h2>
+    .checkout-item-body {
+        flex: 1;
+        min-width: 0;
+    }
 
-            <?php foreach ($cartItems as $item): ?>
-                <div class="cart-line">
-                    <div class="cart-line-left">
-                        <?php if ($item['image']): ?>
-                            <img src="<?= htmlspecialchars($item['image']) ?>" alt="">
-                        <?php endif; ?>
-                        <div>
-                            <div><?= htmlspecialchars($item['name']) ?></div>
-                            <div style="font-size:0.85em;color:#666;">
-                                Qty: <?= (int) $item['quantity'] ?> × ₹<?= number_format($item['price'], 2) ?>
-                                <?php if (!$item['is_available']): ?>
-                                    <span style="color:#c00;"> — no longer available</span>
-                                <?php elseif ($item['stock'] !== null && $item['quantity'] > $item['stock']): ?>
-                                    <span style="color:#c00;"> — only <?= (int) $item['stock'] ?> left in stock</span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                    <div>₹<?= number_format($item['line_total'], 2) ?></div>
-                </div>
-            <?php endforeach; ?>
-        </section>
+    .checkout-item-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-text);
+        margin: 0 0 2px;
+    }
 
-        <!-- Select address -->
-        <section>
-            <h2>2. Delivery Address</h2>
+    .checkout-item-meta {
+        font-size: 13px;
+        color: var(--color-text-light);
+    }
 
-            <?php if (empty($addresses)): ?>
-                <p>You don't have any saved addresses yet.</p>
-            <?php else: ?>
-                <form method="post" action="">
-                    <input type="hidden" name="action" value="select_address">
+    .checkout-item-issue {
+        display: inline-block;
+        margin-top: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #b3261e;
+    }
+
+    .checkout-item-total {
+        font-weight: 700;
+        color: var(--color-text);
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    /* --- Coupon --- */
+
+    .coupon-row {
+        display: flex;
+        gap: 10px;
+    }
+
+    .coupon-row input[type="text"] {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+    }
+
+    .coupon-row input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+
+    .coupon-applied {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark);
+        border-radius: var(--radius-sm);
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .coupon-applied button {
+        background: none;
+        border: none;
+        color: var(--color-primary-dark);
+        text-decoration: underline;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    /* --- Buttons --- */
+
+    .checkout-btn {
+        display: inline-block;
+        padding: 10px 18px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: var(--color-white);
+        color: var(--color-text);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .checkout-btn--primary {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--color-white);
+    }
+
+    .checkout-btn--primary:hover {
+        background: var(--color-primary-dark);
+    }
+
+    /* --- Summary --- */
+
+    .checkout-summary-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        color: var(--color-text-light);
+        margin-bottom: 10px;
+    }
+
+    .checkout-summary-row--discount {
+        color: var(--color-primary-dark);
+    }
+
+    .checkout-summary-total {
+        display: flex;
+        justify-content: space-between;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--color-text);
+        border-top: 1px solid var(--color-border);
+        padding-top: 14px;
+        margin-top: 4px;
+        margin-bottom: 18px;
+    }
+
+    .place-order-btn {
+        width: 100%;
+        display: block;
+        text-align: center;
+        padding: 14px;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 15px;
+        font-weight: 700;
+        background: var(--color-primary);
+        color: var(--color-white);
+        cursor: pointer;
+    }
+
+    .place-order-btn:hover {
+        background: var(--color-primary-dark);
+    }
+
+    .place-order-btn:disabled {
+        background: var(--color-border);
+        color: var(--color-text-light);
+        cursor: not-allowed;
+    }
+
+    .checkout-summary-note {
+        font-size: 12px;
+        color: #b3261e;
+        margin: -8px 0 14px;
+    }
+</style>
+
+<section class="checkout-section">
+    <div class="checkout-wrap">
+        <h1 class="checkout-title">Checkout</h1>
+
+        <?php if ($notice !== null): ?>
+            <div class="checkout-alert checkout-alert--success"><?php echo htmlspecialchars($notice); ?></div>
+        <?php endif; ?>
+
+        <?php if (!empty($errors['general'])): ?>
+            <div class="checkout-alert checkout-alert--error"><?php echo htmlspecialchars($errors['general']); ?></div>
+        <?php endif; ?>
+
+        <div class="checkout-layout">
+            <div class="checkout-main">
+
+                <!-- Delivery address -->
+                <div class="checkout-card">
+                    <h2>Delivery Address</h2>
+
+                    <?php if (!empty($errors['general']) && stripos($errors['general'], 'address') !== false): ?>
+                        <div class="checkout-alert checkout-alert--error"><?php echo htmlspecialchars($errors['general']); ?></div>
+                    <?php endif; ?>
 
                     <?php foreach ($addresses as $addr): ?>
-                        <label class="address-card <?= (int) $addr['id'] === (int) $selectedAddressId ? 'selected' : '' ?>" style="display:block;">
-                            <input
-                                type="radio"
-                                name="address_id"
-                                value="<?= (int) $addr['id'] ?>"
-                                <?= (int) $addr['id'] === (int) $selectedAddressId ? 'checked' : '' ?>>
-                            <strong><?= htmlspecialchars($addr['full_name']) ?></strong> — <?= htmlspecialchars($addr['phone']) ?><br>
-                            <?= htmlspecialchars($addr['address_line1']) ?><?= $addr['address_line2'] ? ', ' . htmlspecialchars($addr['address_line2']) : '' ?><br>
-                            <?= htmlspecialchars($addr['city']) ?>, <?= htmlspecialchars($addr['state']) ?> - <?= htmlspecialchars($addr['pincode']) ?>, <?= htmlspecialchars($addr['country']) ?>
-                        </label>
+                        <form method="POST" action="checkout.php">
+                            <input type="hidden" name="action" value="select_address">
+                            <input type="hidden" name="address_id" value="<?php echo (int) $addr['id']; ?>">
+                            <label class="address-option">
+                                <input
+                                    type="radio"
+                                    name="address_radio"
+                                    onchange="this.form.submit()"
+                                    <?php echo ((int) $addr['id'] === (int) $selectedAddressId) ? 'checked' : ''; ?>>
+                                <span>
+                                    <p class="address-name"><?php echo htmlspecialchars($addr['full_name']); ?> &middot; <?php echo htmlspecialchars($addr['phone']); ?></p>
+                                    <p class="address-lines">
+                                        <?php echo htmlspecialchars($addr['address_line1']); ?><?php echo !empty($addr['address_line2']) ? ', ' . htmlspecialchars($addr['address_line2']) : ''; ?><br>
+                                        <?php echo htmlspecialchars($addr['city']); ?>, <?php echo htmlspecialchars($addr['state']); ?> - <?php echo htmlspecialchars($addr['pincode']); ?>, <?php echo htmlspecialchars($addr['country']); ?>
+                                    </p>
+                                </span>
+                            </label>
+                        </form>
                     <?php endforeach; ?>
 
-                    <button type="submit" class="btn btn-sm">Use Selected Address</button>
-                </form>
-            <?php endif; ?>
-
-            <details style="margin-top: 12px;">
-                <summary>Add a new address</summary>
-                <form method="post" action="" style="margin-top: 10px;">
-                    <input type="hidden" name="action" value="add_address">
-
-                    <input type="text" name="full_name" placeholder="Full name" required>
-                    <input type="tel" name="phone" placeholder="Phone number" required>
-                    <input type="text" name="address_line1" placeholder="Address line 1" required>
-                    <input type="text" name="address_line2" placeholder="Address line 2 (optional)">
-                    <input type="text" name="city" placeholder="City" required>
-                    <input type="text" name="state" placeholder="State" required>
-                    <input type="text" name="country" placeholder="Country" value="India" required>
-                    <input type="text" name="pincode" placeholder="Pincode" required>
-                    <label><input type="checkbox" name="is_default" value="1"> Set as default address</label>
-
-                    <button type="submit" class="btn btn-sm">Save Address</button>
-                </form>
-            </details>
-        </section>
-
-        <!-- Coupon -->
-        <section>
-            <h2>3. Coupon</h2>
-
-            <?php if ($appliedCoupon): ?>
-                <p>
-                    Applied: <strong><?= htmlspecialchars($appliedCoupon['code']) ?></strong>
-                    (&minus;₹<?= number_format($discount, 2) ?>)
-                </p>
-                <form method="post" action="">
-                    <input type="hidden" name="action" value="remove_coupon">
-                    <button type="submit" class="btn btn-sm">Remove Coupon</button>
-                </form>
-            <?php else: ?>
-                <form method="post" action="" style="display:flex; gap:8px;">
-                    <input type="hidden" name="action" value="apply_coupon">
-                    <input type="text" name="coupon_code" placeholder="Enter coupon code" style="margin-bottom:0;">
-                    <button type="submit" class="btn btn-sm">Apply</button>
-                </form>
-            <?php endif; ?>
-        </section>
-
-        <!-- Totals -->
-        <section>
-            <h2>4. Order Summary</h2>
-
-            <div class="totals-row">
-                <span>Subtotal</span>
-                <span>₹<?= number_format($subtotal, 2) ?></span>
-            </div>
-
-            <?php if ($discount > 0): ?>
-                <div class="totals-row">
-                    <span>Discount</span>
-                    <span>&minus;₹<?= number_format($discount, 2) ?></span>
-                </div>
-            <?php endif; ?>
-
-            <div class="totals-row">
-                <span>Shipping</span>
-                <span><?= $shipping > 0 ? '₹' . number_format($shipping, 2) : 'Free' ?></span>
-            </div>
-
-            <div class="totals-row">
-                <span>Tax</span>
-                <span>₹<?= number_format($tax, 2) ?></span>
-            </div>
-
-            <div class="totals-row grand-total">
-                <span>Total</span>
-                <span id="js-display-total">₹<?= number_format($total, 2) ?></span>
-            </div>
-            <p style="font-size:0.8em;color:#888;">
-                The amount above is for display only. It's recalculated from the database when you place the order,
-                so nothing here can be tampered with client-side.
-            </p>
-        </section>
-
-        <!-- Payment -->
-        <section>
-            <h2>5. Payment</h2>
-
-            <form method="post" action="">
-                <input type="hidden" name="action" value="place_order">
-
-                <label><input type="radio" name="payment_method" value="cod" checked> Cash on Delivery</label><br>
-                <label><input type="radio" name="payment_method" value="online"> Online Payment</label>
-
-                <?php if (!$selectedAddress): ?>
-                    <p style="color:#c00; margin-top:10px;">Select a delivery address before placing your order.</p>
-                <?php endif; ?>
-
-                <?php if ($hasUnavailableItems || $hasOutOfStockItems): ?>
-                    <p style="color:#c00; margin-top:10px;">Resolve the cart issues above before placing your order.</p>
-                <?php endif; ?>
-
-                <div style="margin-top: 16px;">
-                    <button
-                        type="submit"
-                        class="btn"
-                        <?= (!$selectedAddress || $hasUnavailableItems || $hasOutOfStockItems) ? 'disabled' : '' ?>>
-                        Place Order — ₹<?= number_format($total, 2) ?>
+                    <button type="button" class="address-form-toggle" onclick="document.getElementById('newAddressForm').style.display='grid'; this.style.display='none';">
+                        + Add a new address
                     </button>
-                </div>
-            </form>
-        </section>
 
-    <?php endif; ?>
+                    <form method="POST" action="checkout.php" class="address-form" id="newAddressForm" style="display:<?php echo empty($addresses) ? 'grid' : 'none'; ?>;">
+                        <input type="hidden" name="action" value="add_address">
+
+                        <div>
+                            <label>Full Name</label>
+                            <input type="text" name="full_name" required>
+                        </div>
+                        <div>
+                            <label>Phone</label>
+                            <input type="tel" name="phone" required>
+                        </div>
+                        <div class="full-width">
+                            <label>Address Line 1</label>
+                            <input type="text" name="address_line1" required>
+                        </div>
+                        <div class="full-width">
+                            <label>Address Line 2 (optional)</label>
+                            <input type="text" name="address_line2">
+                        </div>
+                        <div>
+                            <label>City</label>
+                            <input type="text" name="city" required>
+                        </div>
+                        <div>
+                            <label>State</label>
+                            <input type="text" name="state" required>
+                        </div>
+                        <div>
+                            <label>Pincode</label>
+                            <input type="text" name="pincode" required>
+                        </div>
+                        <div>
+                            <label>Country</label>
+                            <input type="text" name="country" value="India">
+                        </div>
+                        <div class="full-width">
+                            <label class="checkout-default-check">
+                                <input type="checkbox" name="is_default" value="1"> Set as default address
+                            </label>
+                        </div>
+                        <div class="full-width">
+                            <button type="submit" class="checkout-btn checkout-btn--primary">Save Address</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Order items -->
+                <div class="checkout-card">
+                    <h2>Order Items</h2>
+                    <?php foreach ($cartItems as $item): ?>
+                        <div class="checkout-item">
+                            <div class="checkout-item-image">
+                                <?php if ($item['image']): ?>
+                                    <img src="<?php echo htmlspecialchars(getProductImageUrl($item['image'])); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>">
+                                <?php else: ?>
+                                    <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                                        <path d="M32 6c-6 8-10 16-10 24 0 6 4 10 10 10s10-4 10-10c0-8-4-16-10-24z" />
+                                    </svg>
+                                <?php endif; ?>
+                            </div>
+                            <div class="checkout-item-body">
+                                <p class="checkout-item-name"><?php echo htmlspecialchars($item['name']); ?></p>
+                                <p class="checkout-item-meta">&#8377;<?php echo number_format($item['price'], 2); ?> &times; <?php echo (int) $item['quantity']; ?></p>
+                                <?php if (!$item['is_available']): ?>
+                                    <span class="checkout-item-issue">No longer available</span>
+                                <?php elseif ($item['stock'] !== null && $item['quantity'] > $item['stock']): ?>
+                                    <span class="checkout-item-issue">Only <?php echo (int) $item['stock']; ?> left in stock</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="checkout-item-total">&#8377;<?php echo number_format($item['line_total'], 2); ?></div>
+                        </div>
+                    <?php endforeach; ?>
+
+                    <?php if (!empty($unavailableItems)): ?>
+                        <p class="checkout-summary-note" style="margin-top:14px;">
+                            Some items above need attention before you can place this order —
+                            <a href="<?php echo BASE_URL; ?>cart/index.php">go back to your cart</a> to fix them.
+                        </p>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Coupon -->
+                <div class="checkout-card">
+                    <h2>Coupon</h2>
+
+                    <?php if (!empty($errors['coupon'])): ?>
+                        <div class="checkout-alert checkout-alert--error"><?php echo htmlspecialchars($errors['coupon']); ?></div>
+                    <?php endif; ?>
+
+                    <?php if ($appliedCoupon): ?>
+                        <div class="coupon-applied">
+                            <span><?php echo htmlspecialchars($appliedCoupon['code']); ?> applied &mdash; you saved &#8377;<?php echo number_format($discount, 2); ?></span>
+                            <form method="POST" action="checkout.php" style="display:inline;">
+                                <input type="hidden" name="action" value="remove_coupon">
+                                <button type="submit">Remove</button>
+                            </form>
+                        </div>
+                    <?php else: ?>
+                        <form method="POST" action="checkout.php" class="coupon-row">
+                            <input type="hidden" name="action" value="apply_coupon">
+                            <input type="text" name="coupon_code" placeholder="Enter coupon code" autocapitalize="characters">
+                            <button type="submit" class="checkout-btn checkout-btn--primary">Apply</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="checkout-card">
+                <h2>Order Summary</h2>
+                <div class="checkout-summary-row">
+                    <span>Subtotal</span>
+                    <span>&#8377;<?php echo number_format($subtotal, 2); ?></span>
+                </div>
+                <?php if ($discount > 0): ?>
+                    <div class="checkout-summary-row checkout-summary-row--discount">
+                        <span>Discount</span>
+                        <span>&minus;&#8377;<?php echo number_format($discount, 2); ?></span>
+                    </div>
+                <?php endif; ?>
+                <div class="checkout-summary-row">
+                    <span>Shipping</span>
+                    <span><?php echo $shipping > 0 ? '&#8377;' . number_format($shipping, 2) : 'Free'; ?></span>
+                </div>
+                <?php if ($tax > 0): ?>
+                    <div class="checkout-summary-row">
+                        <span>Tax</span>
+                        <span>&#8377;<?php echo number_format($tax, 2); ?></span>
+                    </div>
+                <?php endif; ?>
+                <div class="checkout-summary-total">
+                    <span>Total</span>
+                    <span>&#8377;<?php echo number_format($total, 2); ?></span>
+                </div>
+
+                <?php if (!$canPlaceOrder): ?>
+                    <p class="checkout-summary-note">
+                        <?php echo $selectedAddressId === null ? 'Add or select a delivery address to continue.' : 'Resolve the item issues above to continue.'; ?>
+                    </p>
+                <?php endif; ?>
+
+                <form method="POST" action="checkout.php">
+                    <input type="hidden" name="action" value="place_order">
+                    <input type="hidden" name="address_id" value="<?php echo (int) $selectedAddressId; ?>">
+                    <button type="submit" class="place-order-btn" <?php echo $canPlaceOrder ? '' : 'disabled'; ?>>
+                        Place Order &middot; Cash on Delivery
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<?php include __DIR__ . '/../includes/footer.php'; ?>
