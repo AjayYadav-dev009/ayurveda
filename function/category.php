@@ -643,6 +643,44 @@ function getCategories($conn)
 }
 
 /**
+ * Fetch every non-root category (i.e. it has a parent_id) that is Active
+ * and has at least one Active product directly linked to it via
+ * product_categories.
+ *
+ * Root categories are organisational buckets, not browsable destinations,
+ * and a category with nothing in stock is a dead end for a customer — so
+ * neither belongs on a storefront surface. This is the one place that rule
+ * lives; the mega-menu and the category grid both call this instead of
+ * each re-implementing the same filter.
+ *
+ * @param mysqli $conn
+ * @return mysqli_result
+ * @throws Exception
+ */
+function getSubcategoriesWithProducts($conn)
+{
+    $sql = "SELECT c.*
+            FROM categories c
+            WHERE c.parent_id IS NOT NULL
+              AND c.status = 'Active'
+              AND EXISTS (
+                  SELECT 1
+                  FROM product_categories pc
+                  INNER JOIN products p ON p.id = pc.product_id AND p.status = 'Active'
+                  WHERE pc.category_id = c.id
+              )
+            ORDER BY c.sort_order ASC, c.name ASC";
+
+    $result = mysqli_query($conn, $sql);
+
+    if (!$result) {
+        throw new Exception("Error fetching subcategories with products: " . mysqli_error($conn));
+    }
+
+    return $result;
+}
+
+/**
  * Fetch a single category by id.
  *
  * @param mysqli $conn

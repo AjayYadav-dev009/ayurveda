@@ -1,3 +1,42 @@
+<?php
+
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../function/category.php';
+require_once __DIR__ . '/../function/product.php';
+
+// Mega-menu data: root categories are organisational only and never shown.
+// getSubcategoriesWithProducts() returns the flat list of real, browsable
+// categories (has a parent, Active, has at least one Active product) —
+// this is what scales to 100+ categories, since it's just a scrollable
+// sidebar list rather than a tree. Each entry's own products are preloaded
+// here so the panel-switch on hover needs no extra query.
+
+$browsableCategories = [];
+$categoryResult = getSubcategoriesWithProducts($conn);
+while ($row = mysqli_fetch_assoc($categoryResult)) {
+    $browsableCategories[] = $row;
+}
+
+$maxProductsPerCategory = 8;
+$megaMenuProducts = [];
+
+foreach ($browsableCategories as $category) {
+    $products = [];
+
+    $productResult = getProductsByCategorySlug($conn, $category['slug']);
+    if ($productResult && mysqli_num_rows($productResult) > 0) {
+        $count = 0;
+        while ($count < $maxProductsPerCategory && ($product = mysqli_fetch_assoc($productResult))) {
+            $products[] = $product;
+            $count++;
+        }
+    }
+
+    $megaMenuProducts[$category['id']] = $products;
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,49 +45,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home Page</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/global.css">
+    <script src="<?= BASE_URL ?>assets/js/global.js" defer></script>
     <style>
         .site-header {
             font-family: Arial, sans-serif;
         }
 
-        /* Announcement bar */
+        /* =========================================
+                Announcement / Ticker Bar
+        ========================================= */
+
         .announcement-bar {
-            background: #000000;
-            color: #ffffff;
+            position: relative;
+            background: var(--color-primary-dark);
+            color: var(--color-white);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 9px 32px;
+            overflow: hidden;
+            padding: 9px 0;
             font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
         }
 
-        .announcement-bar__side {
+        .announcement-bar__viewport {
             flex: 1;
+            overflow: hidden;
+            mask-image: linear-gradient(to right, transparent 0, #000 32px, #000 calc(100% - 56px), transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 32px, #000 calc(100% - 56px), transparent 100%);
+        }
+
+        .announcement-bar__track {
+            display: flex;
+            align-items: center;
+            width: max-content;
             white-space: nowrap;
+            animation: announcement-scroll 22s linear infinite;
         }
 
-        .announcement-bar__side--right {
-            text-align: right;
+        .announcement-bar__track span {
+            padding: 0 28px;
+            display: inline-flex;
+            align-items: center;
         }
 
-        .announcement-bar__center {
-            flex: 2;
-            text-align: center;
+        .announcement-bar__track span::after {
+            content: "\2022";
+            margin-left: 28px;
+            color: var(--color-accent);
+        }
+
+        @keyframes announcement-scroll {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        .announcement-bar:hover .announcement-bar__track {
+            animation-play-state: paused;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .announcement-bar__track {
+                animation: none;
+            }
+        }
+
+        .announcement-bar__more {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            padding-right: 20px;
+            color: var(--color-white);
+            font-size: 16px;
+            letter-spacing: 0;
         }
 
         /* Main header */
         .main-header {
-            background: #fdfbf3;
+            background: var(--color-white);
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 24px;
             padding: 12px 32px;
-            border-bottom: 1px solid var(--color-border, #eee);
+            border-bottom: 1px solid var(--color-border);
         }
 
         .logo {
@@ -69,14 +157,14 @@
             font-size: 19px;
             font-weight: 800;
             letter-spacing: 0.05em;
-            color: #a9852f;
+            color: var(--color-primary);
             text-transform: uppercase;
         }
 
         .logo__tagline {
             font-size: 12px;
             font-weight: 600;
-            color: #a9852f;
+            color: var(--color-accent);
             letter-spacing: 0.03em;
         }
 
@@ -91,19 +179,19 @@
         .main-nav a {
             font-size: 15px;
             font-weight: 500;
-            color: #2b2b2b;
+            color: var(--color-text);
             padding-bottom: 4px;
             border-bottom: 2px solid transparent;
             transition: color 0.15s ease, border-color 0.15s ease;
         }
 
         .main-nav a:hover {
-            color: #a9852f;
+            color: var(--color-primary);
         }
 
         .main-nav a.active {
-            color: #a9852f;
-            border-bottom-color: #d99a3f;
+            color: var(--color-primary);
+            border-bottom-color: var(--color-accent);
         }
 
         .main-nav .has-dropdown {
@@ -126,7 +214,7 @@
 
         .header-actions a {
             display: inline-flex;
-            color: #2b2b2b;
+            color: var(--color-text);
         }
 
         .header-actions svg {
@@ -135,7 +223,203 @@
         }
 
         .header-actions .icon-account {
-            color: #e08a1e;
+            color: var(--color-accent);
+        }
+
+        /* =========================================
+                Shop All Mega Menu
+                (scrollable category sidebar + product panel,
+                 built to handle 100+ categories)
+        ========================================= */
+
+        .nav-dropdown {
+            position: relative;
+        }
+
+        .mega-menu {
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+
+            display: flex;
+            align-items: stretch;
+
+            width: min(92vw, 820px);
+            max-height: 440px;
+
+            background: var(--color-white);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+
+            transition:
+                opacity 0.2s ease,
+                transform 0.2s ease,
+                visibility 0.2s ease;
+
+            z-index: 1000;
+        }
+
+        .nav-dropdown:hover .mega-menu {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Small invisible bridge between Shop All and the menu */
+
+        .mega-menu::before {
+            content: "";
+            position: absolute;
+            top: -13px;
+            left: 0;
+            width: 100%;
+            height: 13px;
+        }
+
+        /* Left: scrollable list of top-level categories */
+
+        .mega-menu__sidebar {
+            flex: 0 0 220px;
+            overflow-y: auto;
+            padding: 10px;
+            border-right: 1px solid var(--color-border);
+            background: var(--color-primary-light);
+        }
+
+        .mega-menu__sidebar-item > a {
+            display: block;
+            padding: 10px 12px;
+            color: var(--color-text);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .mega-menu__sidebar-item > a:hover {
+            color: var(--color-primary);
+        }
+
+        .mega-menu__sidebar-item.is-active > a {
+            background: var(--color-white);
+            color: var(--color-primary);
+            box-shadow: var(--shadow-soft);
+        }
+
+        /* Right: the active category's own products */
+
+        .mega-menu__panels {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+        }
+
+        .mega-menu__panel {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            padding: 18px 22px;
+        }
+
+        .mega-menu__panel.is-active {
+            display: flex;
+        }
+
+        .mega-menu__products {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px 20px;
+        }
+
+        .mega-menu__products a {
+            display: block;
+            padding: 6px 0;
+            color: var(--color-text-light);
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .mega-menu__products a:hover {
+            color: var(--color-primary);
+        }
+
+        .mega-menu__view-all {
+            align-self: flex-start;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--color-border);
+            color: var(--color-primary);
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .mega-menu__view-all:hover {
+            color: var(--color-primary-dark);
+        }
+
+        /* =========================================
+                    Dropdown Arrow
+            ========================================= */
+
+        .nav-dropdown>a .caret {
+            transition: transform 0.2s ease;
+        }
+
+        .nav-dropdown:hover>a .caret {
+            transform: rotate(180deg);
+        }
+
+        /* =========================================
+                Mobile / Tablet
+        ========================================= */
+
+        @media (max-width: 900px) {
+
+            .mega-menu {
+                position: static;
+                flex-direction: column;
+
+                width: 100%;
+                max-height: none;
+
+                transform: none;
+
+                box-shadow: none;
+
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+
+                display: none;
+            }
+
+            .nav-dropdown:hover .mega-menu {
+                display: flex;
+                transform: none;
+            }
+
+            .mega-menu__sidebar {
+                flex: none;
+                max-height: 220px;
+                border-right: none;
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .mega-menu__panel.is-active {
+                display: flex;
+            }
         }
 
         @media (max-width: 900px) {
@@ -151,14 +435,9 @@
                 gap: 18px;
             }
 
-            .announcement-bar {
-                flex-direction: column;
-                text-align: center;
-                gap: 4px;
-            }
-
-            .announcement-bar__side--right {
-                text-align: center;
+            .announcement-bar__viewport {
+                mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+                -webkit-mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
             }
         }
     </style>
@@ -168,9 +447,25 @@
 
     <header class="site-header">
         <div class="announcement-bar">
-            <div class="announcement-bar__side">Free Shipping Above ₹599</div>
-            <div class="announcement-bar__center">2% Off On Prepaid Orders</div>
-            <div class="announcement-bar__side announcement-bar__side--right">+91 97110 22343 (Mon&ndash;Sat, 10am&ndash;6pm)</div>
+            <div class="announcement-bar__viewport">
+                <div class="announcement-bar__track">
+                    <?php
+                    $announcements = [
+                        'COD Available',
+                        'Free Shipping Above ₹599',
+                        '2% Off On Prepaid Orders',
+                        '+91 97110 22343 (Mon&ndash;Sat, 10am&ndash;6pm)',
+                    ];
+                    // Rendered twice back-to-back so the track can loop seamlessly.
+                    for ($i = 0; $i < 2; $i++):
+                        foreach ($announcements as $message):
+                    ?>
+                            <span><?= $message ?></span>
+                        <?php endforeach;
+                    endfor; ?>
+                </div>
+            </div>
+            <span class="announcement-bar__more" title="More">&#8942;</span>
         </div>
 
         <div class="main-header">
@@ -193,7 +488,40 @@
 
             <nav class="main-nav">
                 <a href="<?= BASE_URL ?>index.php" class="active">Home</a>
-                <a href="<?= BASE_URL ?>shop.php" class="has-dropdown">Shop All <span class="caret">&#9662;</span></a>
+                <div class="nav-dropdown">
+                    <a href="<?= BASE_URL ?>shop.php" class="has-dropdown">
+                        Shop All <span class="caret">&#9662;</span>
+                    </a>
+                    <div class="mega-menu">
+                        <ul class="mega-menu__sidebar">
+                            <?php foreach ($browsableCategories as $index => $category): ?>
+                                <li class="mega-menu__sidebar-item<?= $index === 0 ? ' is-active' : '' ?>" data-panel-target="mega-panel-<?= (int) $category['id'] ?>">
+                                    <a href="<?= BASE_URL ?>categories-product.php?category_slug=<?= urlencode($category['slug']) ?>">
+                                        <?= htmlspecialchars($category['name']) ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+
+                        <div class="mega-menu__panels">
+                            <?php foreach ($browsableCategories as $index => $category): ?>
+                                <?php $products = $megaMenuProducts[$category['id']]; ?>
+                                <div class="mega-menu__panel<?= $index === 0 ? ' is-active' : '' ?>" id="mega-panel-<?= (int) $category['id'] ?>">
+                                    <div class="mega-menu__products">
+                                        <?php foreach ($products as $product): ?>
+                                            <a href="<?= BASE_URL ?>product.php?slug=<?= urlencode($product['slug']) ?>">
+                                                <?= htmlspecialchars($product['title']) ?>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <a class="mega-menu__view-all" href="<?= BASE_URL ?>categories-product.php?category_slug=<?= urlencode($category['slug']) ?>">
+                                        View all in <?= htmlspecialchars($category['name']) ?>
+                                    </a>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
                 <a href="#">Gut Detox</a>
                 <a href="#">Consult A Vaidya</a>
                 <a href="#">Dosha Test</a>
