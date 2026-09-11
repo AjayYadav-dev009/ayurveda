@@ -1205,3 +1205,457 @@ function deleteProductVariant($conn, $variantId)
     }
     return true;
 }
+
+/**
+ *
+ * @param mysqli $conn
+ * @param int $limit
+ * @return array<int, array<string, mixed>>
+ * @throws Exception
+ */
+function getHighlightProducts($conn, $limit = 12)
+{
+    $limit = max(1, (int) $limit);
+
+    $sql = "SELECT
+                p.*,
+                pi.image AS primary_image,
+                COALESCE(r.avg_rating, 0) AS avg_rating,
+                COALESCE(r.review_count, 0) AS review_count,
+                dv.id AS default_variant_id,
+                dv.price AS default_variant_price,
+                dv.sale_price AS default_variant_sale_price,
+                COALESCE(vs.variant_stock_total, 0) AS variant_stock_total
+            FROM products p
+            LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
+            LEFT JOIN (
+                SELECT product_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+                FROM reviews
+                WHERE status = 'Active'
+                GROUP BY product_id
+            ) r ON r.product_id = p.id
+            LEFT JOIN product_variants dv ON dv.id = (
+                SELECT id FROM product_variants
+                WHERE product_id = p.id AND status = 'Active'
+                ORDER BY is_default DESC, sort_order ASC, id ASC
+                LIMIT 1
+            )
+            LEFT JOIN (
+                SELECT product_id, SUM(stock) AS variant_stock_total
+                FROM product_variants
+                WHERE status = 'Active'
+                GROUP BY product_id
+            ) vs ON vs.product_id = p.id
+            WHERE p.status = 'Active'
+              AND (p.featured = 1)
+            ORDER BY p.featured DESC
+            LIMIT ?";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    mysqli_stmt_bind_param($stmt, 'i', $limit);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching highlight products: " . mysqli_error($conn));
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+    $products = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $products[] = $row;
+    }
+
+    if (empty($products)) {
+        return [];
+    }
+
+    // Variant pill labels ("60 Tabs", "Pack of 2") — a second, narrow query
+    // per product would be N+1; instead pull all Active variant names for
+    // this batch in one query and group them in PHP.
+    $productIds = array_column($products, 'id');
+    $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+    $types = str_repeat('i', count($productIds));
+
+    $variantSql = "SELECT product_id, variant_name
+                    FROM product_variants
+                    WHERE product_id IN ($placeholders) AND status = 'Active'
+                    ORDER BY sort_order ASC, id ASC";
+    $variantStmt = mysqli_prepare($conn, $variantSql);
+    if (!$variantStmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    $bindArgs = [$types];
+    foreach ($productIds as $key => $value) {
+        $bindArgs[] = &$productIds[$key];
+    }
+    call_user_func_array('mysqli_stmt_bind_param', array_merge([$variantStmt], $bindArgs));
+    mysqli_stmt_execute($variantStmt);
+    $variantResult = mysqli_stmt_get_result($variantStmt);
+
+    $variantLabelsByProduct = [];
+    while ($vRow = mysqli_fetch_assoc($variantResult)) {
+        $variantLabelsByProduct[$vRow['product_id']][] = $vRow['variant_name'];
+    }
+
+    foreach ($products as &$product) {
+        $product['variant_labels'] = $variantLabelsByProduct[$product['id']] ?? [];
+
+        if (!empty($product['has_variants'])) {
+            $product['display_price'] = $product['default_variant_price'] !== null ? (float) $product['default_variant_price'] : (float) $product['base_price'];
+            $product['display_sale_price'] = $product['default_variant_sale_price'] !== null ? (float) $product['default_variant_sale_price'] : null;
+            $product['is_out_of_stock'] = (int) $product['variant_stock_total'] <= 0;
+        } else {
+            $product['display_price'] = (float) $product['base_price'];
+            $product['display_sale_price'] = !empty($product['base_sale_price']) ? (float) $product['base_sale_price'] : null;
+            $product['is_out_of_stock'] = (int) $product['stock'] <= 0;
+        }
+    }
+    unset($product);
+
+    return $products;
+}
+/**
+ * Products for the homepage "Best Sellers" carousel: Active products
+ * flagged bestseller = 1 only (unlike getHighlightProducts(), which also
+ * pulls in featured/trending). Enriched with the same fields the
+ * bestsaleproduct.php card needs — review rating/count, a single display
+ * price (default variant if the product has variants, otherwise the base
+ * price), out-of-stock across all variants, and variant pill labels.
+ *
+ * @param mysqli $conn
+ * @param int $limit
+ * @return array<int, array<string, mixed>>
+ * @throws Exception
+ */
+function getBestSellerProducts($conn, $limit = 12)
+{
+    $limit = max(1, (int) $limit);
+
+    $sql = "SELECT
+                p.*,
+                pi.image AS primary_image,
+                COALESCE(r.avg_rating, 0) AS avg_rating,
+                COALESCE(r.review_count, 0) AS review_count,
+                dv.id AS default_variant_id,
+                dv.price AS default_variant_price,
+                dv.sale_price AS default_variant_sale_price,
+                COALESCE(vs.variant_stock_total, 0) AS variant_stock_total
+            FROM products p
+            LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
+            LEFT JOIN (
+                SELECT product_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+                FROM reviews
+                WHERE status = 'Active'
+                GROUP BY product_id
+            ) r ON r.product_id = p.id
+            LEFT JOIN product_variants dv ON dv.id = (
+                SELECT id FROM product_variants
+                WHERE product_id = p.id AND status = 'Active'
+                ORDER BY is_default DESC, sort_order ASC, id ASC
+                LIMIT 1
+            )
+            LEFT JOIN (
+                SELECT product_id, SUM(stock) AS variant_stock_total
+                FROM product_variants
+                WHERE status = 'Active'
+                GROUP BY product_id
+            ) vs ON vs.product_id = p.id
+            WHERE p.status = 'Active'
+              AND p.bestseller = 1
+            ORDER BY r.avg_rating DESC, r.review_count DESC, p.created_at DESC
+            LIMIT ?";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    mysqli_stmt_bind_param($stmt, 'i', $limit);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching best seller products: " . mysqli_error($conn));
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+    $products = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $products[] = $row;
+    }
+
+    if (empty($products)) {
+        return [];
+    }
+
+    // Same batched variant-label lookup as getHighlightProducts() — avoids
+    // an N+1 query for the "60 Tabs" / "Pack of 2" pill labels.
+    $productIds = array_column($products, 'id');
+    $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+    $types = str_repeat('i', count($productIds));
+
+    $variantSql = "SELECT product_id, variant_name
+                    FROM product_variants
+                    WHERE product_id IN ($placeholders) AND status = 'Active'
+                    ORDER BY sort_order ASC, id ASC";
+    $variantStmt = mysqli_prepare($conn, $variantSql);
+    if (!$variantStmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    $bindArgs = [$types];
+    foreach ($productIds as $key => $value) {
+        $bindArgs[] = &$productIds[$key];
+    }
+    call_user_func_array('mysqli_stmt_bind_param', array_merge([$variantStmt], $bindArgs));
+    mysqli_stmt_execute($variantStmt);
+    $variantResult = mysqli_stmt_get_result($variantStmt);
+
+    $variantLabelsByProduct = [];
+    while ($vRow = mysqli_fetch_assoc($variantResult)) {
+        $variantLabelsByProduct[$vRow['product_id']][] = $vRow['variant_name'];
+    }
+
+    foreach ($products as &$product) {
+        $product['variant_labels'] = $variantLabelsByProduct[$product['id']] ?? [];
+
+        if (!empty($product['has_variants'])) {
+            $product['display_price'] = $product['default_variant_price'] !== null ? (float) $product['default_variant_price'] : (float) $product['base_price'];
+            $product['display_sale_price'] = $product['default_variant_sale_price'] !== null ? (float) $product['default_variant_sale_price'] : null;
+            $product['is_out_of_stock'] = (int) $product['variant_stock_total'] <= 0;
+        } else {
+            $product['display_price'] = (float) $product['base_price'];
+            $product['display_sale_price'] = !empty($product['base_sale_price']) ? (float) $product['base_sale_price'] : null;
+            $product['is_out_of_stock'] = (int) $product['stock'] <= 0;
+        }
+    }
+    unset($product);
+
+    return $products;
+}
+
+/**
+ * Products for the homepage "Trending" carousel: Active products flagged
+ * trending = 1 only (unlike getHighlightProducts(), which also pulls in
+ * featured/bestseller). Enriched with the same fields the trending.php
+ * card needs — review rating/count, a single display price (default
+ * variant if the product has variants, otherwise the base price),
+ * out-of-stock across all variants, and variant pill labels.
+ *
+ * @param mysqli $conn
+ * @param int $limit
+ * @return array<int, array<string, mixed>>
+ * @throws Exception
+ */
+function getTrendingProducts($conn, $limit = 12)
+{
+    $limit = max(1, (int) $limit);
+
+    $sql = "SELECT
+                p.*,
+                pi.image AS primary_image,
+                COALESCE(r.avg_rating, 0) AS avg_rating,
+                COALESCE(r.review_count, 0) AS review_count,
+                dv.id AS default_variant_id,
+                dv.price AS default_variant_price,
+                dv.sale_price AS default_variant_sale_price,
+                COALESCE(vs.variant_stock_total, 0) AS variant_stock_total
+            FROM products p
+            LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
+            LEFT JOIN (
+                SELECT product_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+                FROM reviews
+                WHERE status = 'Active'
+                GROUP BY product_id
+            ) r ON r.product_id = p.id
+            LEFT JOIN product_variants dv ON dv.id = (
+                SELECT id FROM product_variants
+                WHERE product_id = p.id AND status = 'Active'
+                ORDER BY is_default DESC, sort_order ASC, id ASC
+                LIMIT 1
+            )
+            LEFT JOIN (
+                SELECT product_id, SUM(stock) AS variant_stock_total
+                FROM product_variants
+                WHERE status = 'Active'
+                GROUP BY product_id
+            ) vs ON vs.product_id = p.id
+            WHERE p.status = 'Active'
+              AND p.trending = 1
+            ORDER BY r.avg_rating DESC, r.review_count DESC, p.created_at DESC
+            LIMIT ?";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    mysqli_stmt_bind_param($stmt, 'i', $limit);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching trending products: " . mysqli_error($conn));
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+    $products = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $products[] = $row;
+    }
+
+    if (empty($products)) {
+        return [];
+    }
+
+    // Same batched variant-label lookup as getHighlightProducts() /
+    // getBestSellerProducts() — avoids an N+1 query for the pill labels.
+    $productIds = array_column($products, 'id');
+    $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+    $types = str_repeat('i', count($productIds));
+
+    $variantSql = "SELECT product_id, variant_name
+                    FROM product_variants
+                    WHERE product_id IN ($placeholders) AND status = 'Active'
+                    ORDER BY sort_order ASC, id ASC";
+    $variantStmt = mysqli_prepare($conn, $variantSql);
+    if (!$variantStmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    $bindArgs = [$types];
+    foreach ($productIds as $key => $value) {
+        $bindArgs[] = &$productIds[$key];
+    }
+    call_user_func_array('mysqli_stmt_bind_param', array_merge([$variantStmt], $bindArgs));
+    mysqli_stmt_execute($variantStmt);
+    $variantResult = mysqli_stmt_get_result($variantStmt);
+
+    $variantLabelsByProduct = [];
+    while ($vRow = mysqli_fetch_assoc($variantResult)) {
+        $variantLabelsByProduct[$vRow['product_id']][] = $vRow['variant_name'];
+    }
+
+    foreach ($products as &$product) {
+        $product['variant_labels'] = $variantLabelsByProduct[$product['id']] ?? [];
+
+        if (!empty($product['has_variants'])) {
+            $product['display_price'] = $product['default_variant_price'] !== null ? (float) $product['default_variant_price'] : (float) $product['base_price'];
+            $product['display_sale_price'] = $product['default_variant_sale_price'] !== null ? (float) $product['default_variant_sale_price'] : null;
+            $product['is_out_of_stock'] = (int) $product['variant_stock_total'] <= 0;
+        } else {
+            $product['display_price'] = (float) $product['base_price'];
+            $product['display_sale_price'] = !empty($product['base_sale_price']) ? (float) $product['base_sale_price'] : null;
+            $product['is_out_of_stock'] = (int) $product['stock'] <= 0;
+        }
+    }
+    unset($product);
+
+    return $products;
+}
+
+/**
+ * Products for the homepage "Seasonal Picks" carousel: Active products
+ * flagged seasonal = 1 only (products.seasonal — see
+ * migration_add_products_seasonal.sql). Enriched with the same fields the
+ * seasonalpicks.php card needs — review rating/count, a single display
+ * price (default variant if the product has variants, otherwise the base
+ * price), out-of-stock across all variants, and variant pill labels.
+ *
+ * @param mysqli $conn
+ * @param int $limit
+ * @return array<int, array<string, mixed>>
+ * @throws Exception
+ */
+function getSeasonalProducts($conn, $limit = 12)
+{
+    $limit = max(1, (int) $limit);
+
+    $sql = "SELECT
+                p.*,
+                pi.image AS primary_image,
+                COALESCE(r.avg_rating, 0) AS avg_rating,
+                COALESCE(r.review_count, 0) AS review_count,
+                dv.id AS default_variant_id,
+                dv.price AS default_variant_price,
+                dv.sale_price AS default_variant_sale_price,
+                COALESCE(vs.variant_stock_total, 0) AS variant_stock_total
+            FROM products p
+            LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = 1
+            LEFT JOIN (
+                SELECT product_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+                FROM reviews
+                WHERE status = 'Active'
+                GROUP BY product_id
+            ) r ON r.product_id = p.id
+            LEFT JOIN product_variants dv ON dv.id = (
+                SELECT id FROM product_variants
+                WHERE product_id = p.id AND status = 'Active'
+                ORDER BY is_default DESC, sort_order ASC, id ASC
+                LIMIT 1
+            )
+            LEFT JOIN (
+                SELECT product_id, SUM(stock) AS variant_stock_total
+                FROM product_variants
+                WHERE status = 'Active'
+                GROUP BY product_id
+            ) vs ON vs.product_id = p.id
+            WHERE p.status = 'Active'
+              AND p.seasonal = 1
+            ORDER BY r.avg_rating DESC, r.review_count DESC, p.created_at DESC
+            LIMIT ?";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    mysqli_stmt_bind_param($stmt, 'i', $limit);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching seasonal products: " . mysqli_error($conn));
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+    $products = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $products[] = $row;
+    }
+
+    if (empty($products)) {
+        return [];
+    }
+
+    // Same batched variant-label lookup as the other homepage carousel
+    // functions — avoids an N+1 query for the pill labels.
+    $productIds = array_column($products, 'id');
+    $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+    $types = str_repeat('i', count($productIds));
+
+    $variantSql = "SELECT product_id, variant_name
+                    FROM product_variants
+                    WHERE product_id IN ($placeholders) AND status = 'Active'
+                    ORDER BY sort_order ASC, id ASC";
+    $variantStmt = mysqli_prepare($conn, $variantSql);
+    if (!$variantStmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    $bindArgs = [$types];
+    foreach ($productIds as $key => $value) {
+        $bindArgs[] = &$productIds[$key];
+    }
+    call_user_func_array('mysqli_stmt_bind_param', array_merge([$variantStmt], $bindArgs));
+    mysqli_stmt_execute($variantStmt);
+    $variantResult = mysqli_stmt_get_result($variantStmt);
+
+    $variantLabelsByProduct = [];
+    while ($vRow = mysqli_fetch_assoc($variantResult)) {
+        $variantLabelsByProduct[$vRow['product_id']][] = $vRow['variant_name'];
+    }
+
+    foreach ($products as &$product) {
+        $product['variant_labels'] = $variantLabelsByProduct[$product['id']] ?? [];
+
+        if (!empty($product['has_variants'])) {
+            $product['display_price'] = $product['default_variant_price'] !== null ? (float) $product['default_variant_price'] : (float) $product['base_price'];
+            $product['display_sale_price'] = $product['default_variant_sale_price'] !== null ? (float) $product['default_variant_sale_price'] : null;
+            $product['is_out_of_stock'] = (int) $product['variant_stock_total'] <= 0;
+        } else {
+            $product['display_price'] = (float) $product['base_price'];
+            $product['display_sale_price'] = !empty($product['base_sale_price']) ? (float) $product['base_sale_price'] : null;
+            $product['is_out_of_stock'] = (int) $product['stock'] <= 0;
+        }
+    }
+    unset($product);
+
+    return $products;
+}

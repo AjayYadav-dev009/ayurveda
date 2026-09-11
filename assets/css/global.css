@@ -45,13 +45,19 @@ button {
   cursor: pointer;
 }
 
-ul, ol {
+ul,
+ol {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   margin: 0;
   padding: 0;
 }
@@ -69,4 +75,64 @@ img {
 .container {
   width: min(calc(100% - 40px), var(--container-width));
   margin-inline: auto;
+}
+
+.slider {
+  --slider-visible: 1;
+  --slider-gap: 0px;
+  position: relative;
+  overflow: hidden;
+}
+
+.slider__track {
+  display: flex;
+  gap: var(--slider-gap);
+  transition: transform 0.6s ease-in-out;
+  will-change: transform;
+}
+
+.slider__slide {
+  flex: 0 0
+    calc(
+      (100% - (var(--slider-visible) - 1) * var(--slider-gap)) /
+        var(--slider-visible)
+    );
+  min-width: 0;
+}
+
+/* Clones injected by the slider engine for the infinite loop should never
+   be reachable by keyboard/screen reader — the real slides already cover
+   everything. */
+.slider__slide[aria-hidden="true"] {
+  pointer-events: none;
+}
+
+.slider__dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.slider__dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--slider-dot-color, var(--color-border));
+  transition:
+    background 0.3s ease,
+    transform 0.3s ease;
+  cursor: pointer;
+}
+
+.slider__dot.is-active {
+  background: var(--slider-dot-active-color, var(--color-primary));
+  transform: scale(1.25);
+}
+
+.slider__dot:focus-visible {
+  outline: 2px solid var(--slider-dot-active-color, var(--color-primary));
+  outline-offset: 2px;
 }

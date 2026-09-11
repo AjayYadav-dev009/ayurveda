@@ -118,7 +118,19 @@ function getCategoryImageUrl($imagePath)
     if ($imagePath === null || $imagePath === '') {
         return null;
     }
-    return rtrim(CATEGORY_IMAGE_PUBLIC_PATH, '/') . '/' . ltrim($imagePath, '/');
+
+    $path = rtrim(CATEGORY_IMAGE_PUBLIC_PATH, '/') . '/' . ltrim($imagePath, '/');
+
+    // CATEGORY_IMAGE_PUBLIC_PATH is root-relative ('/uploads/categories/'),
+    // which only resolves correctly when the site is served from the domain
+    // root. This project isn't (e.g. localhost/ayurveda/), so without
+    // BASE_URL every image 404s and the browser silently falls back to
+    // showing the alt text instead — that's the "images not loading" bug.
+    if (defined('BASE_URL') && BASE_URL !== '') {
+        return rtrim(BASE_URL, '/') . $path;
+    }
+
+    return $path;
 }
 
 /**
