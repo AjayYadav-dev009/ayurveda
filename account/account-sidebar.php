@@ -1,41 +1,33 @@
 <?php
 
-/**
- * Shared shell for the customer "My Account" area: a left sidebar (avatar,
- * name, nav links, logout) plus an opening <main class="account-content">
- * that the including page fills in and then closes itself.
- *
- * Usage in a page:
- *
- *   $user = getUserById($conn, $_SESSION['customer_id']);
- *   $activeNav = 'orders'; // one of: dashboard, orders, wishlist, addresses, profile
- *   require __DIR__ . '/../includes/account-sidebar.php';
- *   ?>
- *   <h1>Page content here</h1>
- *   ...
- *   </main>
- *   </div><!-- /.account-shell -->
- *
- * Expects $conn/$user/session/auth checks to already be handled by the
- * including page (same as every other account page in this project).
- */
-
 if (!isset($activeNav)) {
     $activeNav = '';
 }
 
-// wishlist.php / addresses.php / profile.php don't exist yet — the links
-// below point at them anyway so the nav is complete; they'll 404 until
-// those pages are built once their backend functions are ready.
+// Absolute (BASE_URL-anchored) paths on purpose. This partial is included
+// from account/index.php, account/my-orders.php, account/profile.php AND
+// from account/addresses/*.php (one folder deeper) — relative links like
+// 'index.php' would resolve differently depending on which of those
+// included it, so every href (including the logout form's action) is
+// anchored to BASE_URL . 'account/...' instead.
 $navItems = [
-    'dashboard' => ['label' => 'Dashboard', 'href' => 'index.php'],
-    'orders'    => ['label' => 'My Orders', 'href' => 'my-orders.php'],
-    'wishlist'  => ['label' => 'Wishlist', 'href' => 'wishlist.php'],
-    'addresses' => ['label' => 'Addresses', 'href' => 'addresses.php'],
-    'profile'   => ['label' => 'Profile', 'href' => 'profile.php'],
+    'dashboard' => ['label' => 'Dashboard', 'href' => BASE_URL . 'account/index.php'],
+    'orders'    => ['label' => 'My Orders', 'href' => BASE_URL . 'account/my-orders.php'],
+    'wishlist'  => ['label' => 'Wishlist', 'href' => BASE_URL . 'account/wishlist.php'],
+    'addresses' => ['label' => 'Addresses', 'href' => BASE_URL . 'account/addresses/index.php'],
+    'profile'   => ['label' => 'Profile', 'href' => BASE_URL . 'account/profile.php'],
 ];
 
-$sidebarName = isset($user['name']) ? $user['name'] : '';
+// Prefer the full $user row when the including page already loaded one
+// (index.php, profile.php); otherwise fall back to the name already
+// stashed in the session at login, so pages like the addresses section
+// don't need to fetch the user row just to render the sidebar.
+$sidebarName = '';
+if (isset($user['name']) && $user['name'] !== '') {
+    $sidebarName = $user['name'];
+} elseif (isset($_SESSION['customer_name'])) {
+    $sidebarName = $_SESSION['customer_name'];
+}
 $sidebarInitial = $sidebarName !== '' ? mb_strtoupper(mb_substr($sidebarName, 0, 1)) : '?';
 ?>
 
@@ -184,10 +176,9 @@ $sidebarInitial = $sidebarName !== '' ? mb_strtoupper(mb_substr($sidebarName, 0,
             <?php endforeach; ?>
         </nav>
 
-        <form method="post" action="logout.php" class="account-nav__logout-form">
+        <form method="post" action="<?= htmlspecialchars(BASE_URL . 'account/logout.php') ?>" class="account-nav__logout-form">
             <button type="submit" class="account-nav__link account-nav__link--logout">Logout</button>
         </form>
     </aside>
 
     <main class="account-content">
-
