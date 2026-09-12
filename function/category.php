@@ -887,3 +887,105 @@ function getProductImpactForSubtree($conn, array $subtreeIds)
 
     return ['toDelete' => $toDelete, 'toUnlink' => $toUnlink];
 }
+
+/**
+ * Homepage "Shop By Category" helpers.
+ *
+ * Adds only what the homepage section needs on top of the existing
+ * function/category.php — no new table, no duplicated CRUD, no rewritten
+ * category logic. Reuses getCategoryImageUrl() and CATEGORY_STATUSES from
+ * category.php as-is.
+ */
+
+require_once __DIR__ . '/category.php';
+
+// Shown when a category has no image, so a missing upload never breaks
+// the card layout. Point this at the project's existing fallback image
+// if one is already used elsewhere; this is just a sensible default.
+if (!defined('CATEGORY_IMAGE_FALLBACK_PATH')) {
+    define('CATEGORY_IMAGE_FALLBACK_PATH', '/assets/images/category-placeholder.png');
+}
+
+/**
+ * Fetch active, top-level categories (parent_id IS NULL) for the
+ * homepage "Shop By Category" slider.
+ *
+ * getCategories() in category.php returns every category regardless of
+ * status/parent — right for the admin list, too broad for this section —
+ * so this is a separate, narrower query rather than a change to that
+ * function's behavior.
+ *
+ * @param mysqli $conn
+ * @return array<int, array<string, mixed>> Ordered by sort_order ASC.
+ * @throws Exception
+ */
+function getTopLevelActiveCategories($conn)
+{
+    $sql = "SELECT * FROM categories
+            WHERE parent_id IS NULL AND status = ?
+            ORDER BY sort_order ASC, id ASC";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+
+    $status = 'Active'; // matches CATEGORY_STATUSES in category.php
+    mysqli_stmt_bind_param($stmt, 's', $status);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error fetching top-level categories: " . mysqli_error($conn));
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+    if ($result === false) {
+        throw new Exception("Error fetching top-level categories: " . mysqli_error($conn));
+    }
+
+    $categories = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $categories[] = $row;
+    }
+
+    return $categories;
+}
+
+/**
+ * Category image URL with a safe fallback when the category has no image.
+ *
+ * @param ?string $imagePath As stored in categories.image
+ * @return string Always returns a usable URL, never null.
+ */
+function getCategoryImageUrlOrFallback($imagePath)
+{
+    $url = getCategoryImageUrl($imagePath);
+    if ($url !== null) {
+        return $url;
+    }
+
+    if (defined('BASE_URL') && BASE_URL !== '') {
+        return rtrim(BASE_URL, '/') . CATEGORY_IMAGE_FALLBACK_PATH;
+    }
+
+    return CATEGORY_IMAGE_FALLBACK_PATH;
+}
+
+/**
+ * Build a category's public URL from its slug.
+ *
+ * Matches the existing route used across the project (see categories.php):
+ * products.php?category_slug=... — there is no /category/{slug} route.
+ *
+ * @param string $slug
+ * @return string
+ */
+function getCategoryUrl($slug)
+{
+    $path = 'products.php?category_slug=' . urlencode($slug);
+
+    if (defined('BASE_URL') && BASE_URL !== '') {
+        return rtrim(BASE_URL, '/') . '/' . $path;
+    }
+
+    return $path;
+}
