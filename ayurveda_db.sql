@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 11, 2026 at 09:25 AM
+-- Generation Time: Sep 14, 2026 at 04:46 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -273,6 +273,19 @@ CREATE TABLE `coupon_usages` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `newsletter_subscribers`
+--
+
+CREATE TABLE `newsletter_subscribers` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `email` varchar(191) NOT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT 1,
+  `subscribed_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `orders`
 --
 
@@ -304,6 +317,19 @@ CREATE TABLE `orders` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `orders`
+--
+
+INSERT INTO `orders` (`id`, `user_id`, `order_number`, `subtotal`, `discount`, `tax`, `shipping`, `total`, `coupon_id`, `coupon_code`, `payment_method`, `payment_status`, `order_status`, `shipping_name`, `shipping_phone`, `shipping_address`, `shipping_city`, `shipping_state`, `shipping_country`, `shipping_pincode`, `tracking_number`, `shipping_provider`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 2, 'ORD-DEMO-0001', 399.00, 0.00, 0.00, 49.00, 448.00, NULL, NULL, 'COD', 'paid', 'delivered', 'Sunita Rani', '9812300001', '12 MG Road', 'Jaipur', 'Rajasthan', 'India', '302001', NULL, NULL, NULL, '2026-08-04 06:30:00', '2026-08-09 06:30:00'),
+(2, 3, 'ORD-DEMO-0002', 499.00, 0.00, 0.00, 49.00, 548.00, NULL, NULL, 'COD', 'paid', 'delivered', 'Sumit Kaushik', '9812300002', '45 Sector 21', 'Gurugram', 'Haryana', 'India', '122001', NULL, NULL, NULL, '2026-08-07 06:30:00', '2026-08-12 06:30:00'),
+(3, 4, 'ORD-DEMO-0003', 249.00, 0.00, 0.00, 49.00, 298.00, NULL, NULL, 'COD', 'paid', 'delivered', 'S Solanki', '9812300003', '7 Lake View Road', 'Pune', 'Maharashtra', 'India', '411001', NULL, NULL, NULL, '2026-08-11 06:30:00', '2026-08-16 06:30:00'),
+(4, 5, 'ORD-DEMO-0004', 379.00, 0.00, 0.00, 49.00, 428.00, NULL, NULL, 'Prepaid', 'paid', 'delivered', 'Priya Verma', '9812300004', '9 Park Street', 'Kolkata', 'West Bengal', 'India', '700016', NULL, NULL, NULL, '2026-08-14 06:30:00', '2026-08-19 06:30:00'),
+(5, 7, 'ORD-DEMO-0005', 329.00, 0.00, 0.00, 49.00, 378.00, NULL, NULL, 'COD', 'paid', 'delivered', 'Anjali Nair', '9812300006', '23 Marine Drive', 'Kochi', 'Kerala', 'India', '682001', NULL, NULL, NULL, '2026-08-22 06:30:00', '2026-08-27 06:30:00'),
+(6, 9, 'ORD-DEMO-0006', 599.00, 0.00, 0.00, 49.00, 648.00, NULL, NULL, 'Prepaid', 'paid', 'delivered', 'Deepa Iyer', '9812300008', '61 Anna Salai', 'Chennai', 'Tamil Nadu', 'India', '600002', NULL, NULL, NULL, '2026-08-30 06:30:00', '2026-09-04 06:30:00'),
+(7, 5, 'ORD-DEMO-0007', 249.00, 0.00, 0.00, 49.00, 298.00, NULL, NULL, 'Prepaid', 'paid', 'delivered', 'Priya Verma', '9812300004', '9 Park Street', 'Kolkata', 'West Bengal', 'India', '700016', NULL, NULL, NULL, '2026-09-01 06:30:00', '2026-09-06 06:30:00');
+
 -- --------------------------------------------------------
 
 --
@@ -323,6 +349,19 @@ CREATE TABLE `order_items` (
   `subtotal` decimal(12,2) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `order_items`
+--
+
+INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `variant_id`, `product_name`, `variant_name`, `sku`, `price`, `quantity`, `subtotal`, `created_at`) VALUES
+(1, 1, 1, NULL, 'Ashwagandha Herbal Capsules', NULL, NULL, 399.00, 1, 399.00, '2026-08-04 06:30:00'),
+(2, 2, 4, NULL, 'Chyawanprash Herbal Blend', NULL, NULL, 499.00, 1, 499.00, '2026-08-07 06:30:00'),
+(3, 3, 2, NULL, 'Triphala Churna', NULL, NULL, 249.00, 1, 249.00, '2026-08-11 06:30:00'),
+(4, 4, 14, NULL, 'Turmeric Herbal Face Cream', NULL, NULL, 379.00, 1, 379.00, '2026-08-14 06:30:00'),
+(5, 5, 10, NULL, 'Bhringraj Hair Oil', NULL, NULL, 329.00, 1, 329.00, '2026-08-22 06:30:00'),
+(6, 6, 15, NULL, 'Kumkumadi Face Oil', NULL, NULL, 599.00, 1, 599.00, '2026-08-30 06:30:00'),
+(7, 7, 13, NULL, 'Aloe Vera Herbal Face Wash', NULL, NULL, 249.00, 1, 249.00, '2026-09-01 06:30:00');
 
 -- --------------------------------------------------------
 
@@ -402,6 +441,7 @@ CREATE TABLE `products` (
   `featured` tinyint(1) NOT NULL DEFAULT 0,
   `bestseller` tinyint(1) NOT NULL DEFAULT 0,
   `trending` tinyint(1) NOT NULL DEFAULT 0,
+  `seasonal` tinyint(1) NOT NULL DEFAULT 0,
   `status` enum('Active','Inactive','Draft') NOT NULL DEFAULT 'Draft',
   `meta_title` varchar(255) DEFAULT NULL,
   `meta_description` text DEFAULT NULL,
@@ -413,37 +453,37 @@ CREATE TABLE `products` (
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `title`, `slug`, `short_description`, `description`, `base_price`, `base_sale_price`, `has_variants`, `stock`, `featured`, `bestseller`, `trending`, `status`, `meta_title`, `meta_description`, `created_at`, `updated_at`) VALUES
-(1, 'Ashwagandha Herbal Capsules', 'ashwagandha-herbal-capsules', 'Traditional ashwagandha capsules for everyday wellness routines.', 'A herbal supplement featuring ashwagandha root extract, prepared as easy-to-use capsules for daily wellness routines.', 499.00, 399.00, 1, 0, 1, 1, 1, 'Active', 'Ashwagandha Herbal Capsules | Ayurvedic Wellness', 'Shop ashwagandha herbal capsules for everyday Ayurvedic wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(2, 'Triphala Churna', 'triphala-churna', 'Traditional Triphala herbal powder for digestive wellness routines.', 'A traditional blend of amla, haritaki and bibhitaki in powdered form.', 299.00, 249.00, 1, 0, 0, 1, 1, 'Active', 'Triphala Churna | Traditional Herbal Powder', 'Traditional Triphala churna for everyday digestive wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(3, 'Giloy Herbal Tablets', 'giloy-herbal-tablets', 'Traditional Giloy-based herbal tablets for daily wellness.', 'Herbal tablets containing giloy as a traditional Ayurvedic ingredient.', 349.00, 299.00, 1, 0, 1, 0, 1, 'Active', 'Giloy Herbal Tablets | Ayurvedic Wellness', 'Shop Giloy herbal tablets for traditional daily wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(4, 'Chyawanprash Herbal Blend', 'chyawanprash-herbal-blend', 'Traditional herbal wellness spread made with amla and herbs.', 'A traditional chyawanprash-style herbal preparation featuring amla and a blend of botanical ingredients.', 599.00, 499.00, 1, 0, 1, 1, 1, 'Active', 'Chyawanprash Herbal Blend | Ayurvedic Wellness', 'Traditional herbal chyawanprash-style wellness preparation.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(5, 'Brahmi Herbal Capsules', 'brahmi-herbal-capsules', 'Brahmi-based herbal capsules for everyday wellness routines.', 'Capsules featuring brahmi as a traditional Ayurvedic botanical ingredient.', 449.00, 379.00, 1, 0, 0, 1, 1, 'Active', 'Brahmi Herbal Capsules | Herbal Wellness', 'Brahmi herbal capsules for traditional daily wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(6, 'Digestive Herbal Churna', 'digestive-herbal-churna', 'Traditional herbal powder for digestive wellness routines.', 'A powdered herbal blend designed for use as part of a traditional digestive wellness routine.', 279.00, 229.00, 1, 0, 0, 0, 1, 'Active', 'Digestive Herbal Churna', 'Traditional herbal churna for digestive wellness.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(7, 'Jeera Ajwain Digestive Blend', 'jeera-ajwain-digestive-blend', 'Cumin and ajwain herbal blend for everyday digestive routines.', 'A traditional combination of cumin and ajwain in convenient powdered form.', 249.00, 199.00, 1, 0, 0, 0, 1, 'Active', 'Jeera Ajwain Digestive Blend', 'Cumin and ajwain herbal blend for traditional digestive routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(8, 'Herbal Immunity Syrup', 'herbal-immunity-syrup', 'A botanical syrup for everyday wellness routines.', 'A traditional-style herbal syrup made with a blend of commonly used botanical ingredients.', 399.00, 329.00, 1, 0, 1, 1, 1, 'Active', 'Herbal Immunity Syrup | Ayurvedic Wellness', 'Herbal syrup for everyday wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(9, 'Amla Herbal Tablets', 'amla-herbal-tablets', 'Amla-based herbal tablets for daily wellness.', 'Herbal tablets featuring amla, a traditional Ayurvedic ingredient.', 329.00, 279.00, 1, 0, 0, 1, 1, 'Active', 'Amla Herbal Tablets', 'Traditional amla herbal tablets for everyday wellness.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(10, 'Bhringraj Hair Oil', 'bhringraj-hair-oil', 'Traditional bhringraj hair oil for regular hair care.', 'A herbal hair oil featuring bhringraj and a blend of plant-based oils.', 399.00, 329.00, 1, 0, 1, 1, 1, 'Active', 'Bhringraj Hair Oil | Ayurvedic Hair Care', 'Traditional herbal hair oil featuring bhringraj.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(11, 'Amla Hair Oil', 'amla-hair-oil', 'Amla-infused herbal hair oil for everyday hair care.', 'A traditional hair oil featuring amla and nourishing plant oils.', 349.00, 299.00, 1, 0, 0, 1, 1, 'Active', 'Amla Hair Oil | Ayurvedic Hair Care', 'Amla herbal hair oil for everyday hair care routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(12, 'Neem Herbal Shampoo', 'neem-herbal-shampoo', 'Herbal shampoo featuring neem for everyday scalp and hair care.', 'A plant-based shampoo formulated with neem and other herbal ingredients.', 329.00, 279.00, 1, 0, 0, 1, 1, 'Active', 'Neem Herbal Shampoo', 'Herbal neem shampoo for regular hair care.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(13, 'Aloe Vera Herbal Face Wash', 'aloe-vera-herbal-face-wash', 'Gentle herbal face wash with aloe vera.', 'A daily face cleanser featuring aloe vera and botanical ingredients.', 299.00, 249.00, 1, 0, 1, 0, 1, 'Active', 'Aloe Vera Herbal Face Wash', 'Herbal aloe vera face wash for everyday cleansing.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(14, 'Turmeric Herbal Face Cream', 'turmeric-herbal-face-cream', 'Herbal face cream featuring turmeric and botanical ingredients.', 'A daily-use facial cream made with turmeric and plant-based ingredients.', 449.00, 379.00, 1, 0, 0, 1, 1, 'Active', 'Turmeric Herbal Face Cream', 'Natural herbal face cream featuring turmeric.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(15, 'Kumkumadi Face Oil', 'kumkumadi-face-oil', 'Traditional-style herbal facial oil for a regular skin care routine.', 'A botanical facial oil inspired by traditional Kumkumadi oil preparations.', 699.00, 599.00, 1, 0, 1, 1, 1, 'Active', 'Kumkumadi Face Oil | Ayurvedic Skin Care', 'Traditional-style Kumkumadi herbal face oil.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(16, 'Herbal Ubtan Face Pack', 'herbal-ubtan-face-pack', 'Traditional herbal ubtan powder for face care routines.', 'A powdered ubtan-style blend featuring traditional botanical and mineral ingredients.', 299.00, 249.00, 1, 0, 0, 0, 1, 'Active', 'Herbal Ubtan Face Pack', 'Traditional herbal ubtan powder for face care.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(17, 'Sandalwood Herbal Soap', 'sandalwood-herbal-soap', 'Traditional herbal bathing soap with sandalwood.', 'A plant-based bathing soap featuring sandalwood fragrance and herbal ingredients.', 199.00, 159.00, 1, 0, 0, 1, 1, 'Active', 'Sandalwood Herbal Soap', 'Herbal sandalwood bathing soap.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(18, 'Ayurvedic Abhyanga Massage Oil', 'ayurvedic-abhyanga-massage-oil', 'Traditional body massage oil for Ayurvedic-inspired routines.', 'A herbal massage oil inspired by traditional Abhyanga-style body massage practices.', 549.00, 449.00, 1, 0, 1, 1, 1, 'Active', 'Ayurvedic Abhyanga Massage Oil', 'Traditional Ayurvedic-inspired massage oil.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(19, 'Mahanarayan Massage Oil', 'mahanarayan-massage-oil', 'Traditional herbal massage oil for body massage routines.', 'A traditional-style herbal oil blend intended for regular body massage routines.', 649.00, 549.00, 1, 0, 0, 1, 1, 'Active', 'Mahanarayan Massage Oil', 'Traditional herbal massage oil for body care routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(20, 'Herbal Joint Massage Oil', 'herbal-joint-massage-oil', 'Herbal massage oil for traditional body massage routines.', 'A botanical oil blend designed for massage and personal body-care routines.', 449.00, 379.00, 1, 0, 0, 0, 1, 'Active', 'Herbal Joint Massage Oil', 'Herbal oil for traditional massage routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(21, 'Herbal Joint Care Capsules', 'herbal-joint-care-capsules', 'Herbal capsules for general joint wellness routines.', 'A botanical supplement containing traditional herbal ingredients commonly used in wellness formulations.', 549.00, 449.00, 1, 0, 1, 0, 1, 'Active', 'Herbal Joint Care Capsules', 'Herbal supplement for general joint wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(22, 'Tulsi Ginger Herbal Tea', 'tulsi-ginger-herbal-tea', 'Aromatic tulsi and ginger herbal tea blend.', 'A caffeine-free herbal tea blend combining tulsi and ginger.', 249.00, 199.00, 1, 0, 1, 1, 1, 'Active', 'Tulsi Ginger Herbal Tea', 'Tulsi and ginger herbal tea blend.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(23, 'Cinnamon Wellness Tea', 'cinnamon-wellness-tea', 'Warm cinnamon herbal tea blend for everyday enjoyment.', 'An aromatic herbal tea blend featuring cinnamon and complementary botanicals.', 299.00, 249.00, 1, 0, 0, 1, 1, 'Active', 'Cinnamon Wellness Tea', 'Cinnamon herbal wellness tea blend.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(24, 'Herbal Relaxation Capsules', 'herbal-relaxation-capsules', 'Botanical capsules for relaxation-focused wellness routines.', 'A herbal supplement featuring traditional botanical ingredients used in relaxation-oriented wellness routines.', 499.00, 399.00, 1, 0, 0, 0, 1, 'Active', 'Herbal Relaxation Capsules', 'Herbal capsules for relaxation-focused wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(25, 'Herbal Sleep Wellness Tablets', 'herbal-sleep-wellness-tablets', 'Traditional herbal tablets for nighttime wellness routines.', 'A botanical tablet formulation intended for inclusion in a regular nighttime wellness routine.', 449.00, 379.00, 1, 0, 1, 0, 1, 'Active', 'Herbal Sleep Wellness Tablets', 'Herbal tablets for nighttime wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(26, 'Men\'s Herbal Wellness Capsules', 'mens-herbal-wellness-capsules', 'Herbal supplement for men\'s general wellness routines.', 'A botanical supplement formulated for men\'s general wellness routines.', 599.00, 499.00, 1, 0, 1, 1, 1, 'Active', 'Men\'s Herbal Wellness Capsules', 'Herbal supplement for men\'s general wellness.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(27, 'Women\'s Herbal Wellness Capsules', 'womens-herbal-wellness-capsules', 'Herbal supplement for women\'s general wellness routines.', 'A botanical supplement formulated for women\'s general wellness routines.', 599.00, 499.00, 1, 0, 1, 1, 1, 'Active', 'Women\'s Herbal Wellness Capsules', 'Herbal supplement for women\'s general wellness.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(28, 'Herbal Detox Tea', 'herbal-detox-tea', 'Botanical tea blend for cleansing-focused wellness routines.', 'An herbal tea blend made with traditional botanical ingredients.', 299.00, 249.00, 1, 0, 0, 1, 1, 'Active', 'Herbal Detox Tea', 'Botanical herbal tea for wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(29, 'Natural Herbal Toothpaste', 'natural-herbal-toothpaste', 'Herbal toothpaste for everyday oral care.', 'A plant-based toothpaste featuring traditional herbal ingredients for regular oral care.', 249.00, 199.00, 1, 0, 0, 1, 1, 'Active', 'Natural Herbal Toothpaste', 'Natural herbal toothpaste for everyday oral care.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
-(30, 'Herbal Mouth Freshener', 'herbal-mouth-freshener', 'Traditional herbal mouth freshener with aromatic botanicals.', 'A blend of aromatic herbs and spices intended for use as a traditional mouth freshener.', 179.00, 149.00, 1, 0, 0, 0, 1, 'Active', 'Herbal Mouth Freshener', 'Traditional herbal mouth freshener blend.', '2026-09-10 11:27:04', '2026-09-10 11:27:04');
+INSERT INTO `products` (`id`, `title`, `slug`, `short_description`, `description`, `base_price`, `base_sale_price`, `has_variants`, `stock`, `featured`, `bestseller`, `trending`, `seasonal`, `status`, `meta_title`, `meta_description`, `created_at`, `updated_at`) VALUES
+(1, 'Ashwagandha Herbal Capsules', 'ashwagandha-herbal-capsules', 'Traditional ashwagandha capsules for everyday wellness routines.', 'A herbal supplement featuring ashwagandha root extract, prepared as easy-to-use capsules for daily wellness routines.', 499.00, 399.00, 1, 0, 1, 1, 1, 0, 'Active', 'Ashwagandha Herbal Capsules | Ayurvedic Wellness', 'Shop ashwagandha herbal capsules for everyday Ayurvedic wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(2, 'Triphala Churna', 'triphala-churna', 'Traditional Triphala herbal powder for digestive wellness routines.', 'A traditional blend of amla, haritaki and bibhitaki in powdered form.', 299.00, 249.00, 1, 0, 0, 1, 1, 1, 'Active', 'Triphala Churna | Traditional Herbal Powder', 'Traditional Triphala churna for everyday digestive wellness routines.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(3, 'Giloy Herbal Tablets', 'giloy-herbal-tablets', 'Traditional Giloy-based herbal tablets for daily wellness.', 'Herbal tablets containing giloy as a traditional Ayurvedic ingredient.', 349.00, 299.00, 1, 0, 1, 0, 1, 0, 'Active', 'Giloy Herbal Tablets | Ayurvedic Wellness', 'Shop Giloy herbal tablets for traditional daily wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(4, 'Chyawanprash Herbal Blend', 'chyawanprash-herbal-blend', 'Traditional herbal wellness spread made with amla and herbs.', 'A traditional chyawanprash-style herbal preparation featuring amla and a blend of botanical ingredients.', 599.00, 499.00, 1, 0, 1, 1, 1, 1, 'Active', 'Chyawanprash Herbal Blend | Ayurvedic Wellness', 'Traditional herbal chyawanprash-style wellness preparation.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(5, 'Brahmi Herbal Capsules', 'brahmi-herbal-capsules', 'Brahmi-based herbal capsules for everyday wellness routines.', 'Capsules featuring brahmi as a traditional Ayurvedic botanical ingredient.', 449.00, 379.00, 1, 0, 0, 1, 1, 0, 'Active', 'Brahmi Herbal Capsules | Herbal Wellness', 'Brahmi herbal capsules for traditional daily wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(6, 'Digestive Herbal Churna', 'digestive-herbal-churna', 'Traditional herbal powder for digestive wellness routines.', 'A powdered herbal blend designed for use as part of a traditional digestive wellness routine.', 279.00, 229.00, 1, 0, 0, 0, 1, 1, 'Active', 'Digestive Herbal Churna', 'Traditional herbal churna for digestive wellness.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(7, 'Jeera Ajwain Digestive Blend', 'jeera-ajwain-digestive-blend', 'Cumin and ajwain herbal blend for everyday digestive routines.', 'A traditional combination of cumin and ajwain in convenient powdered form.', 249.00, 199.00, 1, 0, 0, 0, 1, 0, 'Active', 'Jeera Ajwain Digestive Blend', 'Cumin and ajwain herbal blend for traditional digestive routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(8, 'Herbal Immunity Syrup', 'herbal-immunity-syrup', 'A botanical syrup for everyday wellness routines.', 'A traditional-style herbal syrup made with a blend of commonly used botanical ingredients.', 399.00, 329.00, 1, 0, 1, 1, 1, 1, 'Active', 'Herbal Immunity Syrup | Ayurvedic Wellness', 'Herbal syrup for everyday wellness routines.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(9, 'Amla Herbal Tablets', 'amla-herbal-tablets', 'Amla-based herbal tablets for daily wellness.', 'Herbal tablets featuring amla, a traditional Ayurvedic ingredient.', 329.00, 279.00, 1, 0, 0, 1, 1, 0, 'Active', 'Amla Herbal Tablets', 'Traditional amla herbal tablets for everyday wellness.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(10, 'Bhringraj Hair Oil', 'bhringraj-hair-oil', 'Traditional bhringraj hair oil for regular hair care.', 'A herbal hair oil featuring bhringraj and a blend of plant-based oils.', 399.00, 329.00, 1, 0, 1, 1, 1, 1, 'Active', 'Bhringraj Hair Oil | Ayurvedic Hair Care', 'Traditional herbal hair oil featuring bhringraj.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(11, 'Amla Hair Oil', 'amla-hair-oil', 'Amla-infused herbal hair oil for everyday hair care.', 'A traditional hair oil featuring amla and nourishing plant oils.', 349.00, 299.00, 1, 0, 0, 1, 1, 0, 'Active', 'Amla Hair Oil | Ayurvedic Hair Care', 'Amla herbal hair oil for everyday hair care routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(12, 'Neem Herbal Shampoo', 'neem-herbal-shampoo', 'Herbal shampoo featuring neem for everyday scalp and hair care.', 'A plant-based shampoo formulated with neem and other herbal ingredients.', 329.00, 279.00, 1, 0, 0, 1, 1, 1, 'Active', 'Neem Herbal Shampoo', 'Herbal neem shampoo for regular hair care.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(13, 'Aloe Vera Herbal Face Wash', 'aloe-vera-herbal-face-wash', 'Gentle herbal face wash with aloe vera.', 'A daily face cleanser featuring aloe vera and botanical ingredients.', 299.00, 249.00, 1, 0, 1, 0, 1, 0, 'Active', 'Aloe Vera Herbal Face Wash', 'Herbal aloe vera face wash for everyday cleansing.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(14, 'Turmeric Herbal Face Cream', 'turmeric-herbal-face-cream', 'Herbal face cream featuring turmeric and botanical ingredients.', 'A daily-use facial cream made with turmeric and plant-based ingredients.', 449.00, 379.00, 1, 0, 0, 1, 1, 1, 'Active', 'Turmeric Herbal Face Cream', 'Natural herbal face cream featuring turmeric.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(15, 'Kumkumadi Face Oil', 'kumkumadi-face-oil', 'Traditional-style herbal facial oil for a regular skin care routine.', 'A botanical facial oil inspired by traditional Kumkumadi oil preparations.', 699.00, 599.00, 1, 0, 1, 1, 1, 0, 'Active', 'Kumkumadi Face Oil | Ayurvedic Skin Care', 'Traditional-style Kumkumadi herbal face oil.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(16, 'Herbal Ubtan Face Pack', 'herbal-ubtan-face-pack', 'Traditional herbal ubtan powder for face care routines.', 'A powdered ubtan-style blend featuring traditional botanical and mineral ingredients.', 299.00, 249.00, 1, 0, 0, 0, 1, 1, 'Active', 'Herbal Ubtan Face Pack', 'Traditional herbal ubtan powder for face care.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(17, 'Sandalwood Herbal Soap', 'sandalwood-herbal-soap', 'Traditional herbal bathing soap with sandalwood.', 'A plant-based bathing soap featuring sandalwood fragrance and herbal ingredients.', 199.00, 159.00, 1, 0, 0, 1, 1, 0, 'Active', 'Sandalwood Herbal Soap', 'Herbal sandalwood bathing soap.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(18, 'Ayurvedic Abhyanga Massage Oil', 'ayurvedic-abhyanga-massage-oil', 'Traditional body massage oil for Ayurvedic-inspired routines.', 'A herbal massage oil inspired by traditional Abhyanga-style body massage practices.', 549.00, 449.00, 1, 0, 1, 1, 1, 1, 'Active', 'Ayurvedic Abhyanga Massage Oil', 'Traditional Ayurvedic-inspired massage oil.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(19, 'Mahanarayan Massage Oil', 'mahanarayan-massage-oil', 'Traditional herbal massage oil for body massage routines.', 'A traditional-style herbal oil blend intended for regular body massage routines.', 649.00, 549.00, 1, 0, 0, 1, 1, 0, 'Active', 'Mahanarayan Massage Oil', 'Traditional herbal massage oil for body care routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(20, 'Herbal Joint Massage Oil', 'herbal-joint-massage-oil', 'Herbal massage oil for traditional body massage routines.', 'A botanical oil blend designed for massage and personal body-care routines.', 449.00, 379.00, 1, 0, 0, 0, 1, 1, 'Active', 'Herbal Joint Massage Oil', 'Herbal oil for traditional massage routines.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(21, 'Herbal Joint Care Capsules', 'herbal-joint-care-capsules', 'Herbal capsules for general joint wellness routines.', 'A botanical supplement containing traditional herbal ingredients commonly used in wellness formulations.', 549.00, 449.00, 1, 0, 1, 0, 1, 0, 'Active', 'Herbal Joint Care Capsules', 'Herbal supplement for general joint wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(22, 'Tulsi Ginger Herbal Tea', 'tulsi-ginger-herbal-tea', 'Aromatic tulsi and ginger herbal tea blend.', 'A caffeine-free herbal tea blend combining tulsi and ginger.', 249.00, 199.00, 1, 0, 1, 1, 1, 1, 'Active', 'Tulsi Ginger Herbal Tea', 'Tulsi and ginger herbal tea blend.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(23, 'Cinnamon Wellness Tea', 'cinnamon-wellness-tea', 'Warm cinnamon herbal tea blend for everyday enjoyment.', 'An aromatic herbal tea blend featuring cinnamon and complementary botanicals.', 299.00, 249.00, 1, 0, 0, 1, 1, 0, 'Active', 'Cinnamon Wellness Tea', 'Cinnamon herbal wellness tea blend.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(24, 'Herbal Relaxation Capsules', 'herbal-relaxation-capsules', 'Botanical capsules for relaxation-focused wellness routines.', 'A herbal supplement featuring traditional botanical ingredients used in relaxation-oriented wellness routines.', 499.00, 399.00, 1, 0, 0, 0, 1, 1, 'Active', 'Herbal Relaxation Capsules', 'Herbal capsules for relaxation-focused wellness routines.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(25, 'Herbal Sleep Wellness Tablets', 'herbal-sleep-wellness-tablets', 'Traditional herbal tablets for nighttime wellness routines.', 'A botanical tablet formulation intended for inclusion in a regular nighttime wellness routine.', 449.00, 379.00, 1, 0, 1, 0, 1, 0, 'Active', 'Herbal Sleep Wellness Tablets', 'Herbal tablets for nighttime wellness routines.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(26, 'Men\'s Herbal Wellness Capsules', 'mens-herbal-wellness-capsules', 'Herbal supplement for men\'s general wellness routines.', 'A botanical supplement formulated for men\'s general wellness routines.', 599.00, 499.00, 1, 0, 1, 1, 1, 1, 'Active', 'Men\'s Herbal Wellness Capsules', 'Herbal supplement for men\'s general wellness.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(27, 'Women\'s Herbal Wellness Capsules', 'womens-herbal-wellness-capsules', 'Herbal supplement for women\'s general wellness routines.', 'A botanical supplement formulated for women\'s general wellness routines.', 599.00, 499.00, 1, 0, 1, 1, 1, 0, 'Active', 'Women\'s Herbal Wellness Capsules', 'Herbal supplement for women\'s general wellness.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(28, 'Herbal Detox Tea', 'herbal-detox-tea', 'Botanical tea blend for cleansing-focused wellness routines.', 'An herbal tea blend made with traditional botanical ingredients.', 299.00, 249.00, 1, 0, 0, 1, 1, 1, 'Active', 'Herbal Detox Tea', 'Botanical herbal tea for wellness routines.', '2026-09-10 11:27:04', '2026-09-14 01:57:01'),
+(29, 'Natural Herbal Toothpaste', 'natural-herbal-toothpaste', 'Herbal toothpaste for everyday oral care.', 'A plant-based toothpaste featuring traditional herbal ingredients for regular oral care.', 249.00, 199.00, 1, 0, 0, 1, 1, 0, 'Active', 'Natural Herbal Toothpaste', 'Natural herbal toothpaste for everyday oral care.', '2026-09-10 11:27:04', '2026-09-10 11:27:04'),
+(30, 'Herbal Mouth Freshener', 'herbal-mouth-freshener', 'Traditional herbal mouth freshener with aromatic botanicals.', 'A blend of aromatic herbs and spices intended for use as a traditional mouth freshener.', 179.00, 149.00, 1, 0, 0, 0, 1, 1, 'Active', 'Herbal Mouth Freshener', 'Traditional herbal mouth freshener blend.', '2026-09-10 11:27:04', '2026-09-14 01:57:01');
 
 -- --------------------------------------------------------
 
@@ -737,7 +777,28 @@ CREATE TABLE `reviews` (
   `verified_purchase` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `reviews`
+--
+
+INSERT INTO `reviews` (`id`, `product_id`, `user_id`, `rating`, `review`, `status`, `verified_purchase`, `created_at`, `updated_at`) VALUES
+(1, 1, 2, 5, 'For me, using Maharishi Ayurveda products regularly is a great step towards preventive care. The brand is known for its high-quality Ayurvedic products and I never stopped taking whatever I shopped from them. I highly recommend Maharishi Ayurveda!', 'Active', 1, '2026-08-10 03:30:00', '2026-08-10 03:30:00'),
+(2, 4, 3, 5, 'I try to use only Ayurvedic products and order them from different Ayurvedic brands. But Maharishi Ayurveda is by far the best one. I loved this brand due to its product quality and good results. Excellent products, fast shipping, responsive and friendly customer service, and great experience.', 'Active', 1, '2026-08-13 05:00:00', '2026-08-13 05:00:00'),
+(3, 2, 4, 5, 'It\'s the one-stop shop for all my Ayurveda health needs. I have been their regular customer for the past 5 years and the reason I chose them each time is that their formulations are authentic, and the service is dependable.', 'Active', 1, '2026-08-17 10:15:00', '2026-08-17 10:15:00'),
+(4, 14, 5, 4, 'Noticed a visible glow after about two weeks of regular use. Doesn\'t feel heavy on the skin and layers well under makeup. Would buy again.', 'Active', 1, '2026-08-20 02:50:00', '2026-08-20 02:50:00'),
+(5, 21, 6, 4, 'Helped ease my knee stiffness noticeably within a couple of weeks. Still monitoring how it holds up long term, but happy with it so far.', 'Active', 0, '2026-08-23 13:40:00', '2026-08-23 13:40:00'),
+(6, 10, 7, 5, 'Reduced my hair fall within a month of regular use, and it smells great too — not the usual heavy medicinal smell. Will be repurchasing.', 'Active', 1, '2026-08-28 02:05:00', '2026-08-28 02:05:00'),
+(7, 8, 8, 3, 'Decent product overall, does what it says. The taste could be better though — took some getting used to.', 'Active', 0, '2026-08-29 06:30:00', '2026-08-29 06:30:00'),
+(8, 15, 9, 5, 'Luxurious feel and a little goes a long way. My skin feels noticeably softer the morning after. Worth the price for how long a bottle lasts.', 'Active', 1, '2026-09-01 15:45:00', '2026-09-01 15:45:00'),
+(9, 3, 1, 4, 'Good general immunity support and the tablets are easy to swallow, unlike some other herbal tablets I\'ve tried. No complaints so far.', 'Active', 0, '2026-09-03 05:30:00', '2026-09-03 05:30:00'),
+(10, 22, 2, 5, 'Perfect evening wind-down tea, very soothing and not too strong on the ginger. Part of my nightly routine now.', 'Active', 0, '2026-09-05 15:10:00', '2026-09-05 15:10:00'),
+(11, 17, 3, 4, 'Nice mild fragrance and gentle on the skin, doesn\'t dry it out like some soaps do. Just waiting to see how long a bar lasts before buying more.', 'Pending', 0, '2026-09-08 03:55:00', '2026-09-08 03:55:00'),
+(12, 9, 4, 2, 'Didn\'t see much difference for me personally after a few weeks, though I know results can vary by person.', 'Pending', 0, '2026-09-09 12:20:00', '2026-09-09 12:20:00'),
+(13, 13, 5, 5, 'My go-to face wash now — no more breakouts since I switched, and it doesn\'t leave my skin feeling tight or dry afterward.', 'Pending', 1, '2026-09-10 08:35:00', '2026-09-10 08:35:00'),
+(14, 24, 6, 1, 'Packaging arrived damaged and I honestly haven\'t noticed any effect after finishing the bottle.', 'Rejected', 0, '2026-09-11 02:30:00', '2026-09-11 02:30:00'),
+(15, 25, 8, 5, 'Helped me fall asleep faster within just a few days of taking it, genuinely surprised by how well it worked for me.', 'Rejected', 0, '2026-09-12 17:00:00', '2026-09-12 17:00:00');
 
 -- --------------------------------------------------------
 
@@ -768,6 +829,33 @@ INSERT INTO `settings` (`id`, `setting_key`, `setting_value`, `updated_at`) VALU
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `team_members`
+--
+
+CREATE TABLE `team_members` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `designation` varchar(150) DEFAULT NULL,
+  `bio` text DEFAULT NULL,
+  `image` varchar(500) DEFAULT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT 1,
+  `sort_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `team_members`
+--
+
+INSERT INTO `team_members` (`id`, `name`, `designation`, `bio`, `image`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
+(1, 'Dr. Priyanka Jagota', 'Maharishi Expert Vaidya', 'Dr. Priyanka Jagota is an experienced Ayurvedic physician with over seven years of clinical practice. She specialises in managing fatty liver, digestive disorders, joint pain, chronic inflammation, and hormonal imbalances including thyroid, PCOS/PCOD, and menopausal concerns. Her approach focuses on root-cause healing through classical Ayurveda, dietary correction, and sustainable lifestyle changes.', NULL, 1, 1, '2026-09-14 02:25:37', '2026-09-14 02:25:37'),
+(2, 'Dr. Arvind Sharma', 'Senior Ayurvedic Consultant', 'Dr. Arvind Sharma brings over a decade of clinical experience in classical Ayurvedic medicine, with a focus on chronic pain management, respiratory conditions, and stress-related disorders. He combines traditional diagnostic methods with personalised herbal and lifestyle protocols.', NULL, 1, 2, '2026-09-14 02:25:37', '2026-09-14 02:25:37'),
+(3, 'Dr. Neha Kulkarni', 'Ayurvedic Skin & Hair Specialist', 'Dr. Neha Kulkarni specialises in Ayurvedic dermatology, treating skin and hair concerns through internal and external herbal therapies rooted in classical texts, paired with modern lifestyle guidance.', NULL, 1, 3, '2026-09-14 02:25:37', '2026-09-14 02:25:37');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -787,7 +875,15 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'Ajay', 'ajay@gmail.com', NULL, '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-09-10 10:10:41', '2026-09-10 10:10:41');
+(1, 'Ajay', 'ajay@gmail.com', NULL, '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-09-10 10:10:41', '2026-09-10 10:10:41'),
+(2, 'Sunita Rani', 'sunita.rani@example.com', '9812300001', '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-08-02 04:45:00', '2026-08-02 04:45:00'),
+(3, 'Sumit Kaushik', 'sumit.kaushik@example.com', '9812300002', '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-08-05 04:10:00', '2026-08-05 04:10:00'),
+(4, 'S Solanki', 's.solanki@example.com', '9812300003', '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-08-09 08:52:00', '2026-08-09 08:52:00'),
+(5, 'Priya Verma', 'priya.verma@example.com', '9812300004', '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-08-12 12:35:00', '2026-08-12 12:35:00'),
+(6, 'Rakesh Gupta', 'rakesh.gupta@example.com', '9812300005', '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-08-15 06:00:00', '2026-08-15 06:00:00'),
+(7, 'Anjali Nair', 'anjali.nair@example.com', '9812300006', '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-08-20 03:20:00', '2026-08-20 03:20:00'),
+(8, 'Manoj Tiwari', 'manoj.tiwari@example.com', '9812300007', '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-08-24 10:40:00', '2026-08-24 10:40:00'),
+(9, 'Deepa Iyer', 'deepa.iyer@example.com', '9812300008', '$2y$10$Qo5Jp9UHNphg9ckroLIuNeDm/WbXQKlI26uotfOzOikGfHlwgx8K2', 'Active', '2026-08-28 07:35:00', '2026-08-28 07:35:00');
 
 -- --------------------------------------------------------
 
@@ -871,6 +967,13 @@ ALTER TABLE `coupon_usages`
   ADD KEY `idx_coupon_usage_user` (`user_id`),
   ADD KEY `idx_coupon_usage_coupon` (`coupon_id`),
   ADD KEY `fk_coupon_usage_order` (`order_id`);
+
+--
+-- Indexes for table `newsletter_subscribers`
+--
+ALTER TABLE `newsletter_subscribers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_newsletter_subscribers_email` (`email`);
 
 --
 -- Indexes for table `orders`
@@ -977,6 +1080,13 @@ ALTER TABLE `settings`
   ADD UNIQUE KEY `uq_setting_key` (`setting_key`);
 
 --
+-- Indexes for table `team_members`
+--
+ALTER TABLE `team_members`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_team_members_status_sort` (`status`,`sort_order`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -1046,16 +1156,22 @@ ALTER TABLE `coupon_usages`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `newsletter_subscribers`
+--
+ALTER TABLE `newsletter_subscribers`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `order_status_logs`
@@ -1103,7 +1219,7 @@ ALTER TABLE `product_variants`
 -- AUTO_INCREMENT for table `reviews`
 --
 ALTER TABLE `reviews`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `settings`
@@ -1112,10 +1228,16 @@ ALTER TABLE `settings`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
+-- AUTO_INCREMENT for table `team_members`
+--
+ALTER TABLE `team_members`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `wishlist`
