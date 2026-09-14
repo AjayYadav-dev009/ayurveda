@@ -546,7 +546,7 @@ if (isCustomerLogin()) {
                         </div>
                     </div>
                 </div>
-                <a href="#">Gut Detox</a>
+                <a href="detux/index.php">Gut Detox</a>
                 <a href="#">Consult A Vaidya</a>
                 <a href="#">Dosha Test</a>
                 <a href="#">Blog</a>
