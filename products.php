@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/function/product.php';
+require_once __DIR__ . '/function/category.php';
 
 $categorySlug = isset($_GET['category_slug']) ? trim($_GET['category_slug']) : '';
 
@@ -17,7 +18,9 @@ if ($categorySlug === '') {
 // is include()'d below and shares this file's variable scope — its mega-menu
 // loop reuses those exact names internally, and since the include runs
 // between this fetch and the render further down, it was silently
-// overwriting both with whatever it last looped over.
+// overwriting both with whatever it last looped over. The sidebar fetch
+// below follows the same rule: $categorySidebarItems / $sidebarCategory,
+// never $category(ies) / $products.
 $currentCategory = null;
 $stmt = mysqli_prepare($conn, "SELECT id, name, slug, description FROM categories WHERE slug = ? AND status = 'Active' LIMIT 1");
 mysqli_stmt_bind_param($stmt, 's', $categorySlug);
@@ -34,6 +37,18 @@ $productResult = getProductsByCategorySlug($conn, $categorySlug);
 while ($row = mysqli_fetch_assoc($productResult)) {
     $categoryProducts[] = $row;
 }
+
+// Sidebar: every top-level category that actually has products somewhere
+// in its subtree, so the page doubles as a category switcher without
+// linking to a bucket that would just show "no products". Fails closed
+// to an empty list (sidebar just won't render) rather than breaking the
+// whole page if this query has a problem.
+try {
+    $categorySidebarItems = getTopLevelCategoriesWithProducts($conn);
+} catch (Exception $e) {
+    $categorySidebarItems = [];
+}
+$hasSidebar = !empty($categorySidebarItems);
 ?>
 
 <?php include __DIR__ . '/includes/header.php'; ?>
@@ -64,9 +79,105 @@ while ($row = mysqli_fetch_assoc($productResult)) {
         line-height: 1.6;
     }
 
-    .product-grid {
+    /* ---- Sidebar + grid layout ---- */
+
+    .category-layout {
         max-width: var(--container-width);
         margin: 0 auto;
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 32px;
+        align-items: start;
+    }
+
+    .category-layout--no-sidebar {
+        grid-template-columns: 1fr;
+    }
+
+    .category-sidebar {
+        background: var(--color-white);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        padding: 22px 18px;
+        position: sticky;
+        top: 24px;
+    }
+
+    .category-sidebar__label {
+        margin: 0 0 14px;
+        padding: 0 4px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+    }
+
+    .category-sidebar__list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .category-sidebar__item {
+        display: block;
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-text);
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .category-sidebar__item:hover {
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark);
+    }
+
+    .category-sidebar__item.is-active {
+        background: var(--color-primary);
+        color: var(--color-white);
+    }
+
+    .category-sidebar__item:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+
+    @media (max-width: 860px) {
+        .category-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .category-sidebar {
+            position: static;
+            padding: 14px;
+        }
+
+        .category-sidebar__label {
+            padding: 0 2px;
+        }
+
+        .category-sidebar__list {
+            flex-direction: row;
+            overflow-x: auto;
+            gap: 8px;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+
+        .category-sidebar__list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-sidebar__item {
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+    }
+
+    .product-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
         gap: 28px;
@@ -240,8 +351,6 @@ while ($row = mysqli_fetch_assoc($productResult)) {
     }
 
     .product-empty {
-        max-width: var(--container-width);
-        margin: 0 auto;
         text-align: center;
         padding: 40px 20px;
         color: var(--color-text-light);
@@ -270,96 +379,121 @@ while ($row = mysqli_fetch_assoc($productResult)) {
         <?php endif; ?>
     </div>
 
-    <?php if (empty($categoryProducts)): ?>
+    <div class="category-layout<?php echo $hasSidebar ? '' : ' category-layout--no-sidebar'; ?>">
 
-        <p class="product-empty">No products found in this category yet.</p>
+        <?php if ($hasSidebar): ?>
+            <aside class="category-sidebar">
+                <p class="category-sidebar__label">Categories</p>
+                <nav class="category-sidebar__list" aria-label="Product categories">
+                    <?php foreach ($categorySidebarItems as $sidebarCategory): ?>
+                        <?php $isActiveCategory = $sidebarCategory['slug'] === $currentCategory['slug']; ?>
+                        <a
+                            href="<?php echo htmlspecialchars(getCategoryUrl($sidebarCategory['slug']), ENT_QUOTES, 'UTF-8'); ?>"
+                            class="category-sidebar__item<?php echo $isActiveCategory ? ' is-active' : ''; ?>"
+                            <?php echo $isActiveCategory ? ' aria-current="page"' : ''; ?>>
+                            <?php echo htmlspecialchars($sidebarCategory['name']); ?>
+                        </a>
+                    <?php endforeach; ?>
+                </nav>
+            </aside>
+        <?php endif; ?>
 
-    <?php else: ?>
+        <div class="category-layout__main">
 
-    <div class="product-grid">
+            <?php if (empty($categoryProducts)): ?>
 
-        <?php foreach ($categoryProducts as $product): ?>
+                <p class="product-empty">No products found in this category yet.</p>
 
-            <?php
-            $hasSale = !empty($product['base_sale_price']) && (float) $product['base_sale_price'] < (float) $product['base_price'];
-            $discountPercent = $hasSale
-                ? (int) round((1 - ((float) $product['base_sale_price'] / (float) $product['base_price'])) * 100)
-                : 0;
-            $isOutOfStock = !$product['has_variants'] && (int) $product['stock'] <= 0;
-            ?>
+            <?php else: ?>
 
-            <a
-                href="<?php echo BASE_URL; ?>product_details.php?slug=<?php echo urlencode($product['slug']); ?>"
-                class="product-card<?php echo $isOutOfStock ? ' is-out-of-stock' : ''; ?>">
-                <div class="product-image-wrap">
-                    <?php if (!empty($product['primary_image'])): ?>
-                        <img
-                            src="<?php echo BASE_URL . ltrim($product['primary_image'], '/'); ?>"
-                            alt="<?php echo htmlspecialchars($product['title']); ?>"
-                            class="product-image"
-                            loading="lazy">
-                    <?php else: ?>
-                        <div class="product-image-placeholder" aria-hidden="true">
-                            <svg viewBox="0 0 64 64" fill="currentColor">
-                                <path d="M32 6c-6 8-10 16-10 24 0 6 4 10 10 10s10-4 10-10c0-8-4-16-10-24z" />
-                                <path d="M12 24c8 0 14 6 16 14-8 2-16-2-20-8-1.5-2.4-1-4.6 4-6z" />
-                                <path d="M52 24c-8 0-14 6-16 14 8 2 16-2 20-8 1.5-2.4 1-4.6-4-6z" />
-                            </svg>
-                        </div>
-                    <?php endif; ?>
+                <div class="product-grid">
 
-                    <div class="product-badges">
-                        <?php if ($hasSale): ?>
-                            <span class="product-badge product-badge--discount"><?php echo $discountPercent; ?>% off</span>
-                        <?php endif; ?>
-                        <?php if (!empty($product['bestseller'])): ?>
-                            <span class="product-badge">Bestseller</span>
-                        <?php elseif (!empty($product['featured'])): ?>
-                            <span class="product-badge">Featured</span>
-                        <?php elseif (!empty($product['trending'])): ?>
-                            <span class="product-badge">Trending</span>
-                        <?php endif; ?>
-                    </div>
+                    <?php foreach ($categoryProducts as $product): ?>
 
-                    <?php if ($isOutOfStock): ?>
-                        <span class="product-badge product-badge--out-of-stock">Out of Stock</span>
-                    <?php endif; ?>
+                        <?php
+                        $hasSale = !empty($product['base_sale_price']) && (float) $product['base_sale_price'] < (float) $product['base_price'];
+                        $discountPercent = $hasSale
+                            ? (int) round((1 - ((float) $product['base_sale_price'] / (float) $product['base_price'])) * 100)
+                            : 0;
+                        $isOutOfStock = !$product['has_variants'] && (int) $product['stock'] <= 0;
+                        ?>
+
+                        <a
+                            href="<?php echo BASE_URL; ?>product_details.php?slug=<?php echo urlencode($product['slug']); ?>"
+                            class="product-card<?php echo $isOutOfStock ? ' is-out-of-stock' : ''; ?>">
+                            <div class="product-image-wrap">
+                                <?php if (!empty($product['primary_image'])): ?>
+                                    <img
+                                        src="<?php echo BASE_URL . ltrim($product['primary_image'], '/'); ?>"
+                                        alt="<?php echo htmlspecialchars($product['title']); ?>"
+                                        class="product-image"
+                                        loading="lazy">
+                                <?php else: ?>
+                                    <div class="product-image-placeholder" aria-hidden="true">
+                                        <svg viewBox="0 0 64 64" fill="currentColor">
+                                            <path d="M32 6c-6 8-10 16-10 24 0 6 4 10 10 10s10-4 10-10c0-8-4-16-10-24z" />
+                                            <path d="M12 24c8 0 14 6 16 14-8 2-16-2-20-8-1.5-2.4-1-4.6 4-6z" />
+                                            <path d="M52 24c-8 0-14 6-16 14 8 2 16-2 20-8 1.5-2.4 1-4.6-4-6z" />
+                                        </svg>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="product-badges">
+                                    <?php if ($hasSale): ?>
+                                        <span class="product-badge product-badge--discount"><?php echo $discountPercent; ?>% off</span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($product['bestseller'])): ?>
+                                        <span class="product-badge">Bestseller</span>
+                                    <?php elseif (!empty($product['featured'])): ?>
+                                        <span class="product-badge">Featured</span>
+                                    <?php elseif (!empty($product['trending'])): ?>
+                                        <span class="product-badge">Trending</span>
+                                    <?php endif; ?>
+                                </div>
+
+                                <?php if ($isOutOfStock): ?>
+                                    <span class="product-badge product-badge--out-of-stock">Out of Stock</span>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="product-content">
+
+                                <h3><?php echo htmlspecialchars($product['title']); ?></h3>
+
+                                <?php if (!empty($product['short_description'])): ?>
+                                    <p><?php echo htmlspecialchars($product['short_description']); ?></p>
+                                <?php endif; ?>
+
+                                <div class="product-price-row">
+                                    <?php if ($hasSale): ?>
+                                        <span class="product-price">&#8377;<?php echo number_format((float) $product['base_sale_price'], 0); ?></span>
+                                        <span class="product-price--full">&#8377;<?php echo number_format((float) $product['base_price'], 0); ?></span>
+                                    <?php else: ?>
+                                        <span class="product-price"><?php echo $product['has_variants'] ? 'From ' : ''; ?>&#8377;<?php echo number_format((float) $product['base_price'], 0); ?></span>
+                                    <?php endif; ?>
+                                </div>
+
+                                <span class="product-link">
+                                    View Product
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    </svg>
+                                </span>
+
+                            </div>
+
+                        </a>
+
+                    <?php endforeach; ?>
+
                 </div>
 
-                <div class="product-content">
+            <?php endif; ?>
 
-                    <h3><?php echo htmlspecialchars($product['title']); ?></h3>
-
-                    <?php if (!empty($product['short_description'])): ?>
-                        <p><?php echo htmlspecialchars($product['short_description']); ?></p>
-                    <?php endif; ?>
-
-                    <div class="product-price-row">
-                        <?php if ($hasSale): ?>
-                            <span class="product-price">&#8377;<?php echo number_format((float) $product['base_sale_price'], 0); ?></span>
-                            <span class="product-price--full">&#8377;<?php echo number_format((float) $product['base_price'], 0); ?></span>
-                        <?php else: ?>
-                            <span class="product-price"><?php echo $product['has_variants'] ? 'From ' : ''; ?>&#8377;<?php echo number_format((float) $product['base_price'], 0); ?></span>
-                        <?php endif; ?>
-                    </div>
-
-                    <span class="product-link">
-                        View Product
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                            <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
-                    </span>
-
-                </div>
-
-            </a>
-
-        <?php endforeach; ?>
+        </div>
 
     </div>
-
-    <?php endif; ?>
 
 </section>
 

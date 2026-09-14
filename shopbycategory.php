@@ -1,14 +1,13 @@
 <?php
 
 
-if (!function_exists('getTopLevelActiveCategories')) {
+if (!function_exists('getAllCategoriesWithProducts')) {
     require_once __DIR__ . '/function/category.php';
 }
 
 try {
-    $shopCategories = getTopLevelActiveCategories($conn);
+    $shopCategories = getAllCategoriesWithProducts($conn);
 } catch (Exception $e) {
-    // Fail closed: hide the section rather than show a broken carousel.
     $shopCategories = [];
 }
 

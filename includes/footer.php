@@ -1,14 +1,10 @@
 <?php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 if (!function_exists('getSubcategoriesWithProducts')) {
-    require_once __DIR__ . '/function/category.php';
+    require_once __DIR__ . '/../function/category.php';
 }
 if (!function_exists('generateFooterCaptcha')) {
-    require_once __DIR__ . '/function/newletter.php';
+    require_once __DIR__ . '/../function/newletter.php';
 }
 
 // try {

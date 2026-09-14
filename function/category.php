@@ -897,7 +897,89 @@ function getCategorySubtreeIds($conn, $rootId)
 }
 
 /**
- * Work out exactly what deleting a category subtree will do to products:
+ * Root (parent_id IS NULL) Active categories that have at least one Active
+ * product assigned directly to them. Used for the storefront "Shop By
+ * Category" carousel and the products-page sidebar, both of which browse
+ * by top-level category rather than subcategory.
+ *
+ * Deliberately mirrors getSubcategoriesWithProducts() below — same query,
+ * just parent_id IS NULL instead of IS NOT NULL — so both use the exact
+ * same "has products" rule (direct assignment only, no subtree walk).
+ * Keeping the two consistent matters: a category with zero products of
+ * its own but with products only on a child/grandchild is treated as
+ * empty everywhere, not just in the header's dropdown.
+ *
+ * @param mysqli $conn
+ * @return array<int, array<string, mixed>>
+ * @throws Exception
+ */
+function getTopLevelCategoriesWithProducts($conn)
+{
+    $sql = "SELECT c.*
+            FROM categories c
+            WHERE c.parent_id IS NULL
+              AND c.status = 'Active'
+              AND EXISTS (
+                  SELECT 1
+                  FROM product_categories pc
+                  INNER JOIN products p ON p.id = pc.product_id AND p.status = 'Active'
+                  WHERE pc.category_id = c.id
+              )
+            ORDER BY c.sort_order ASC, c.name ASC";
+
+    $result = mysqli_query($conn, $sql);
+    if (!$result) {
+        throw new Exception("Error fetching top-level categories with products: " . mysqli_error($conn));
+    }
+
+    $categories = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $categories[] = $row;
+    }
+
+    return $categories;
+}
+
+/**
+ * Every Active category — root or subcategory, any depth — that has at
+ * least one Active product assigned directly to it. Same direct-only
+ * "has products" rule as getTopLevelCategoriesWithProducts() and
+ * getSubcategoriesWithProducts() above, just without the parent_id
+ * filter, so both tiers are included together. Used by the full
+ * "Shop by Category" browse page (categories.php), which — unlike the
+ * homepage carousel (top-level only) or the header's mega-menu
+ * (subcategories only) — is meant to list every browsable category.
+ *
+ * @param mysqli $conn
+ * @return array<int, array<string, mixed>>
+ * @throws Exception
+ */
+function getAllCategoriesWithProducts($conn)
+{
+    $sql = "SELECT c.*
+            FROM categories c
+            WHERE c.status = 'Active'
+              AND EXISTS (
+                  SELECT 1
+                  FROM product_categories pc
+                  INNER JOIN products p ON p.id = pc.product_id AND p.status = 'Active'
+                  WHERE pc.category_id = c.id
+              )
+            ORDER BY c.sort_order ASC, c.name ASC";
+
+    $result = mysqli_query($conn, $sql);
+    if (!$result) {
+        throw new Exception("Error fetching categories with products: " . mysqli_error($conn));
+    }
+
+    $categories = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $categories[] = $row;
+    }
+
+    return $categories;
+}
+/*
  * which ones will be fully deleted (no category left outside the subtree)
  * vs. which ones will simply be unlinked from these categories but survive
  * (because they're still linked to at least one category outside the subtree).

@@ -4,17 +4,10 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../function/category.php';
 require_once __DIR__ . '/../function/product.php';
 
-// Mega-menu data: root categories are organisational only and never shown.
-// getSubcategoriesWithProducts() returns the flat list of real, browsable
-// categories (has a parent, Active, has at least one Active product) —
-// this is what scales to 100+ categories, since it's just a scrollable
-// sidebar list rather than a tree. Each entry's own products are preloaded
-// here so the panel-switch on hover needs no extra query.
-
-$browsableCategories = [];
-$categoryResult = getSubcategoriesWithProducts($conn);
-while ($row = mysqli_fetch_assoc($categoryResult)) {
-    $browsableCategories[] = $row;
+try {
+    $browsableCategories = getAllCategoriesWithProducts($conn);
+} catch (Exception $e) {
+    $browsableCategories = [];
 }
 
 $maxProductsPerCategory = 8;
@@ -35,9 +28,7 @@ foreach ($browsableCategories as $category) {
     $megaMenuProducts[$category['id']] = $products;
 }
 
-// Cart item count for the header badge. Cart rows always belong to a
-// logged-in user_id (no guest-cart support), so there's simply nothing to
-// show for a visitor who isn't logged in yet.
+
 require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/cart.php';
 
@@ -262,11 +253,7 @@ if (isCustomerLogin()) {
             text-align: center;
         }
 
-        /* =========================================
-                Shop All Mega Menu
-                (scrollable category sidebar + product panel,
-                 built to handle 100+ categories)
-        ========================================= */
+    
 
         .nav-dropdown {
             position: relative;

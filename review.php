@@ -10,6 +10,12 @@
  * in, and (by approving/rejecting) which ones are eligible to show up
  * here. This section just displays the best of what's approved.
  *
+ * Slider mechanics come entirely from the shared engine in global.js/
+ * global.css ([data-slider] / .slider__track / .slider__slide /
+ * .slider__dots — the same one banners and Shop By Category use), so
+ * there's no bespoke JS in this file at all. One dot per review, same
+ * convention as those sections.
+ *
  * Usage (from the homepage), after $conn is available:
  *
  *   require_once __DIR__ . '/function/review.php';
@@ -31,23 +37,17 @@ $testimonialCount = count($testimonials);
 
 <style>
     /* ==========================================================================
-       Testimonials — homepage section. Self-contained, namespaced "tst".
-       Warm cream/tan palette to match the reference — not in global.css's
-       (green-based) token set, so --tst-* below are local, one-off colors
-       scoped to this section only, same approach as dosha-banner.php.
+       Testimonials — homepage section. Namespaced "tst".
+       Built entirely on global.css's design tokens (colors, radii, shadow)
+       and its shared .slider engine — no separate palette, no bespoke
+       slider JS. The only section-local color is the star rating gold,
+       which is a universal rating convention independent of brand color.
        ========================================================================== */
 
     .tst {
-        --tst-bg: #f7efe1;
-        --tst-card: #ecdcb8;
-        --tst-card-highlight: #a97a45;
-        --tst-text: #2c2418;
-        --tst-text-light: #6b5d47;
-        --tst-star: #c9a227;
-        --tst-accent: #a97a45;
-
+        --tst-star: #e0a72e;
         padding: 60px 0;
-        background: var(--tst-bg);
+        background: var(--color-bg);
     }
 
     .tst__heading {
@@ -55,58 +55,33 @@ $testimonialCount = count($testimonials);
         font-size: 26px;
         font-weight: 600;
         line-height: 1.5;
-        color: var(--tst-text);
+        color: var(--color-text);
         margin: 0 0 36px;
     }
 
     .tst__heading strong {
-        color: var(--tst-accent);
+        color: var(--color-primary);
         font-weight: 700;
     }
 
-    /* ---- Scroll viewport (same native-scroll approach as
-       shopbycategory.php / product-highlights.php) ---- */
-
-    .tst__viewport {
-        display: flex;
-        gap: 20px;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        scroll-behavior: smooth;
-        cursor: grab;
-        padding: 6px 6px 10px;
-
-        --tst-visible: 3;
-
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-
-    .tst__viewport::-webkit-scrollbar {
-        display: none;
-    }
-
-    .tst__viewport.is-dragging {
-        cursor: grabbing;
-        scroll-snap-type: none;
-        scroll-behavior: auto;
-    }
-
-    .tst__item {
-        flex: 0 0 calc((100% - (var(--tst-visible) - 1) * 20px) / var(--tst-visible));
-        min-width: 0;
-        scroll-snap-align: start;
+    /* Sizing only — the shared .slider/.slider__track/.slider__dot rules
+       themselves live in global.css and are untouched. This just sets
+       this section's --slider-visible/--slider-gap responsively. */
+    .tst .slider {
+        --slider-visible: 3;
+        --slider-gap: 20px;
     }
 
     @media (max-width: 860px) {
-        .tst__viewport {
-            --tst-visible: 2;
+        .tst .slider {
+            --slider-visible: 2;
         }
     }
 
     @media (max-width: 560px) {
-        .tst__viewport {
-            --tst-visible: 1.08;
+        .tst .slider {
+            --slider-visible: 1.08;
+            --slider-gap: 14px;
         }
 
         .tst__heading {
@@ -117,47 +92,51 @@ $testimonialCount = count($testimonials);
 
     /* ---- Card ---- */
 
-    .tst__card {
+    .tst-card {
         height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
-        padding: 28px 22px;
+        padding: 32px 24px;
         border-radius: var(--radius-lg);
-        background: var(--tst-card);
-        color: var(--tst-text);
-        -webkit-user-drag: none;
-        user-select: none;
-        transition: background 0.35s ease, color 0.35s ease;
+        background: var(--color-white);
+        border: 1px solid var(--color-border);
+        box-shadow: var(--shadow-soft);
     }
 
-    .tst__card.is-center {
-        background: var(--tst-card-highlight);
-        color: #fbf3e6;
+    .tst-card__avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-primary-light);
+        color: var(--color-primary);
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 14px;
     }
 
-    .tst__name {
+    .tst-card__name {
         font-size: 15px;
         font-weight: 700;
+        color: var(--color-text);
         margin: 0 0 8px;
     }
 
-    .tst__stars {
+    .tst-card__stars {
         color: var(--tst-star);
         letter-spacing: 2px;
         margin-bottom: 14px;
         font-size: 13px;
     }
 
-    .tst__card.is-center .tst__stars {
-        color: #f0d27a;
-    }
-
-    .tst__text {
+    .tst-card__text {
         font-size: 13.5px;
         line-height: 1.7;
-        color: var(--tst-text-light);
+        color: var(--color-text-light);
         margin: 0;
 
         display: -webkit-box;
@@ -165,225 +144,46 @@ $testimonialCount = count($testimonials);
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
-
-    .tst__card.is-center .tst__text {
-        color: #f0e6d4;
-    }
-
-    /* ---- Dots ---- */
-
-    .tst__dots {
-        display: flex;
-        justify-content: center;
-        gap: 8px;
-        margin-top: 26px;
-    }
-
-    .tst__dots[hidden] {
-        display: none;
-    }
-
-    .tst__dot {
-        width: 9px;
-        height: 9px;
-        padding: 0;
-        border: none;
-        border-radius: 50%;
-        background: var(--tst-card);
-        transition: background 0.3s ease, transform 0.3s ease;
-    }
-
-    .tst__dot.is-active {
-        background: var(--tst-accent);
-        transform: scale(1.25);
-    }
-
-    .tst__dot:focus-visible {
-        outline: 2px solid var(--tst-accent);
-        outline-offset: 2px;
-    }
 </style>
 
 <?php if ($testimonialCount > 0): ?>
-    <section class="tst" data-tst>
+    <section class="tst">
         <div class="container">
             <h2 class="tst__heading">
                 Trusted By <strong>10 Lakh</strong> Customers<br>
                 Across <strong>3600+</strong> Cities
             </h2>
 
-            <div class="tst__viewport" data-tst-viewport>
-                <?php foreach ($testimonials as $review):
-                    $rating = max(1, min(5, (int) $review['rating']));
-                ?>
-                    <div class="tst__item">
-                        <div class="tst__card">
-                            <p class="tst__name"><?= htmlspecialchars($review['customer_name'], ENT_QUOTES, 'UTF-8') ?></p>
-                            <p class="tst__stars"><?= str_repeat('&#9733;', $rating) . str_repeat('&#9734;', 5 - $rating) ?></p>
-                            <p class="tst__text"><?= htmlspecialchars($review['review'], ENT_QUOTES, 'UTF-8') ?></p>
+            <div class="slider" data-slider>
+                <div class="slider__track" data-slider-track>
+                    <?php foreach ($testimonials as $review):
+                        $rating = max(1, min(5, (int) $review['rating']));
+                        $name = trim((string) ($review['customer_name'] ?? ''));
+                        $initial = $name !== '' ? mb_strtoupper(mb_substr($name, 0, 1)) : '?';
+                    ?>
+                        <div class="slider__slide">
+                            <div class="tst-card">
+                                <span class="tst-card__avatar" aria-hidden="true"><?= htmlspecialchars($initial, ENT_QUOTES, 'UTF-8') ?></span>
+                                <p class="tst-card__name"><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></p>
+                                <p class="tst-card__stars"><?= str_repeat('&#9733;', $rating) . str_repeat('&#9734;', 5 - $rating) ?></p>
+                                <p class="tst-card__text"><?= htmlspecialchars($review['review'], ENT_QUOTES, 'UTF-8') ?></p>
+                            </div>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+                    <?php endforeach; ?>
+                </div>
 
-            <div class="tst__dots" data-tst-dots hidden></div>
+                <?php if ($testimonialCount > 1): ?>
+                    <div class="slider__dots" data-slider-dots role="tablist" aria-label="Testimonials navigation">
+                        <?php for ($i = 0; $i < $testimonialCount; $i++): ?>
+                            <button type="button"
+                                class="slider__dot<?= $i === 0 ? ' is-active' : '' ?>"
+                                role="tab"
+                                aria-selected="<?= $i === 0 ? 'true' : 'false' ?>"
+                                aria-label="Go to review <?= $i + 1 ?>"></button>
+                        <?php endfor; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
     </section>
-
-    <script>
-        (function () {
-            // Drag + dots: same pattern as shopbycategory.php / product-
-            // highlights.php, scoped to [data-tst]. Adds one thing those
-            // don't need: continuously tracking which card is nearest the
-            // viewport's own center and marking it .is-center, so the
-            // highlighted (dark) card always matches whichever testimonial
-            // is actually front-and-center — including mid-drag.
-            document.querySelectorAll('[data-tst]').forEach(function (root) {
-                var viewport = root.querySelector('[data-tst-viewport]');
-                var dotsWrap = root.querySelector('[data-tst-dots]');
-                var items = Array.prototype.slice.call(viewport.children);
-                var cards = items.map(function (item) {
-                    return item.querySelector('.tst__card');
-                });
-                var count = items.length;
-
-                if (count === 0) {
-                    return;
-                }
-
-                var isDown = false;
-                var dragged = false;
-                var startX = 0;
-                var startScroll = 0;
-
-                viewport.addEventListener('mousedown', function (event) {
-                    isDown = true;
-                    dragged = false;
-                    viewport.classList.add('is-dragging');
-                    startX = event.pageX;
-                    startScroll = viewport.scrollLeft;
-                });
-
-                window.addEventListener('mousemove', function (event) {
-                    if (!isDown) {
-                        return;
-                    }
-                    var delta = event.pageX - startX;
-                    if (Math.abs(delta) > 4) {
-                        dragged = true;
-                    }
-                    viewport.scrollLeft = startScroll - delta;
-                });
-
-                function endDrag() {
-                    if (!isDown) {
-                        return;
-                    }
-                    isDown = false;
-                    viewport.classList.remove('is-dragging');
-                    snapToNearest();
-                }
-
-                window.addEventListener('mouseup', endDrag);
-                viewport.addEventListener('mouseleave', function () {
-                    if (isDown) {
-                        endDrag();
-                    }
-                });
-
-                viewport.addEventListener('click', function (event) {
-                    if (dragged) {
-                        event.preventDefault();
-                        dragged = false;
-                    }
-                }, true);
-
-                function snapToNearest() {
-                    var pageWidth = viewport.clientWidth;
-                    var page = Math.round(viewport.scrollLeft / pageWidth);
-                    viewport.scrollTo({ left: page * pageWidth, behavior: 'smooth' });
-                }
-
-                function updateCenterHighlight() {
-                    var viewportRect = viewport.getBoundingClientRect();
-                    var viewportCenter = viewportRect.left + viewportRect.width / 2;
-
-                    var closestIndex = 0;
-                    var closestDistance = Infinity;
-                    items.forEach(function (item, i) {
-                        var rect = item.getBoundingClientRect();
-                        var itemCenter = rect.left + rect.width / 2;
-                        var distance = Math.abs(itemCenter - viewportCenter);
-                        if (distance < closestDistance) {
-                            closestDistance = distance;
-                            closestIndex = i;
-                        }
-                    });
-
-                    cards.forEach(function (card, i) {
-                        if (card) {
-                            card.classList.toggle('is-center', i === closestIndex);
-                        }
-                    });
-                }
-
-                function pageCount() {
-                    var raw = getComputedStyle(viewport).getPropertyValue('--tst-visible');
-                    var visible = Math.max(1, Math.floor(parseFloat(raw)) || 1);
-                    return Math.max(1, Math.ceil(count / visible));
-                }
-
-                function buildDots() {
-                    dotsWrap.innerHTML = '';
-                    var pages = pageCount();
-                    if (pages <= 1) {
-                        dotsWrap.hidden = true;
-                        return;
-                    }
-                    dotsWrap.hidden = false;
-                    for (var i = 0; i < pages; i++) {
-                        var dot = document.createElement('button');
-                        dot.type = 'button';
-                        dot.className = 'tst__dot';
-                        dot.setAttribute('aria-label', 'Go to reviews page ' + (i + 1));
-                        (function (page) {
-                            dot.addEventListener('click', function () {
-                                viewport.scrollTo({ left: page * viewport.clientWidth, behavior: 'smooth' });
-                            });
-                        })(i);
-                        dotsWrap.appendChild(dot);
-                    }
-                    updateActiveDot();
-                }
-
-                function updateActiveDot() {
-                    var pageWidth = viewport.clientWidth || 1;
-                    var active = Math.round(viewport.scrollLeft / pageWidth);
-                    var dots = dotsWrap.querySelectorAll('.tst__dot');
-                    dots.forEach(function (dot, i) {
-                        dot.classList.toggle('is-active', i === active);
-                    });
-                }
-
-                var scrollTimer = null;
-                viewport.addEventListener('scroll', function () {
-                    updateCenterHighlight();
-                    window.clearTimeout(scrollTimer);
-                    scrollTimer = window.setTimeout(updateActiveDot, 80);
-                });
-
-                var resizeTimer = null;
-                window.addEventListener('resize', function () {
-                    window.clearTimeout(resizeTimer);
-                    resizeTimer = window.setTimeout(function () {
-                        buildDots();
-                        updateCenterHighlight();
-                    }, 150);
-                });
-
-                buildDots();
-                updateCenterHighlight();
-            });
-        })();
-    </script>
 <?php endif; ?>
