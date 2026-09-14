@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
-    var AUTOPLAY_INTERVAL_MS = 500;
+    var AUTOPLAY_INTERVAL_MS = 2500;
 
     function getVisibleCount(root) {
         var raw = getComputedStyle(root).getPropertyValue('--slider-visible');
