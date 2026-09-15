@@ -70,11 +70,13 @@ $testimonialCount = count($testimonials);
     .tst .slider {
         --slider-visible: 3;
         --slider-gap: 20px;
+        padding: 18px 0 4px;
     }
 
     @media (max-width: 860px) {
         .tst .slider {
             --slider-visible: 2;
+            padding: 0;
         }
     }
 
@@ -103,6 +105,28 @@ $testimonialCount = count($testimonials);
         background: var(--color-white);
         border: 1px solid var(--color-border);
         box-shadow: var(--shadow-soft);
+        transition: transform 0.35s ease, background 0.35s ease,
+            box-shadow 0.35s ease, border-color 0.35s ease;
+    }
+
+    /* Middle card of the 3 currently on screen — raised, highlighted,
+       and given a stronger shadow. Toggled by global.js when the slider
+       opts in via [data-slider-highlight-center]; harmless without JS
+       since the class simply never gets added. */
+    .slider__slide.is-center .tst-card {
+        transform: translateY(-12px);
+        background: var(--color-primary-light);
+        border-color: var(--color-primary);
+        box-shadow: 0 22px 44px rgba(23, 72, 61, 0.22);
+    }
+
+    @media (max-width: 860px) {
+        .slider__slide.is-center .tst-card {
+            transform: none;
+            background: var(--color-white);
+            border-color: var(--color-border);
+            box-shadow: var(--shadow-soft);
+        }
     }
 
     .tst-card__avatar {
@@ -154,7 +178,7 @@ $testimonialCount = count($testimonials);
                 Across <strong>3600+</strong> Cities
             </h2>
 
-            <div class="slider" data-slider>
+            <div class="slider" data-slider data-slider-highlight-center>
                 <div class="slider__track" data-slider-track>
                     <?php foreach ($testimonials as $review):
                         $rating = max(1, min(5, (int) $review['rating']));

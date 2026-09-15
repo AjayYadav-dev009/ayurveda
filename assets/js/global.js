@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
-    var AUTOPLAY_INTERVAL_MS = 2500;
+    var DEFAULT_AUTOPLAY_INTERVAL_MS = 2500;
 
     function getVisibleCount(root) {
         var raw = getComputedStyle(root).getPropertyValue('--slider-visible');
@@ -85,6 +85,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var currentClones = [];
         var currentIndex = 0;
         var timerId = null;
+        var autoplayIntervalMs = parseInt(root.getAttribute('data-slider-interval'), 10) || DEFAULT_AUTOPLAY_INTERVAL_MS;
+        var highlightCenter = root.hasAttribute('data-slider-highlight-center');
 
         function slideStepPercent() {
             return 100 / getVisibleCount(root);
@@ -112,10 +114,27 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
+        // Marks whichever slide currently sits in the middle of the visible
+        // row as "is-center" (e.g. the middle card of 3), so it can be
+        // styled as raised/highlighted. Re-run any time currentIndex moves,
+        // including the invisible wrap-around snap, since that snap points
+        // at a different (but visually identical) DOM node.
+        function updateCenterHighlight() {
+            if (!highlightCenter) {
+                return;
+            }
+            var mid = Math.floor(visible / 2);
+            var targetIndex = currentIndex + mid;
+            Array.prototype.forEach.call(track.children, function (child, i) {
+                child.classList.toggle('is-center', i === targetIndex);
+            });
+        }
+
         function goToTrackIndex(index) {
             currentIndex = index;
             setPosition(true);
             updateDots();
+            updateCenterHighlight();
         }
 
         function next() {
@@ -125,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function startAutoplay() {
             stopAutoplay();
             if (isBuilt) {
-                timerId = window.setInterval(next, AUTOPLAY_INTERVAL_MS);
+                timerId = window.setInterval(next, autoplayIntervalMs);
             }
         }
 
@@ -160,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 setPosition(false);
                 updateDots();
+                updateCenterHighlight();
                 stopAutoplay();
                 return;
             }
@@ -186,6 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
             currentIndex = newVisible + (resumeRealIndex || 0); // position of the first real slide within the full (cloned) track
             setPosition(false);
             updateDots();
+            updateCenterHighlight();
         }
 
         // After sliding into the cloned region, snap back to the matching
@@ -197,9 +218,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (currentIndex >= visible + count) {
                 currentIndex -= count;
                 setPosition(false);
+                updateCenterHighlight();
             } else if (currentIndex < visible) {
                 currentIndex += count;
                 setPosition(false);
+                updateCenterHighlight();
             }
         });
 
@@ -210,10 +233,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        root.addEventListener('mouseenter', stopAutoplay);
-        root.addEventListener('mouseleave', startAutoplay);
-        root.addEventListener('touchstart', stopAutoplay, { passive: true });
-        root.addEventListener('touchend', startAutoplay, { passive: true });
+        if (!root.hasAttribute('data-slider-no-hover-pause')) {
+            root.addEventListener('mouseenter', stopAutoplay);
+            root.addEventListener('mouseleave', startAutoplay);
+            root.addEventListener('touchstart', stopAutoplay, { passive: true });
+            root.addEventListener('touchend', startAutoplay, { passive: true });
+        }
 
         var resizeTimer = null;
         window.addEventListener('resize', function () {

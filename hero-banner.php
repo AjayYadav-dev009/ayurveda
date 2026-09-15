@@ -120,7 +120,7 @@ $heroBannerCount = count($heroBanners);
 </style>
 
 <?php if ($heroBannerCount > 0): ?>
-    <section class="slider hero-slider" data-slider>
+    <section class="slider hero-slider" data-slider data-slider-interval="6000" data-slider-no-hover-pause>
         <div class="slider__track" data-slider-track>
             <?php foreach ($heroBanners as $index => $banner):
                 $imageUrl = getBannerImageUrl($banner['image'] ?? null);
@@ -144,13 +144,15 @@ $heroBannerCount = count($heroBanners);
                             <img class="hero-slider__image"
                                 src="<?= htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') ?>"
                                 alt="<?= htmlspecialchars($altText, ENT_QUOTES, 'UTF-8') ?>"
-                                <?= $index === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"' ?>>
+                                loading="eager"
+                                <?= $index === 0 ? 'fetchpriority="high"' : '' ?>>
                         </a>
                     <?php else: ?>
                         <img class="hero-slider__image"
                             src="<?= htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') ?>"
                             alt="<?= htmlspecialchars($altText, ENT_QUOTES, 'UTF-8') ?>"
-                            <?= $index === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"' ?>>
+                            loading="eager"
+                            <?= $index === 0 ? 'fetchpriority="high"' : '' ?>>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
