@@ -1,31 +1,7 @@
 <?php
 
-/**
- * Homepage hero banner slider — image only.
- *
- * All visual content (headings, CTAs, icons, product/service info) lives
- * INSIDE the uploaded banner image. This template only ever outputs:
- *   - <img> tags
- *   - an optional wrapping <a> when button_url is set
- *   - dot navigation controls
- * No text, heading, or button markup is generated from banner data.
- *
- * Built on the shared slider engine (see assets/css/slider.css + the
- * initSlider() code in global.js) — this file only supplies banner data
- * and the hero's own look; position, cloning, autoplay, and dots all come
- * from there.
- *
- * Usage (from the homepage, e.g. index.php), after $conn is available:
- *
- *   require_once __DIR__ . '/function/banner.php';
- *   include __DIR__ . '/partials/hero-slider.php';
- *
- * Include assets/css/slider.css and assets/css/hero-slider.css (or this
- * file's inline <style>), plus global.js, once on the same page.
- */
-
 if (!function_exists('getActiveBanners')) {
-    require_once __DIR__ . '/function/banner.php';
+    require_once __DIR__ . '/../function/banner.php';
 }
 
 try {
@@ -44,12 +20,6 @@ $heroBannerCount = count($heroBanners);
 <?php endif; ?>
 
 <style>
-    /* ==========================================================================
-   Homepage hero banner slider — image-only.
-   All headings/CTAs/icons are baked into the uploaded banner image itself;
-   built on the shared slider mechanics (assets/css/slider.css) — this file
-   only styles the image itself and the overlaid dots.
-   ========================================================================== */
 
     .hero-slider {
         --slider-visible: 1;

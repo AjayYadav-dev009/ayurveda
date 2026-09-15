@@ -23,7 +23,7 @@
  */
 
 if (!function_exists('getFeaturedReviews')) {
-    require_once __DIR__ . '/function/review.php';
+    require_once __DIR__ . '/../function/review.php';
 }
 
 try {
