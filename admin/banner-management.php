@@ -191,11 +191,25 @@ include __DIR__ . '/include/header.php';
 
 ?>
 <style>
+    :root {
+        --leaf: #2f9e6e;
+        --leaf-dark: #22794f;
+        --leaf-tint: #e7f6ee;
+        --ink: #1c2b3a;
+        --sky: #0f6fb0;
+        --sky-tint: #eaf4fb;
+        --paper: #ffffff;
+        --mist: #f4f8fb;
+        --line: #e1e9f0;
+        --muted: #64798c;
+        --danger: #c8412f;
+        --danger-tint: #fbebe8;
+    }
+
     body {
-        font-family: system-ui, -apple-system, sans-serif;
-        background: #f5f6f8;
+        background: var(--mist);
         margin: 0;
-        color: #1f2430;
+        color: var(--ink);
     }
 
     .admin-wrap {
@@ -205,62 +219,83 @@ include __DIR__ . '/include/header.php';
     }
 
     h1 {
-        font-size: 22px;
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
         margin: 0 0 20px;
+        color: var(--ink);
     }
 
     .card {
-        background: #fff;
-        border: 1px solid #e3e5ea;
-        border-radius: 10px;
-        padding: 20px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 22px;
         margin-bottom: 20px;
+        box-shadow: 0 1px 2px rgba(28, 43, 58, 0.04);
     }
 
     .flash {
-        padding: 10px 14px;
-        border-radius: 8px;
+        padding: 11px 15px;
+        border-radius: 10px;
         margin-bottom: 16px;
         font-size: 14px;
+        font-weight: 600;
+        border-left: 3px solid transparent;
     }
 
     .flash-success {
-        background: #e6f6ea;
-        color: #1f7a3d;
-        border: 1px solid #bfe8cc;
+        background: var(--leaf-tint);
+        color: var(--leaf-dark);
+        border-left-color: var(--leaf);
     }
 
     .flash-error {
-        background: #fdeceb;
-        color: #b3261e;
-        border: 1px solid #f6c6c2;
+        background: var(--danger-tint);
+        color: var(--danger);
+        border-left-color: var(--danger);
     }
 
     .btn {
         display: inline-block;
         padding: 8px 14px;
-        border-radius: 6px;
+        border-radius: 8px;
         border: 1px solid transparent;
         font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
         text-decoration: none;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
 
     .btn-primary {
-        background: #2f6f4e;
+        background: var(--leaf);
         color: #fff;
+    }
+
+    .btn-primary:hover {
+        background: var(--leaf-dark);
     }
 
     .btn-secondary {
         background: #fff;
-        color: #2f2f2f;
-        border-color: #d7d9de;
+        color: var(--sky);
+        border-color: var(--line);
+    }
+
+    .btn-secondary:hover {
+        background: var(--sky-tint);
+        border-color: var(--sky);
     }
 
     .btn-danger {
         background: #fff;
-        color: #b3261e;
-        border-color: #f0c6c2;
+        color: var(--danger);
+        border-color: #f0cdc6;
+    }
+
+    .btn-danger:hover {
+        background: var(--danger-tint);
     }
 
     .btn-sm {
@@ -276,52 +311,67 @@ include __DIR__ . '/include/header.php';
     th,
     td {
         text-align: left;
-        padding: 10px 8px;
-        border-bottom: 1px solid #edeef1;
+        padding: 11px 9px;
+        border-bottom: 1px solid var(--line);
         font-size: 13px;
         vertical-align: middle;
     }
 
     th {
-        color: #6b7280;
-        font-weight: 600;
-        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 11.5px;
         text-transform: uppercase;
-        letter-spacing: .03em;
+        letter-spacing: .05em;
+    }
+
+    tbody tr:hover {
+        background: var(--sky-tint);
     }
 
     .thumb {
         width: 90px;
         height: 45px;
         object-fit: cover;
-        border-radius: 6px;
-        background: #f0f0f0;
+        border-radius: 8px;
+        background: var(--mist);
+        border: 1px solid var(--line);
         display: block;
     }
 
     .status-pill {
         display: inline-block;
-        padding: 3px 9px;
+        padding: 3px 10px;
         border-radius: 999px;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 700;
     }
 
     .status-active {
-        background: #e6f6ea;
-        color: #1f7a3d;
+        background: var(--leaf-tint);
+        color: var(--leaf-dark);
     }
 
     .status-inactive {
-        background: #f1f1f3;
-        color: #6b7280;
+        background: var(--mist);
+        color: var(--muted);
     }
 
     .order-input {
         width: 56px;
         padding: 4px 6px;
-        border: 1px solid #d7d9de;
-        border-radius: 5px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-family: inherit;
+    }
+
+    .order-input:focus,
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+        outline: none;
+        border-color: var(--sky);
+        box-shadow: 0 0 0 3px var(--sky-tint);
     }
 
     .row-actions {
@@ -341,8 +391,9 @@ include __DIR__ . '/include/header.php';
     .field label {
         display: block;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 700;
         margin-bottom: 5px;
+        color: var(--ink);
     }
 
     .field input[type=text],
@@ -352,9 +403,12 @@ include __DIR__ . '/include/header.php';
     .field textarea {
         width: 100%;
         padding: 8px 10px;
-        border: 1px solid #d7d9de;
-        border-radius: 6px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
         font-size: 14px;
+        font-family: inherit;
+        color: var(--ink);
+        background: #fff;
         box-sizing: border-box;
     }
 
@@ -373,8 +427,8 @@ include __DIR__ . '/include/header.php';
 
     .current-image img {
         max-width: 220px;
-        border-radius: 6px;
-        border: 1px solid #e3e5ea;
+        border-radius: 8px;
+        border: 1px solid var(--line);
     }
 
     .top-bar {
@@ -385,7 +439,7 @@ include __DIR__ . '/include/header.php';
     }
 
     .muted {
-        color: #6b7280;
+        color: var(--muted);
         font-size: 12px;
     }
 </style>

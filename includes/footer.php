@@ -1,33 +1,15 @@
 <?php
 
-if (!function_exists('getSubcategoriesWithProducts')) {
+if (!function_exists('getFooterCategories')) {
     require_once __DIR__ . '/../function/category.php';
 }
-if (!function_exists('generateFooterCaptcha')) {
-    require_once __DIR__ . '/../function/newletter.php';
+
+$footerCategories = getAllCategoriesWithProducts($conn);
+
+if (count($footerCategories) > 8) {
+    $footerCategories = array_slice($footerCategories, 0, 8);
 }
 
-// try {
-//     $footerCategories = array_slice(getSubcategoriesWithProducts($conn), 0, 8);
-// } catch (Exception $e) {
-//     $footerCategories = [];
-// }
-
-$footerCaptcha = generateFooterCaptcha();
-
-$newsletterFlash = $_SESSION['newsletter_flash'] ?? null;
-unset($_SESSION['newsletter_flash']);
-
-// Used so the newsletter form can redirect back to whatever page it was
-// submitted from (see footer-newsletter-subscribe.php).
-$currentUrl = BASE_URL . ltrim($_SERVER['REQUEST_URI'] ?? '', '/');
-
-// ---------------------------------------------------------------------------
-// TODO: these columns are placeholder links — none of these pages exist
-// in the project yet (About Us, Contact Us, FAQ, Terms of Use, Privacy
-// Policy, Track Order, Blog, Career, etc.). Point them at real files as
-// each page gets built.
-// ---------------------------------------------------------------------------
 $footerEnquireLinks = [
     'About Us' => 'about.php',
     'Gynam' => 'gynam.php',
@@ -58,7 +40,6 @@ $footerQuickLinks = [
     'Dosha Test' => 'dosha-test.php',
 ];
 
-// TODO: point these at real social profile URLs.
 $footerSocialLinks = [
     'facebook' => '#',
     'twitter' => '#',
@@ -69,10 +50,6 @@ $footerSocialLinks = [
 ?>
 
 <style>
-    /* ==========================================================================
-       Site footer. Namespaced "ftr".
-       ========================================================================== */
-
     .ftr {
         background: var(--color-bg);
         padding: 52px 0 0;
@@ -81,7 +58,7 @@ $footerSocialLinks = [
 
     .ftr__columns {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, 1fr);
         gap: 32px;
         margin-bottom: 40px;
     }
@@ -113,132 +90,16 @@ $footerSocialLinks = [
         text-decoration: underline;
     }
 
-    /* ---- Newsletter + captcha ---- */
-
-    .ftr__newsletter {
-        max-width: 480px;
-        margin-bottom: 36px;
-    }
-
-    .ftr__newsletter-label {
-        display: block;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--color-text);
-        margin-bottom: 12px;
-    }
-
-    .ftr__newsletter-flash {
-        font-size: 12.5px;
-        margin: 0 0 10px;
-        padding: 8px 12px;
-        border-radius: var(--radius-sm);
-    }
-
-    .ftr__newsletter-flash--success {
-        background: var(--color-primary-light);
-        color: var(--color-primary-dark);
-        border: 1px solid var(--color-primary);
-    }
-
-    .ftr__newsletter-flash--error {
-        color: #8a1c14;
-        background: #fbeceb;
-        border: 1px solid #f2c6c2;
-    }
-
-    .ftr__email-row {
-        display: flex;
-        margin-bottom: 12px;
-    }
-
-    .ftr__email-row input[type="email"] {
-        flex: 1;
-        min-width: 0;
-        padding: 12px 14px;
-        font-size: 13px;
-        font-family: inherit;
-        color: var(--color-text);
-        background: var(--color-white);
-        border: 1px solid var(--color-border);
-        border-right: none;
-        border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-    }
-
-    .ftr__email-row button {
-        flex-shrink: 0;
-        width: 48px;
-        border: none;
-        background: var(--color-primary);
-        color: var(--color-white);
-        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .ftr__email-row button:hover {
-        background: var(--color-primary-dark);
-    }
-
-    .ftr__email-row button svg {
-        width: 16px;
-        height: 16px;
-    }
-
-    .ftr__captcha-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .ftr__captcha-code {
-        font-family: Georgia, 'Times New Roman', serif;
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--color-text);
-        letter-spacing: 2px;
-        user-select: none;
-        white-space: nowrap;
-    }
-
-    .ftr__captcha-code span {
-        display: inline-block;
-    }
-
-    .ftr__captcha-row input[type="text"] {
-        flex: 1;
-        min-width: 0;
-        padding: 11px 14px;
-        font-size: 13px;
-        font-family: inherit;
-        color: var(--color-text);
-        background: var(--color-white);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-    }
-
-    /* ---- Social ---- */
-
-    .ftr__social-label {
-        display: block;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--color-text);
-        margin-bottom: 12px;
-    }
+    /* ---- Social (now a column) ---- */
 
     .ftr__social-list {
         display: flex;
+        flex-direction: column;
         gap: 10px;
         list-style: none;
-        margin: 0 0 40px;
+        margin: 0;
         padding: 0;
+        flex-wrap: wrap;
     }
 
     .ftr__social-list a {
@@ -263,6 +124,11 @@ $footerSocialLinks = [
     .ftr__social-list svg {
         width: 15px;
         height: 15px;
+    }
+
+    .ftr__social-list a {
+        display: flex;
+        gap: 10px;
     }
 
     /* ---- Bottom bar ---- */
@@ -290,10 +156,6 @@ $footerSocialLinks = [
     @media (max-width: 640px) {
         .ftr__columns {
             grid-template-columns: repeat(2, 1fr);
-        }
-
-        .ftr__captcha-row {
-            flex-wrap: wrap;
         }
     }
 </style>
@@ -347,70 +209,55 @@ $footerSocialLinks = [
                     <?php endforeach; ?>
                 </ul>
             </div>
-        </div>
 
-        <div class="ftr__newsletter" id="newsletter">
-            <span class="ftr__newsletter-label">Sign Up For Our Newsletter</span>
-
-            <?php if ($newsletterFlash): ?>
-                <p class="ftr__newsletter-flash ftr__newsletter-flash--<?= htmlspecialchars($newsletterFlash['type'], ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars($newsletterFlash['message'], ENT_QUOTES, 'UTF-8') ?>
-                </p>
-            <?php endif; ?>
-
-            <form method="POST" action="<?= htmlspecialchars(BASE_URL . 'footer-newsletter-subscribe.php', ENT_QUOTES, 'UTF-8') ?>">
-                <input type="hidden" name="redirect_to" value="<?= htmlspecialchars($currentUrl, ENT_QUOTES, 'UTF-8') ?>">
-
-                <div class="ftr__email-row">
-                    <input type="email" name="email" placeholder="Enter your email address" required>
-                    <button type="submit" aria-label="Subscribe">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-                    </button>
-                </div>
-
-                <div class="ftr__captcha-row">
-                    <span class="ftr__captcha-code" aria-hidden="true">
-                        <?php foreach (str_split($footerCaptcha) as $i => $char):
-                            $rotate = (($i * 37 + 11) % 17) - 8; // deterministic per-request "random" look, no JS needed
-                            $lift = (($i * 23 + 5) % 7) - 3;
-                        ?>
-                            <span style="transform: rotate(<?= $rotate ?>deg) translateY(<?= $lift ?>px);"><?= htmlspecialchars($char, ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php endforeach; ?>
-                    </span>
-                    <input type="text" name="captcha" placeholder="Captcha" autocomplete="off" required>
-                </div>
-            </form>
-        </div>
-
-        <div>
-            <span class="ftr__social-label">Connect With Us</span>
-            <ul class="ftr__social-list">
-                <li>
-                    <a href="<?= htmlspecialchars($footerSocialLinks['facebook'], ENT_QUOTES, 'UTF-8') ?>" aria-label="Facebook" target="_blank" rel="noopener">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V8c0-.9.25-1.5 1.55-1.5H17V3.7c-.3-.04-1.3-.13-2.5-.13-2.5 0-4.2 1.5-4.2 4.3v2.4H7.6v3.1h2.7v8h3.2z"/></svg>
-                    </a>
-                </li>
-                <li>
-                    <a href="<?= htmlspecialchars($footerSocialLinks['twitter'], ENT_QUOTES, 'UTF-8') ?>" aria-label="Twitter" target="_blank" rel="noopener">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6.6c-.6.3-1.3.5-2 .6.7-.4 1.3-1.2 1.5-2-.7.4-1.5.7-2.3.9A3.6 3.6 0 0 0 11 9c0 .3 0 .6.1.8-3-.1-5.6-1.6-7.4-3.7-.3.5-.5 1.2-.5 1.8 0 1.2.6 2.3 1.6 2.9-.6 0-1.1-.2-1.6-.4v.1c0 1.8 1.3 3.2 2.9 3.6-.3.1-.6.1-1 .1-.2 0-.5 0-.7-.1.5 1.5 1.9 2.5 3.5 2.6-1.3 1-3 1.6-4.7 1.6H3c1.4 1 3.2 1.5 5 1.5 6.1 0 9.4-5 9.4-9.4v-.4c.6-.5 1.2-1.1 1.6-1.8z"/></svg>
-                    </a>
-                </li>
-                <li>
-                    <a href="<?= htmlspecialchars($footerSocialLinks['instagram'], ENT_QUOTES, 'UTF-8') ?>" aria-label="Instagram" target="_blank" rel="noopener">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="0.8" fill="currentColor" stroke="none"/></svg>
-                    </a>
-                </li>
-                <li>
-                    <a href="<?= htmlspecialchars($footerSocialLinks['youtube'], ENT_QUOTES, 'UTF-8') ?>" aria-label="YouTube" target="_blank" rel="noopener">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2.5" y="6" width="19" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 9.5l5 2.5-5 2.5z"/></svg>
-                    </a>
-                </li>
-                <li>
-                    <a href="<?= htmlspecialchars($footerSocialLinks['linkedin'], ENT_QUOTES, 'UTF-8') ?>" aria-label="LinkedIn" target="_blank" rel="noopener">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.9 8.6H3.9V20h3zM5.4 4c-1 0-1.7.7-1.7 1.6 0 .9.7 1.6 1.7 1.6 1 0 1.7-.7 1.7-1.6C7.1 4.7 6.4 4 5.4 4zM20 20h-3v-6c0-1.4-.5-2.3-1.7-2.3-.9 0-1.5.6-1.7 1.2-.1.2-.1.5-.1.8V20h-3s.1-10.4 0-11.4h3v1.6c.4-.6 1.1-1.5 2.8-1.5 2 0 3.5 1.3 3.5 4.2V20z"/></svg>
-                    </a>
-                </li>
-            </ul>
+            <div class="ftr__col">
+                <h3 class="ftr__col-title">Connect With Us</h3>
+                <ul class="ftr__social-list">
+                    <li>
+                        <a href="<?= htmlspecialchars($footerSocialLinks['facebook'], ENT_QUOTES, 'UTF-8') ?>" aria-label="Facebook" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13.5 21v-8h2.7l.4-3.1h-3.1V8c0-.9.25-1.5 1.55-1.5H17V3.7c-.3-.04-1.3-.13-2.5-.13-2.5 0-4.2 1.5-4.2 4.3v2.4H7.6v3.1h2.7v8h3.2z" />
+                            </svg>
+                            <p>Facebook</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= htmlspecialchars($footerSocialLinks['twitter'], ENT_QUOTES, 'UTF-8') ?>" aria-label="Twitter" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20 6.6c-.6.3-1.3.5-2 .6.7-.4 1.3-1.2 1.5-2-.7.4-1.5.7-2.3.9A3.6 3.6 0 0 0 11 9c0 .3 0 .6.1.8-3-.1-5.6-1.6-7.4-3.7-.3.5-.5 1.2-.5 1.8 0 1.2.6 2.3 1.6 2.9-.6 0-1.1-.2-1.6-.4v.1c0 1.8 1.3 3.2 2.9 3.6-.3.1-.6.1-1 .1-.2 0-.5 0-.7-.1.5 1.5 1.9 2.5 3.5 2.6-1.3 1-3 1.6-4.7 1.6H3c1.4 1 3.2 1.5 5 1.5 6.1 0 9.4-5 9.4-9.4v-.4c.6-.5 1.2-1.1 1.6-1.8z" />
+                            </svg>
+                            <p>Twitter</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= htmlspecialchars($footerSocialLinks['instagram'], ENT_QUOTES, 'UTF-8') ?>" aria-label="Instagram" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
+                                <circle cx="12" cy="12" r="4" />
+                                <circle cx="17" cy="7" r="0.8" fill="currentColor" stroke="none" />
+                            </svg>
+                            <p>Instagram</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= htmlspecialchars($footerSocialLinks['youtube'], ENT_QUOTES, 'UTF-8') ?>" aria-label="YouTube" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="2.5" y="6" width="19" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                <path d="M10.5 9.5l5 2.5-5 2.5z" />
+                            </svg>
+                            <p>Youtube</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= htmlspecialchars($footerSocialLinks['linkedin'], ENT_QUOTES, 'UTF-8') ?>" aria-label="LinkedIn" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6.9 8.6H3.9V20h3zM5.4 4c-1 0-1.7.7-1.7 1.6 0 .9.7 1.6 1.7 1.6 1 0 1.7-.7 1.7-1.6C7.1 4.7 6.4 4 5.4 4zM20 20h-3v-6c0-1.4-.5-2.3-1.7-2.3-.9 0-1.5.6-1.7 1.2-.1.2-.1.5-.1.8V20h-3s.1-10.4 0-11.4h3v1.6c.4-.6 1.1-1.5 2.8-1.5 2 0 3.5 1.3 3.5 4.2V20z" />
+                            </svg>
+                            <p>LindedIn</p>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -419,4 +266,5 @@ $footerSocialLinks = [
     </div>
 </footer>
 </body>
+
 </html>

@@ -36,6 +36,8 @@ try {
 $deleted = isset($_GET['deleted']) && $_GET['deleted'] === '1';
 $created = isset($_GET['created']) && $_GET['created'] === '1';
 $updated = isset($_GET['updated']) && $_GET['updated'] === '1';
+
+include __DIR__ . '/../include/header.php';
 ?>
 
 <style>
