@@ -31,13 +31,16 @@ $shopCategoryCount = count($shopCategories);
 
     .sbc__viewport {
         display: flex;
-        gap: 24px;
+        gap: var(--sbc-gap);
         overflow-x: auto;
         scroll-snap-type: x mandatory;
         scroll-behavior: smooth;
         cursor: grab;
-        padding-bottom: 4px; 
+        padding-bottom: 4px;
+
         --sbc-visible: 5;
+        --sbc-gap: 24px;
+
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
@@ -52,8 +55,13 @@ $shopCategoryCount = count($shopCategories);
         scroll-behavior: auto;
     }
 
+    /* Fixed: this used to subtract a hardcoded -50px that had no relation
+       to the real gap, which made every card wider than the space actually
+       left for it — that's what was crushing the cards together with no
+       visible gap. Now it's driven by the same --sbc-gap used above, so
+       card width and spacing can never drift apart at any breakpoint. */
     .sbc__item {
-        flex: 0 0 calc((100% - (var(--sbc-visible) - 1) * -50px) / var(--sbc-visible));
+        flex: 0 0 calc((100% - (var(--sbc-visible) - 1) * var(--sbc-gap)) / var(--sbc-visible));
         min-width: 0;
         scroll-snap-align: start;
     }
@@ -73,7 +81,7 @@ $shopCategoryCount = count($shopCategories);
     @media (max-width: 640px) {
         .sbc__viewport {
             --sbc-visible: 2;
-            gap: 16px;
+            --sbc-gap: 16px;
         }
 
         .sbc__heading {
@@ -95,7 +103,7 @@ $shopCategoryCount = count($shopCategories);
         width: 100%;
         border-radius: var(--radius-md);
         overflow: hidden;
-        background: var(--color-primary-light);
+        background: linear-gradient(160deg, var(--color-primary-light) 0%, var(--color-white) 100%);
         box-shadow: var(--shadow-soft);
         transition: transform 0.25s ease, box-shadow 0.25s ease;
         -webkit-user-drag: none;
@@ -105,7 +113,11 @@ $shopCategoryCount = count($shopCategories);
     .sbc__card:hover,
     .sbc__card:focus-visible {
         transform: translateY(-4px);
-        box-shadow: 0 12px 34px rgba(25, 70, 58, 0.14);
+        box-shadow: 0 12px 34px rgba(25, 70, 58, 0.16);
+    }
+
+    .sbc__card:hover .sbc__card-image {
+        transform: scale(1.06);
     }
 
     .sbc__card:focus-visible {
@@ -121,19 +133,44 @@ $shopCategoryCount = count($shopCategories);
         justify-content: center;
     }
 
-    .sbc__card-fallback svg {
-        width: 34%;
-        height: 34%;
-        color: var(--color-accent);
-        opacity: 0.7;
+    .sbc__card-fallback span {
+        width: 56%;
+        height: 56%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.55);
     }
 
-    .sbc__card img {
+    .sbc__card-fallback svg {
+        width: 42%;
+        height: 42%;
+        color: var(--color-accent);
+    }
+
+    /* Wrapper so the image and its hover-zoom don't also stretch/move the
+       scrim or label sitting on top of it. */
+    .sbc__card-image {
         position: absolute;
         inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
+        pointer-events: none;
+        transition: transform 0.4s ease;
+    }
+
+    /* Soft scrim behind the name label, independent of whatever the
+       uploaded photo looks like — keeps the label readable whether the
+       category image is light or dark. */
+    .sbc__card-scrim {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 46%;
+        background: linear-gradient(to top, rgba(15, 30, 24, 0.45), rgba(15, 30, 24, 0));
         pointer-events: none;
     }
 
@@ -143,12 +180,12 @@ $shopCategoryCount = count($shopCategories);
         right: 12px;
         bottom: 12px;
         text-align: center;
-        padding: 12px 14px;
+        padding: 11px 14px;
         background: var(--color-white);
-        border-radius: var(--radius-lg);
+        border-radius: var(--radius-md);
         box-shadow: var(--shadow-soft);
-        font-size: 15px;
-        font-weight: 600;
+        font-size: 14.5px;
+        font-weight: 700;
         color: var(--color-text);
     }
 
@@ -200,19 +237,23 @@ $shopCategoryCount = count($shopCategories);
                     <div class="sbc__item">
                         <a class="sbc__card" href="<?= htmlspecialchars($url, ENT_QUOTES, 'UTF-8') ?>" draggable="false">
                             <span class="sbc__card-fallback" aria-hidden="true">
-                                <svg viewBox="0 0 64 64" fill="currentColor">
-                                    <path d="M32 6c-6 8-10 16-10 24 0 6 4 10 10 10s10-4 10-10c0-8-4-16-10-24z" />
-                                    <path d="M12 24c8 0 14 6 16 14-8 2-16-2-20-8-1.5-2.4-1-4.6 4-6z" />
-                                    <path d="M52 24c-8 0-14 6-16 14 8 2 16-2 20-8 1.5-2.4 1-4.6-4-6z" />
-                                </svg>
+                                <span>
+                                    <svg viewBox="0 0 64 64" fill="currentColor">
+                                        <path d="M32 6c-6 8-10 16-10 24 0 6 4 10 10 10s10-4 10-10c0-8-4-16-10-24z" />
+                                        <path d="M12 24c8 0 14 6 16 14-8 2-16-2-20-8-1.5-2.4-1-4.6 4-6z" />
+                                        <path d="M52 24c-8 0-14 6-16 14 8 2 16-2 20-8 1.5-2.4 1-4.6-4-6z" />
+                                    </svg>
+                                </span>
                             </span>
                             <?php if ($imageUrl !== null): ?>
                                 <img
+                                    class="sbc__card-image"
                                     src="<?= htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') ?>"
                                     alt="<?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>"
                                     loading="lazy"
                                     draggable="false"
                                     onerror="this.style.display='none';">
+                                <span class="sbc__card-scrim" aria-hidden="true"></span>
                             <?php endif; ?>
                             <span class="sbc__name"><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></span>
                         </a>

@@ -30,6 +30,7 @@ const BANNER_STATUS_OPTIONS = [
 const BANNER_PAGE_OPTIONS = [
     'homepage_hero' => 'Homepage',
     'consult_veda_hero' => 'Consult A Vaidya',
+    'detux_hero' => 'Detox Program',
 ];
 
 // Absolute path on disk where banner images are physically stored.
