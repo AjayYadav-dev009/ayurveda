@@ -5,17 +5,17 @@
 ?>
 
 <main>
-    <?php include __DIR__ . '/hero-banner.php'; ?>
-    <?php include __DIR__ . '/shopbycategory.php'; ?>
-    <?php include __DIR__ . '/veda-cta.php'; ?>
-    <?php include __DIR__ . '/producthighlight.php'; ?>
-    <?php include __DIR__ . '/bestsaleproduct.php'; ?>
-    <?php include __DIR__ . '/ups.php'; ?>
-    <?php include __DIR__ . '/trandingproduct.php'; ?>
-    <?php include __DIR__ . '/seasonalproduct.php'; ?>
-    <?php include __DIR__ . '/dosha-banner.php'; ?>
-    <?php include __DIR__ . '/ourteam.php'; ?>
-    <?php include __DIR__ . '/review.php'; ?>
+    <?php include __DIR__ . '/home/hero-banner.php'; ?>
+    <?php include __DIR__ . '/home/shopbycategory.php'; ?>
+    <?php include __DIR__ . '/home/veda-cta.php'; ?>
+    <?php include __DIR__ . '/home/producthighlight.php'; ?>
+    <?php include __DIR__ . '/home/bestsaleproduct.php'; ?>
+    <?php include __DIR__ . '/home/ups.php'; ?>
+    <?php include __DIR__ . '/home/trandingproduct.php'; ?>
+    <?php include __DIR__ . '/home/seasonalproduct.php'; ?>
+    <?php include __DIR__ . '/home/dosha-banner.php'; ?>
+    <?php include __DIR__ . '/home/ourteam.php'; ?>
+    <?php include __DIR__ . '/home/review.php'; ?>
 </main>
 
 

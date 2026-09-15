@@ -1,7 +1,7 @@
 <?php
 
 if (!function_exists('getActiveTeamMembers')) {
-    require_once __DIR__ . '/function/team.php';
+    require_once __DIR__ . '/../function/team.php';
 }
 
 try {

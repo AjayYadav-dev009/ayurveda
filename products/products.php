@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/config/config.php';
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/function/product.php';
-require_once __DIR__ . '/function/category.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../function/product.php';
+require_once __DIR__ . '/../function/category.php';
 
 $categorySlug = isset($_GET['category_slug']) ? trim($_GET['category_slug']) : '';
 
@@ -51,7 +51,7 @@ try {
 $hasSidebar = !empty($categorySidebarItems);
 ?>
 
-<?php include __DIR__ . '/includes/header.php'; ?>
+<?php include __DIR__ . '/../includes/header.php'; ?>
 
 <style>
     .product-section {
@@ -497,4 +497,4 @@ $hasSidebar = !empty($categorySidebarItems);
 
 </section>
 
-<?php include __DIR__ . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>
