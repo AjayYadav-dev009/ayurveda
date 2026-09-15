@@ -38,13 +38,13 @@ while ($row = mysqli_fetch_assoc($productResult)) {
     $categoryProducts[] = $row;
 }
 
-// Sidebar: every Active category (top-level or subcategory) that actually
-// has products directly assigned to it, so the page doubles as a category
-// switcher without linking to a bucket that would just show "no products".
-// Fails closed to an empty list (sidebar just won't render) rather than
-// breaking the whole page if this query has a problem.
+// Sidebar: every top-level category that actually has products somewhere
+// in its subtree, so the page doubles as a category switcher without
+// linking to a bucket that would just show "no products". Fails closed
+// to an empty list (sidebar just won't render) rather than breaking the
+// whole page if this query has a problem.
 try {
-    $categorySidebarItems = getAllCategoriesWithProducts($conn);
+    $categorySidebarItems = getTopLevelCategoriesWithProducts($conn);
 } catch (Exception $e) {
     $categorySidebarItems = [];
 }
@@ -424,7 +424,7 @@ $hasSidebar = !empty($categorySidebarItems);
                             <div class="product-image-wrap">
                                 <?php if (!empty($product['primary_image'])): ?>
                                     <img
-                                        src="<?php echo BASE_URL . ltrim($product['primary_image'], '/'); ?>"
+                                        src="<?php echo rtrim(BASE_URL, '/') . getProductImageUrl($product['primary_image']); ?>"
                                         alt="<?php echo htmlspecialchars($product['title']); ?>"
                                         class="product-image"
                                         loading="lazy">
