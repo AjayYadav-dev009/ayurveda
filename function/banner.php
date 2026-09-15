@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/../config/config.php'; ?>
 <?php require_once __DIR__ . '/../config/database.php'; ?>
 <?php
 
@@ -18,6 +19,17 @@ const BANNER_STATUS_INACTIVE = 0;
 const BANNER_STATUS_OPTIONS = [
     BANNER_STATUS_ACTIVE => 'Active',
     BANNER_STATUS_INACTIVE => 'Inactive',
+];
+
+/**
+ * Which page a banner is shown on, stored in the existing `position`
+ * column. Add an entry here whenever a new page starts pulling banners
+ * via getActiveBanners($conn, $page) — the admin "Page" dropdown and the
+ * public site read from this same list, so they can't drift apart.
+ */
+const BANNER_PAGE_OPTIONS = [
+    'homepage_hero' => 'Homepage',
+    'consult_veda_hero' => 'Consult A Vaidya',
 ];
 
 // Absolute path on disk where banner images are physically stored.
@@ -319,7 +331,7 @@ function addBanner($conn, $title, $subtitle, $image, $button_text, $button_url, 
     $subtitle = normalizeNullableBannerText($subtitle ?? null);
     $button_text = normalizeNullableBannerText($button_text ?? null);
     $button_url = normalizeNullableBannerText($button_url ?? null);
-    $position = normalizeNullableBannerText($position ?? null);
+    $position = normalizeBannerPage($position ?? null);
     $sort_order = max(0, (int) $sort_order); // column is UNSIGNED
 
     $sql = "INSERT INTO banners
@@ -378,7 +390,7 @@ function updateBanner($conn, $id, $title, $subtitle, $image, $button_text, $butt
     $subtitle = normalizeNullableBannerText($subtitle ?? null);
     $button_text = normalizeNullableBannerText($button_text ?? null);
     $button_url = normalizeNullableBannerText($button_url ?? null);
-    $position = normalizeNullableBannerText($position ?? null);
+    $position = normalizeBannerPage($position ?? null);
     $sort_order = max(0, (int) $sort_order); // column is UNSIGNED
 
     $sql = "UPDATE banners
@@ -521,4 +533,25 @@ function normalizeNullableBannerText($value)
     }
     $trimmed = trim($value);
     return $trimmed === '' ? null : $trimmed;
+}
+
+/**
+ * Validate a submitted "page" value against BANNER_PAGE_OPTIONS. Blank
+ * means "no page selected yet" and is stored as NULL, which shows the
+ * banner nowhere (getActiveBanners only matches an explicit page value).
+ *
+ * @param ?string $value
+ * @return ?string
+ * @throws InvalidArgumentException If a non-empty value isn't a known page.
+ */
+function normalizeBannerPage($value)
+{
+    $value = normalizeNullableBannerText($value);
+    if ($value === null) {
+        return null;
+    }
+    if (!array_key_exists($value, BANNER_PAGE_OPTIONS)) {
+        throw new InvalidArgumentException('Please choose a valid page for this banner.');
+    }
+    return $value;
 }

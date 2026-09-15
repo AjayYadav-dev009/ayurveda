@@ -5,10 +5,7 @@ if (!function_exists('getActiveBanners')) {
 }
 
 try {
-    // Pass a position value here (e.g. getActiveBanners($conn, 'homepage_hero'))
-    // once banners are tagged by placement in the admin. Left null so this
-    // works with the banner data that already exists today.
-    $heroBanners = getActiveBanners($conn, null);
+    $heroBanners = getActiveBanners($conn, 'consult_veda_hero');
 } catch (Exception $e) {
     // Fail closed: hide the hero rather than show a broken slider.
     $heroBanners = [];

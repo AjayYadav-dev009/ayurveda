@@ -14,7 +14,7 @@
  *    layout/header/footer includes — everything banner-specific lives
  *    between the "ADMIN CHROME" markers so it's easy to lift out.
  */
-
+require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../function/banner.php';
 require_once __DIR__ . '/../function/csrf.php';
 require_once __DIR__ . '/../function/helper.php';
@@ -186,6 +186,8 @@ unset($_SESSION['banner_flash']);
 
 $csrfToken = generateCSRFToken();
 $showForm = in_array($viewAction, ['new', 'edit'], true);
+
+include __DIR__ . '/include/header.php';
 
 ?>
 <style>
@@ -446,8 +448,15 @@ $showForm = in_array($viewAction, ['new', 'edit'], true);
 
                 <div class="field-row">
                     <div class="field">
-                        <label for="position">Position <span class="muted">(optional — e.g. homepage_hero)</span></label>
-                        <input type="text" id="position" name="position" value="<?= htmlspecialchars($formValues['position'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <label for="position">Page <span class="muted">(which page this banner shows on)</span></label>
+                        <select id="position" name="position">
+                            <option value="">— Select a page —</option>
+                            <?php foreach (BANNER_PAGE_OPTIONS as $value => $label): ?>
+                                <option value="<?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8') ?>" <?= ($formValues['position'] ?? '') === $value ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="field">
                         <label for="status">Status</label>
@@ -493,7 +502,7 @@ $showForm = in_array($viewAction, ['new', 'edit'], true);
                             <tr>
                                 <th>Image</th>
                                 <th>Title</th>
-                                <th>Position</th>
+                                <th>Page</th>
                                 <th>Link URL</th>
                                 <th>Status</th>
                                 <th>Order</th>
@@ -508,13 +517,16 @@ $showForm = in_array($viewAction, ['new', 'edit'], true);
                                 <tr>
                                     <td>
                                         <?php if ($imageUrl): ?>
-                                            <img class="thumb" src="<?= htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') ?>" alt="">
+                                            <img class="thumb" src="<?= htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') ?>" alt="Banner Image">
                                         <?php else: ?>
                                             <span class="muted">No image</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?= htmlspecialchars($banner['title'] ?: '—', ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars($banner['position'] ?: '—', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td>
+                                        <?php $pageLabel = BANNER_PAGE_OPTIONS[$banner['position']] ?? ($banner['position'] ?: null); ?>
+                                        <?= $pageLabel ? htmlspecialchars($pageLabel, ENT_QUOTES, 'UTF-8') : '<span class="muted">Not assigned</span>' ?>
+                                    </td>
                                     <td><?= htmlspecialchars($banner['button_url'] ?: '—', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td>
                                         <span class="status-pill <?= $isActive ? 'status-active' : 'status-inactive' ?>">
