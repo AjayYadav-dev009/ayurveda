@@ -350,7 +350,7 @@ $bestSellerCount = count($bestSellerProducts);
                                 </span>
                                 <?php if (!empty($product['primary_image'])): ?>
                                     <img
-                                        src="<?= htmlspecialchars(BASE_URL . ltrim($product['primary_image'], '/'), ENT_QUOTES, 'UTF-8') ?>"
+                                        src="<?= htmlspecialchars(rtrim(BASE_URL, '/') . getProductImageUrl($product['primary_image']), ENT_QUOTES, 'UTF-8') ?>"
                                         alt="<?= htmlspecialchars($product['title'], ENT_QUOTES, 'UTF-8') ?>"
                                         loading="lazy"
                                         draggable="false"
