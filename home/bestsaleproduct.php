@@ -334,7 +334,7 @@ $bestSellerCount = count($bestSellerProducts);
                         ? (int) round((1 - ($product['display_sale_price'] / $product['display_price'])) * 100)
                         : 0;
                     $isOutOfStock = !empty($product['is_out_of_stock']);
-                    $productUrl = BASE_URL . 'product_details.php?slug=' . urlencode($product['slug']);
+                    $productUrl = BASE_URL . 'products/product_details.php?slug=' . urlencode($product['slug']);
                     $avgRating = (float) $product['avg_rating'];
                     $reviewCount = (int) $product['review_count'];
                 ?>

@@ -17,13 +17,13 @@ $transformationCount = count($transformations);
 <style>
 
     .trf {
-        --trf-width: 220px;
-        --trf-gap: 20px;
-        --trf-radius: var(--radius-lg);
-        --trf-radius-sm: var(--radius-md);
+        --trf-width: 300px;
+        --trf-gap: 22px;
+        --trf-radius: 22px;
         --trf-scale: 1.04;
-        --trf-shadow: 0 8px 20px rgba(23, 72, 61, 0.10);
-        --trf-shadow-active: 0 22px 40px rgba(23, 72, 61, 0.22);
+        --trf-accent: var(--color-primary, #7ed321);
+        --trf-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        --trf-shadow-active: 0 26px 46px rgba(0, 0, 0, 0.32);
 
         padding: 60px 0;
         background: var(--color-bg);
@@ -44,7 +44,7 @@ $transformationCount = count($transformations);
         font-weight: 700;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: var(--color-primary);
+        color: var(--trf-accent);
     }
 
     .trf__heading {
@@ -84,10 +84,6 @@ $transformationCount = count($transformations);
         overflow-x: auto;
         overflow-y: hidden;
         overscroll-behavior-x: contain;
-        /* stops drag/swipe momentum from
-        "chaining" into the page once the carousel hits its start/end —
-        without this, dragging past an edge can rubber-band/scroll the
-        whole page instead of just stopping at the last card */
         scroll-snap-type: x mandatory;
         scroll-behavior: smooth;
         touch-action: pan-x;
@@ -104,7 +100,7 @@ $transformationCount = count($transformations);
     }
 
     .trf__viewport:focus-visible {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--trf-accent);
         outline-offset: 4px;
         border-radius: var(--radius-md);
     }
@@ -114,7 +110,6 @@ $transformationCount = count($transformations);
         scroll-snap-type: none;
         scroll-behavior: auto;
     }
-
 
     .trf__track {
         display: flex;
@@ -132,8 +127,7 @@ $transformationCount = count($transformations);
     .trf__surface {
         display: flex;
         flex-direction: column;
-        background: var(--color-white);
-        border: 1px solid var(--color-border);
+        background: linear-gradient(165deg, #14181a 0%, #1d2620 100%);
         border-radius: var(--trf-radius);
         box-shadow: var(--trf-shadow);
         overflow: hidden;
@@ -149,85 +143,85 @@ $transformationCount = count($transformations);
         z-index: 2;
     }
 
-    /* ---- Before/After image pair: one bordered block so the two images
-   read as a single connected pair, not two separate photos. ---- */
+    /* ---- Overlapping before/after "cutout" photos ---- */
 
-    .trf__images {
+    .trf__poster {
         position: relative;
-        display: flex;
-        align-items: stretch;
-        background: var(--color-primary-light);
+        height: 340px;
+        margin: 20px 18px 0;
     }
 
-    .trf__image {
-        position: relative;
-        flex: 1 1 50%;
-        aspect-ratio: 4 / 5;
+    .trf__photo {
+        position: absolute;
+        top: 0;
+        border-radius: 14px;
         overflow: hidden;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
     }
 
-    .trf__image img {
+    .trf__photo img {
         display: block;
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.4s ease;
+        object-position: top center;
     }
 
-    .trf__surface:hover .trf__image img {
-        transform: scale(1.04);
-    }
-
-    .trf__label {
-        position: absolute;
-        top: 8px;
-        padding: 3px 9px;
-        border-radius: 999px;
-        background: rgba(11, 15, 13, 0.55);
-        color: #fff;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        pointer-events: none;
-    }
-
-    .trf__label--before {
-        left: 8px;
-    }
-
-    .trf__label--after {
-        right: 8px;
-    }
-
-    /* ---- Divider / connector between the two images, so the pair reads
-   as one transformation rather than two unrelated photos. ---- */
-
-    .trf__divider {
-        flex: 0 0 auto;
-        align-self: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 26px;
-        height: 26px;
-        margin-inline: -13px;
-        border-radius: 50%;
-        background: var(--color-white);
-        color: var(--color-primary);
-        box-shadow: 0 2px 6px rgba(23, 72, 61, 0.25);
+    .trf__photo--before {
+        left: 0;
+        width: 56%;
+        height: 92%;
         z-index: 1;
+        filter: saturate(0.85) brightness(0.95);
     }
 
-    .trf__divider svg {
-        width: 14px;
-        height: 14px;
+    .trf__photo--after {
+        right: 0;
+        top: 8%;
+        width: 60%;
+        height: 92%;
+        z-index: 2;
+    }
+
+    .trf__photo--after::before {
+        content: '';
+        position: absolute;
+        inset: -14px;
+        z-index: -1;
+        background: radial-gradient(circle at 50% 40%, var(--trf-accent) 0%, rgba(0, 0, 0, 0) 70%);
+        opacity: 0.55;
+        filter: blur(6px);
+    }
+
+    .trf__badge {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 7px 16px;
+        border-radius: 999px;
+        font-size: 12.5px;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    .trf__badge--before {
+        background: rgba(20, 22, 22, 0.88);
+        color: #fff;
+    }
+
+    .trf__badge--after {
+        background: var(--trf-accent);
+        color: #0b1a08;
     }
 
     /* ---- Card body ---- */
 
     .trf__body {
-        padding: 14px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        padding: 16px 20px 22px;
     }
 
     .trf__nameRow {
@@ -235,14 +229,16 @@ $transformationCount = count($transformations);
         align-items: center;
         flex-wrap: wrap;
         gap: 6px 10px;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
 
     .trf__name {
         margin: 0;
-        font-size: 15px;
-        font-weight: 700;
-        color: var(--color-text);
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        color: #fff;
     }
 
     .trf__verified {
@@ -251,8 +247,8 @@ $transformationCount = count($transformations);
         gap: 4px;
         padding: 2px 8px;
         border-radius: 999px;
-        background: var(--color-primary-light);
-        color: var(--color-primary);
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--trf-accent);
         font-size: 10.5px;
         font-weight: 700;
         white-space: nowrap;
@@ -264,10 +260,10 @@ $transformationCount = count($transformations);
     }
 
     .trf__desc {
-        margin: 0 0 10px;
+        margin: 0 0 12px;
         font-size: 13px;
-        line-height: 1.55;
-        color: var(--color-text-light);
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.72);
 
         display: -webkit-box;
         -webkit-line-clamp: 3;
@@ -280,26 +276,55 @@ $transformationCount = count($transformations);
         align-items: center;
         flex-wrap: wrap;
         gap: 6px;
+        margin-bottom: 14px;
         font-size: 12px;
     }
 
     .trf__product {
         font-weight: 600;
-        color: var(--color-text);
+        color: #fff;
         text-decoration: none;
     }
 
     a.trf__product:hover {
-        color: var(--color-primary);
+        color: var(--trf-accent);
         text-decoration: underline;
     }
 
     .trf__metaDot {
-        color: var(--color-text-light);
+        color: rgba(255, 255, 255, 0.4);
     }
 
     .trf__duration {
-        color: var(--color-text-light);
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .trf__cta {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        background: var(--trf-accent);
+        color: #0b1a08;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: filter 0.15s ease, transform 0.1s ease;
+    }
+
+    .trf__cta:hover {
+        filter: brightness(1.08);
+    }
+
+    .trf__cta:active {
+        transform: scale(0.97);
+    }
+
+    .trf__cta:focus-visible {
+        outline: 2px solid var(--trf-accent);
+        outline-offset: 2px;
     }
 
     /* ---- Nav buttons ---- */
@@ -326,9 +351,9 @@ $transformationCount = count($transformations);
     }
 
     .trf__nav:hover {
-        background: var(--color-primary);
-        border-color: var(--color-primary);
-        color: var(--color-white);
+        background: var(--trf-accent);
+        border-color: var(--trf-accent);
+        color: #0b1a08;
     }
 
     .trf__nav:active {
@@ -336,7 +361,7 @@ $transformationCount = count($transformations);
     }
 
     .trf__nav:focus-visible {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--trf-accent);
         outline-offset: 2px;
     }
 
@@ -369,30 +394,34 @@ $transformationCount = count($transformations);
     }
 
     .trf__dot:hover {
-        background: var(--color-primary-light);
+        background: var(--trf-accent);
     }
 
     .trf__dot:focus-visible {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--trf-accent);
         outline-offset: 2px;
     }
 
     .trf__dot.is-active {
         width: 20px;
-        background: var(--color-primary);
+        background: var(--trf-accent);
     }
 
-    /* ---- Responsive: ~5 desktop / ~3 tablet / ~1(+peek) mobile ---- */
+    /* ---- Responsive: ~4 desktop / ~2-3 tablet / ~1(+peek) mobile ---- */
 
     @media (max-width: 1080px) {
         .trf {
-            --trf-width: 250px;
+            --trf-width: 270px;
+        }
+
+        .trf__poster {
+            height: 300px;
         }
     }
 
     @media (max-width: 720px) {
         .trf {
-            --trf-width: min(72vw, 300px);
+            --trf-width: min(78vw, 300px);
             --trf-gap: 14px;
         }
 
@@ -412,7 +441,11 @@ $transformationCount = count($transformations);
 
     @media (max-width: 420px) {
         .trf {
-            --trf-width: min(80vw, 300px);
+            --trf-width: min(84vw, 300px);
+        }
+
+        .trf__poster {
+            height: 320px;
         }
 
         .trf__nav {
@@ -459,28 +492,32 @@ $transformationCount = count($transformations);
                             $duration = trim((string) ($t['duration'] ?? ''));
                             $safeDuration = htmlspecialchars($duration, ENT_QUOTES, 'UTF-8');
 
+                            // Where "View Transformation" links to: a dedicated detail
+                            // page/slug if one exists, otherwise the linked product.
+                            $detailUrl = trim((string) ($t['detail_url'] ?? $t['url'] ?? ''));
+                            $safeDetailUrl = htmlspecialchars($detailUrl !== '' ? $detailUrl : ($safeProductUrl !== '' ? $productUrl : '#'), ENT_QUOTES, 'UTF-8');
+
+                            // Labels shown on the before/after badges. Optional
+                            // per-record overrides, else sensible defaults.
+                            $beforeLabel = trim((string) ($t['before_label'] ?? ''));
+                            $safeBeforeLabel = htmlspecialchars($beforeLabel !== '' ? $beforeLabel : 'Day One', ENT_QUOTES, 'UTF-8');
+                            $afterLabel = trim((string) ($t['after_label'] ?? ''));
+                            $safeAfterLabel = htmlspecialchars($afterLabel !== '' ? $afterLabel : ($duration !== '' ? $duration : 'Today'), ENT_QUOTES, 'UTF-8');
+
                             // The badge is gated strictly on this flag — never
                             // shown just because other fields are present.
                             $isVerified = !empty($t['is_verified']);
                         ?>
                             <div class="trf__card" data-trf-card role="group" aria-roledescription="slide" aria-label="Transformation story: <?= $safeName ?>">
                                 <div class="trf__surface">
-                                    <div class="trf__images">
-                                        <div class="trf__image trf__image--before">
+                                    <div class="trf__poster">
+                                        <div class="trf__photo trf__photo--before">
                                             <img src="<?= $beforeUrl ?>" alt="<?= $safeName ?> before" loading="lazy" />
-                                            <span class="trf__label trf__label--before">Before</span>
+                                            <span class="trf__badge trf__badge--before"><?= $safeBeforeLabel ?></span>
                                         </div>
-
-                                        <span class="trf__divider" aria-hidden="true">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                                <path d="M5 12h13" />
-                                                <path d="M13 6l6 6-6 6" />
-                                            </svg>
-                                        </span>
-
-                                        <div class="trf__image trf__image--after">
+                                        <div class="trf__photo trf__photo--after">
                                             <img src="<?= $afterUrl ?>" alt="<?= $safeName ?> after" loading="lazy" />
-                                            <span class="trf__label trf__label--after">After</span>
+                                            <span class="trf__badge trf__badge--after"><?= $safeAfterLabel ?></span>
                                         </div>
                                     </div>
 
@@ -520,6 +557,8 @@ $transformationCount = count($transformations);
                                                 <?php endif; ?>
                                             </div>
                                         <?php endif; ?>
+
+                                        <a class="trf__cta" href="<?= $safeDetailUrl ?>">View Transformation</a>
                                     </div>
                                 </div>
                             </div>
@@ -670,7 +709,6 @@ $transformationCount = count($transformations);
                 if (!isDown) return;
                 isDown = false;
                 viewport.classList.remove('is-dragging');
-                // Let native scroll-snap glide to the nearest card, then sync state.
                 window.setTimeout(updateActiveCard, 60);
             }
 

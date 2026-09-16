@@ -1,22 +1,7 @@
 <?php
 
-/**
- * Admin — Promotional Video Management
- *
- * Full CRUD for the homepage promotional videos: add, edit, delete, toggle
- * active/inactive, and reorder. Built on the `promotional_videos` table via
- * function/promotional_video.php — mirrors banner-management.php's
- * structure so both admin pages behave and look the same.
- *
- * INTEGRATION:
- *  - Drop this file into your admin area (e.g. admin/promo-video-management.php).
- *  - Swap the placeholder auth check below for your project's real one.
- *  - Swap the plain <header>/<style> block for your existing admin
- *    layout/header/footer includes — everything here lives between the
- *    "ADMIN CHROME" markers so it's easy to lift out.
- */
 require_once __DIR__ . '/../includes/auth.php';
-require_once __DIR__ . '/../function/promotional_video.php';
+require_once __DIR__ . '/../function/promotional-video.php';
 require_once __DIR__ . '/../function/csrf.php';
 require_once __DIR__ . '/../function/helper.php';
 
@@ -24,12 +9,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ---------------------------------------------------------------------------
-// TODO: wire this into your existing admin auth guard, e.g.:
-//   require_once __DIR__ . '/../function/auth.php';
-//   requireAdminLogin();
-// Left as a no-op placeholder so this file is self-contained to review.
-// ---------------------------------------------------------------------------
 
 $selfFile = basename(__FILE__);
 

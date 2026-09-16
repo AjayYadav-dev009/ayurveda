@@ -1138,7 +1138,7 @@ function getCategoryUrl($slug)
     $path = 'products.php?category_slug=' . urlencode($slug);
 
     if (defined('BASE_URL') && BASE_URL !== '') {
-        return rtrim(BASE_URL, '/') . '/' . $path;
+        return rtrim(BASE_URL, '/') . '/products/' . $path;
     }
 
     return $path;
