@@ -5,7 +5,7 @@ if (!function_exists('getSeasonalProducts')) {
 }
 
 try {
-    $seasonalProducts = getSeasonalProducts($conn, 12);
+    $seasonalProducts = getSeasonalProducts($conn, 100);
 } catch (Exception $e) {
     // Fail closed: hide the section rather than show a broken carousel.
     $seasonalProducts = [];

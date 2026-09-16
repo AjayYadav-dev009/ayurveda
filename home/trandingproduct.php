@@ -5,7 +5,7 @@ if (!function_exists('getTrendingProducts')) {
 }
 
 try {
-    $trendingProducts = getTrendingProducts($conn, 12);
+    $trendingProducts = getTrendingProducts($conn, 100);
 } catch (Exception $e) {
     // Fail closed: hide the section rather than show a broken carousel.
     $trendingProducts = [];

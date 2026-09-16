@@ -7,6 +7,8 @@
 <main>
     <?php include __DIR__ . '/home/hero-banner.php'; ?>
     <?php include __DIR__ . '/home/shopbycategory.php'; ?>
+    <?php include __DIR__ . '/home/promotion-video.php'; ?>
+    <?php include __DIR__ . '/home/transformation-review.php'; ?>
     <?php include __DIR__ . '/home/veda-cta.php'; ?>
     <?php include __DIR__ . '/home/producthighlight.php'; ?>
     <?php include __DIR__ . '/home/bestsaleproduct.php'; ?>

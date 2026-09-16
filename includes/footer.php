@@ -90,45 +90,47 @@ $footerSocialLinks = [
         text-decoration: underline;
     }
 
-    /* ---- Social (now a column) ---- */
+    /* ---- Social (now a column, icon + label per row like the other
+       footer columns — not a compact icon-only row of circles) ---- */
 
     .ftr__social-list {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         list-style: none;
         margin: 0;
         padding: 0;
-        flex-wrap: wrap;
     }
 
     .ftr__social-list a {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        border: 1px solid var(--color-border);
         display: flex;
         align-items: center;
-        justify-content: center;
-        color: var(--color-text);
+        gap: 10px;
+        color: var(--color-accent);
         text-decoration: none;
-        transition: background 0.15s ease, color 0.15s ease;
+        transition: color 0.15s ease;
     }
 
     .ftr__social-list a:hover {
-        background: var(--color-primary);
-        color: var(--color-white);
-        border-color: var(--color-primary);
+        color: var(--color-primary-dark);
+        text-decoration: underline;
     }
 
     .ftr__social-list svg {
-        width: 15px;
-        height: 15px;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        color: var(--color-text);
+        transition: color 0.15s ease;
     }
 
-    .ftr__social-list a {
-        display: flex;
-        gap: 10px;
+    .ftr__social-list a:hover svg {
+        color: var(--color-primary-dark);
+    }
+
+    .ftr__social-list p {
+        margin: 0;
+        font-size: 13px;
     }
 
     /* ---- Bottom bar ---- */
@@ -253,7 +255,7 @@ $footerSocialLinks = [
                             <svg viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M6.9 8.6H3.9V20h3zM5.4 4c-1 0-1.7.7-1.7 1.6 0 .9.7 1.6 1.7 1.6 1 0 1.7-.7 1.7-1.6C7.1 4.7 6.4 4 5.4 4zM20 20h-3v-6c0-1.4-.5-2.3-1.7-2.3-.9 0-1.5.6-1.7 1.2-.1.2-.1.5-.1.8V20h-3s.1-10.4 0-11.4h3v1.6c.4-.6 1.1-1.5 2.8-1.5 2 0 3.5 1.3 3.5 4.2V20z" />
                             </svg>
-                            <p>LindedIn</p>
+                            <p>LinkedIn</p>
                         </a>
                     </li>
                 </ul>

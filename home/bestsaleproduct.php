@@ -5,7 +5,7 @@ if (!function_exists('getBestSellerProducts')) {
 }
 
 try {
-    $bestSellerProducts = getBestSellerProducts($conn, 12);
+    $bestSellerProducts = getBestSellerProducts($conn, 100);
 } catch (Exception $e) {
     // Fail closed: hide the section rather than show a broken carousel.
     $bestSellerProducts = [];
@@ -425,10 +425,7 @@ $bestSellerCount = count($bestSellerProducts);
 
     <script>
         (function () {
-            // Identical drag/dots behavior to producthighlight.php's script,
-            // scoped to [data-bsp] instead of [data-phl] — kept as a
-            // separate copy (not a shared function) so this section stays
-            // fully independent of the other homepage carousels.
+
             document.querySelectorAll('[data-bsp]').forEach(function (root) {
                 var viewport = root.querySelector('[data-bsp-viewport]');
                 var dotsWrap = root.querySelector('[data-bsp-dots]');

@@ -189,6 +189,14 @@ $activeNav = $activeNav ?? '';
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 6 4-6 4"/><path d="M13 9h6"/><path d="M13 13h6"/></svg>
                     Settings Management
                 </a>
+                <a href="promo-video-management.php" class="<?= $activeNav === 'banners' ? 'active' : '' ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 6 4-6 4"/><path d="M13 9h6"/><path d="M13 13h6"/></svg>
+                    Promo Video Management
+                </a>
+                <a href="transformation-management.php" class="<?= $activeNav === 'banners' ? 'active' : '' ?>">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 6 4-6 4"/><path d="M13 9h6"/><path d="M13 13h6"/></svg>
+                    Transformation Management
+                </a>
             </nav>
         </aside>
         <main class="main">
