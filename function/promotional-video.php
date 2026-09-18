@@ -1,14 +1,5 @@
 <?php
 
-/**
- * Data access layer for the `promotional_videos` table.
- *
- * Mirrors the conventions used by function/banner.php: mysqli prepared
- * statements throughout, a small set of STATUS/TYPE constants shared with
- * the admin UI, and an upload*() helper per file field that returns a
- * relative path (or null) rather than ever handling raw $_FILES outside
- * this file.
- */
 
 const PROMO_VIDEO_STATUS_INACTIVE = 0;
 const PROMO_VIDEO_STATUS_ACTIVE = 1;

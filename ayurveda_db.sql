@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 14, 2026 at 02:45 PM
+-- Generation Time: Sep 18, 2026 at 06:34 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -88,19 +88,6 @@ CREATE TABLE `banners` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `banners`
---
-
-INSERT INTO `banners` (`id`, `title`, `subtitle`, `image`, `button_text`, `button_url`, `position`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, NULL, NULL, 'banner1-d37ae45b087f.jpg', NULL, NULL, NULL, 1, 1, '2026-09-14 07:08:34', '2026-09-14 07:08:34'),
-(2, NULL, NULL, 'banner2-7bbf0b82b762.jpg', NULL, NULL, NULL, 1, 2, '2026-09-14 07:08:44', '2026-09-14 07:08:44'),
-(3, NULL, NULL, 'banner3-68e8f71ce4f5.jpg', NULL, NULL, NULL, 1, 3, '2026-09-14 07:24:08', '2026-09-14 07:24:08'),
-(4, NULL, NULL, 'banner4-069ba87ffc9d.jpg', NULL, NULL, NULL, 1, 4, '2026-09-14 07:24:18', '2026-09-14 07:24:18'),
-(5, NULL, NULL, 'banner5-db59c2a3bd25.jpg', NULL, NULL, NULL, 1, 5, '2026-09-14 07:24:30', '2026-09-14 07:24:30'),
-(6, NULL, NULL, 'banner6-dc4e01ebe90a.jpg', NULL, NULL, NULL, 1, 6, '2026-09-14 07:24:41', '2026-09-14 07:24:41'),
-(7, NULL, NULL, 'banner7-b75d5b26b794.jpg', NULL, NULL, NULL, 1, 7, '2026-09-14 07:24:53', '2026-09-14 07:24:53');
-
 -- --------------------------------------------------------
 
 --
@@ -164,38 +151,38 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `parent_id`, `name`, `slug`, `meta_title`, `meta_description`, `description`, `image`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, NULL, 'Ayurvedic Medicines', 'ayurvedic-medicines', 'Ayurvedic Medicines', 'Explore traditional Ayurvedic formulations and herbal wellness products.', 'Explore traditional Ayurvedic formulations and herbal wellness products.', 'b-a-m-d36429c03c3c.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:08:43'),
-(2, NULL, 'Classical Ayurvedic Medicines', 'classical-ayurvedic-medicines', 'Classical Ayurvedic Medicines', 'Traditional Ayurvedic formulations based on classical preparations.', 'Traditional Ayurvedic formulations based on classical preparations.', 'b-a-m-103646c6dd9d.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:10:42'),
+(1, NULL, 'Ayurvedic Medicines', 'ayurvedic-medicines', 'Ayurvedic Medicines', 'Shop traditional Ayurvedic medicines and herbal formulations.', 'Explore traditional Ayurvedic formulations and herbal wellness products.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
+(2, 1, 'Classical Ayurvedic Medicines', 'classical-ayurvedic-medicines', 'Classical Ayurvedic Medicines', 'Traditional classical Ayurvedic formulations.', 'Traditional Ayurvedic formulations based on classical preparations.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (3, 1, 'Herbal Formulations', 'herbal-formulations', 'Herbal Formulations', 'Natural herbal formulations for everyday wellness.', 'Explore herbal formulations made with traditional Ayurvedic ingredients.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (4, 1, 'Ayurvedic Tablets', 'ayurvedic-tablets', 'Ayurvedic Tablets', 'Ayurvedic herbal tablets and formulations.', 'Traditional Ayurvedic tablets and herbal formulations.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (5, 1, 'Ayurvedic Churna', 'ayurvedic-churna', 'Ayurvedic Churna', 'Traditional Ayurvedic herbal powders and churnas.', 'Traditional powdered Ayurvedic herbal formulations.', NULL, 'Active', 4, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (6, 1, 'Ayurvedic Syrups', 'ayurvedic-syrups', 'Ayurvedic Syrups', 'Ayurvedic herbal syrups and liquid formulations.', 'Herbal syrups and traditional liquid Ayurvedic preparations.', NULL, 'Active', 5, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (7, 1, 'Ayurvedic Rasayana', 'ayurvedic-rasayana', 'Ayurvedic Rasayana', 'Traditional Ayurvedic rasayana and rejuvenation products.', 'Traditional Ayurvedic rasayana products for general wellness.', NULL, 'Active', 6, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (8, NULL, 'Herbal Supplements', 'herbal-supplements', 'Herbal Supplements', 'Shop natural herbal supplements and Ayurvedic wellness products.', 'A range of herbal supplements and traditional wellness products.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
-(9, NULL, 'Herbal Capsules', 'herbal-capsules', 'Herbal Capsules', 'Herbal capsules for everyday wellness.', 'Herbal capsules for everyday wellness.', 'b-a-m-e08834b8b594.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:10:49'),
+(9, 8, 'Herbal Capsules', 'herbal-capsules', 'Herbal Capsules', 'Herbal capsules made with traditional ingredients.', 'Herbal capsules for everyday wellness.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (10, 8, 'Herbal Powders', 'herbal-powders', 'Herbal Powders', 'Natural herbal powders and Ayurvedic ingredients.', 'Traditional herbal powders and plant-based ingredients.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (11, 8, 'Herbal Extracts', 'herbal-extracts', 'Herbal Extracts', 'Natural herbal extracts and plant-based formulations.', 'Herbal extracts prepared from traditional botanical ingredients.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (12, 8, 'Ayurvedic Tonics', 'ayurvedic-tonics', 'Ayurvedic Tonics', 'Ayurvedic herbal tonics for everyday wellness.', 'Traditional herbal tonics and wellness formulations.', NULL, 'Active', 4, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (13, 8, 'Herbal Supplements for Daily Wellness', 'daily-wellness-supplements', 'Daily Wellness Supplements', 'Herbal supplements for everyday wellness.', 'Herbal products intended to complement everyday wellness routines.', NULL, 'Active', 5, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (14, NULL, 'Digestive Wellness', 'digestive-wellness', 'Ayurvedic Digestive Wellness', 'Ayurvedic products for digestive wellness.', 'Explore traditional Ayurvedic products for digestive wellness.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
-(15, NULL, 'Digestive Powders', 'digestive-powders', 'Digestive Powders', 'Herbal powders traditionally used as part of digestive wellness routines.', 'Herbal powders traditionally used as part of digestive wellness routines.', 'b-a-m-b346257fcb3d.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:09:54'),
+(15, 14, 'Digestive Powders', 'digestive-powders', 'Digestive Powders', 'Traditional Ayurvedic digestive powders.', 'Herbal powders traditionally used as part of digestive wellness routines.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (16, 14, 'Digestive Tablets', 'digestive-tablets', 'Digestive Tablets', 'Ayurvedic herbal tablets for digestive wellness.', 'Traditional herbal tablets for digestive wellness.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (17, 14, 'Digestive Tonics', 'digestive-tonics', 'Digestive Tonics', 'Ayurvedic digestive tonics and herbal formulations.', 'Herbal tonics designed for digestive wellness.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (18, 14, 'Fiber & Herbal Blends', 'fiber-herbal-blends', 'Fiber & Herbal Blends', 'Herbal and fiber-based wellness products.', 'Herbal and fiber-based products for everyday digestive routines.', NULL, 'Active', 4, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (19, NULL, 'Immunity & Wellness', 'immunity-wellness', 'Ayurvedic Immunity & Wellness', 'Ayurvedic herbal products for immunity and general wellness.', 'Explore herbal products commonly used in traditional wellness routines.', NULL, 'Active', 4, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
-(20, NULL, 'Immunity Supplements', 'immunity-supplements', 'Immunity Supplements', 'Herbal supplements for general wellness routines.', 'Herbal supplements for general wellness routines.', 'b-a-m-be0f79680654.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:10:58'),
+(20, 19, 'Immunity Supplements', 'immunity-supplements', 'Immunity Supplements', 'Herbal immunity and wellness supplements.', 'Herbal supplements for general wellness routines.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (21, 19, 'Herbal Syrups', 'immunity-herbal-syrups', 'Herbal Wellness Syrups', 'Traditional herbal syrups and wellness formulations.', 'Traditional herbal syrups and liquid formulations.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (22, 19, 'Ayurvedic Wellness Kits', 'ayurvedic-wellness-kits', 'Ayurvedic Wellness Kits', 'Ayurvedic wellness product combinations and kits.', 'Curated combinations of Ayurvedic wellness products.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (23, 19, 'Daily Wellness', 'daily-wellness', 'Daily Ayurvedic Wellness', 'Products for everyday Ayurvedic wellness routines.', 'Products suitable for incorporating traditional wellness practices into daily routines.', NULL, 'Active', 4, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (24, NULL, 'Hair Care', 'hair-care', 'Ayurvedic Hair Care', 'Natural Ayurvedic hair care products for hair and scalp.', 'Explore Ayurvedic and herbal products for everyday hair care.', NULL, 'Active', 5, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
-(25, NULL, 'Hair Oils', 'hair-oils', 'Hair Oils', 'Herbal and Ayurvedic oils for hair care routines.', 'Herbal and Ayurvedic oils for hair care routines.', 'b-a-m-b1daf8b7c875.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:10:25'),
+(25, 24, 'Hair Oils', 'hair-oils', 'Ayurvedic Hair Oils', 'Traditional Ayurvedic and herbal hair oils.', 'Herbal and Ayurvedic oils for hair care routines.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (26, 24, 'Shampoo', 'ayurvedic-shampoo', 'Ayurvedic Shampoo', 'Natural and Ayurvedic shampoos.', 'Herbal and Ayurvedic shampoos for everyday hair care.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (27, 24, 'Hair Conditioner', 'hair-conditioner', 'Ayurvedic Hair Conditioner', 'Herbal and natural hair conditioners.', 'Natural hair conditioning products.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (28, 24, 'Hair Masks', 'hair-masks', 'Ayurvedic Hair Masks', 'Natural herbal hair masks and treatments.', 'Herbal hair masks for regular hair care routines.', NULL, 'Active', 4, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (29, 24, 'Hair Growth Care', 'hair-growth-care', 'Ayurvedic Hair Growth Care', 'Ayurvedic and herbal products for hair care.', 'Herbal products commonly used in hair care routines.', NULL, 'Active', 5, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (30, 24, 'Anti-Dandruff Care', 'anti-dandruff-care', 'Ayurvedic Anti-Dandruff Care', 'Herbal products for scalp and dandruff care.', 'Herbal hair and scalp care products.', NULL, 'Active', 6, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (31, NULL, 'Skin Care', 'skin-care', 'Ayurvedic Skin Care', 'Natural Ayurvedic and herbal skin care products.', 'Explore natural and Ayurvedic products for everyday skin care.', NULL, 'Active', 6, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
-(32, NULL, 'Face Care', 'face-care', 'Face Care', 'Herbal products for everyday facial care.', 'Herbal products for everyday facial care.', 'b-a-m-4ab5bc2b02c4.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:54:41'),
+(32, 31, 'Face Care', 'face-care', 'Ayurvedic Face Care', 'Natural Ayurvedic products for face care.', 'Herbal products for everyday facial care.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (33, 31, 'Face Wash', 'face-wash', 'Herbal Face Wash', 'Natural and herbal face washes.', 'Herbal face cleansing products.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (34, 31, 'Face Creams', 'face-creams', 'Ayurvedic Face Creams', 'Natural Ayurvedic face creams and moisturizers.', 'Herbal creams and moisturizers for everyday skin care.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (35, 31, 'Face Oils', 'face-oils', 'Ayurvedic Face Oils', 'Natural herbal and Ayurvedic face oils.', 'Plant-based oils for facial care routines.', NULL, 'Active', 4, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
@@ -203,16 +190,16 @@ INSERT INTO `categories` (`id`, `parent_id`, `name`, `slug`, `meta_title`, `meta
 (37, 31, 'Body Care', 'body-care', 'Ayurvedic Body Care', 'Natural Ayurvedic body care products.', 'Herbal products for everyday body care.', NULL, 'Active', 6, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (38, 31, 'Soaps', 'ayurvedic-soaps', 'Ayurvedic Herbal Soaps', 'Natural and herbal Ayurvedic soaps.', 'Traditional herbal and Ayurvedic bathing products.', NULL, 'Active', 7, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (39, NULL, 'Ayurvedic Oils', 'ayurvedic-oils', 'Ayurvedic Oils', 'Traditional Ayurvedic and herbal oils.', 'Explore traditional herbal oils for different wellness and personal care routines.', NULL, 'Active', 7, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
-(40, NULL, 'Massage Oils', 'massage-oils', 'Massage Oils', 'Herbal oils commonly used for massage and body care.', 'Herbal oils commonly used for massage and body care.', 'b-a-m-73c9874292c5.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:54:50'),
+(40, 39, 'Massage Oils', 'massage-oils', 'Ayurvedic Massage Oils', 'Traditional Ayurvedic massage oils.', 'Herbal oils commonly used for massage and body care.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (41, 39, 'Body Oils', 'body-oils', 'Ayurvedic Body Oils', 'Natural herbal body oils.', 'Plant-based oils for body care.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (42, 39, 'Hair Oils', 'ayurvedic-hair-oils', 'Ayurvedic Hair Oils', 'Traditional herbal hair oils.', 'Ayurvedic and herbal oils for hair care.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (43, 39, 'Joint Massage Oils', 'joint-massage-oils', 'Ayurvedic Massage Oils', 'Traditional herbal massage oils.', 'Ayurvedic oils commonly used in traditional massage routines.', NULL, 'Active', 4, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (44, NULL, 'Joint & Bone Wellness', 'joint-bone-wellness', 'Ayurvedic Joint & Bone Wellness', 'Ayurvedic and herbal products for joint and bone wellness.', 'Traditional Ayurvedic products used as part of joint and body wellness routines.', NULL, 'Active', 8, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
-(45, NULL, 'Joint Care Supplements', 'joint-care-supplements', 'Joint Care Supplements', 'Herbal supplements for general joint wellness.', 'Herbal supplements for general joint wellness.', 'b-a-m-35ea6d2f0e1a.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:54:58'),
+(45, 44, 'Joint Care Supplements', 'joint-care-supplements', 'Joint Care Supplements', 'Herbal supplements for joint wellness.', 'Herbal supplements for general joint wellness.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (46, 44, 'Joint Massage Oils', 'joint-care-oils', 'Joint Care Oils', 'Traditional Ayurvedic massage oils.', 'Herbal oils used in traditional massage routines.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (47, 44, 'Herbal Balms', 'herbal-balms', 'Ayurvedic Herbal Balms', 'Traditional herbal balms and topical products.', 'Herbal balms for personal care and massage routines.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (48, NULL, 'Stress & Sleep Wellness', 'stress-sleep-wellness', 'Ayurvedic Stress & Sleep Wellness', 'Ayurvedic and herbal products for relaxation and wellness.', 'Traditional herbal products for relaxation and wellness routines.', NULL, 'Active', 9, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
-(49, NULL, 'Relaxation Supplements', 'relaxation-supplements', 'Relaxation Supplements', 'Herbal supplements commonly included in relaxation routines.', 'Herbal supplements commonly included in relaxation routines.', 'b-a-m-8fa3b80437ab.jpg', 'Active', 1, '2026-09-10 11:20:54', '2026-09-14 06:55:11'),
+(49, 48, 'Relaxation Supplements', 'relaxation-supplements', 'Herbal Relaxation Supplements', 'Herbal products for relaxation and wellness.', 'Herbal supplements commonly included in relaxation routines.', NULL, 'Active', 1, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (50, 48, 'Sleep Wellness', 'sleep-wellness', 'Ayurvedic Sleep Wellness', 'Herbal products for healthy sleep routines.', 'Traditional herbal products for nighttime wellness routines.', NULL, 'Active', 2, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (51, 48, 'Meditation & Wellness Products', 'meditation-wellness', 'Meditation & Wellness', 'Products for relaxation and traditional wellness practices.', 'Products supporting traditional relaxation and wellness practices.', NULL, 'Active', 3, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
 (52, NULL, 'Men\'s Wellness', 'mens-wellness', 'Ayurvedic Men\'s Wellness', 'Ayurvedic and herbal products for men\'s wellness.', 'Explore herbal and Ayurvedic products for men\'s general wellness.', NULL, 'Active', 10, '2026-09-10 11:20:54', '2026-09-10 11:20:54'),
@@ -281,19 +268,6 @@ CREATE TABLE `coupon_usages` (
   `user_id` bigint(20) UNSIGNED NOT NULL,
   `order_id` bigint(20) UNSIGNED NOT NULL,
   `used_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `newsletter_subscribers`
---
-
-CREATE TABLE `newsletter_subscribers` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `email` varchar(191) NOT NULL,
-  `status` tinyint(1) NOT NULL DEFAULT 1,
-  `subscribed_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -777,6 +751,29 @@ INSERT INTO `product_variants` (`id`, `product_id`, `variant_name`, `sku`, `pric
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `promotional_videos`
+--
+
+CREATE TABLE `promotional_videos` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `title` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `video_type` enum('upload','youtube','vimeo') NOT NULL DEFAULT 'upload',
+  `video_url` varchar(500) DEFAULT NULL,
+  `video_file` varchar(500) DEFAULT NULL,
+  `thumbnail` varchar(500) DEFAULT NULL,
+  `orientation` enum('vertical','horizontal') DEFAULT NULL,
+  `button_text` varchar(100) DEFAULT NULL,
+  `button_url` varchar(500) DEFAULT NULL,
+  `status` tinyint(1) NOT NULL DEFAULT 1,
+  `sort_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `reviews`
 --
 
@@ -865,6 +862,27 @@ INSERT INTO `team_members` (`id`, `name`, `designation`, `bio`, `image`, `status
 (1, 'Dr. Priyanka Jagota', 'Maharishi Expert Vaidya', 'Dr. Priyanka Jagota is an experienced Ayurvedic physician with over seven years of clinical practice. She specialises in managing fatty liver, digestive disorders, joint pain, chronic inflammation, and hormonal imbalances including thyroid, PCOS/PCOD, and menopausal concerns. Her approach focuses on root-cause healing through classical Ayurveda, dietary correction, and sustainable lifestyle changes.', NULL, 1, 1, '2026-09-14 02:25:37', '2026-09-14 02:25:37'),
 (2, 'Dr. Arvind Sharma', 'Senior Ayurvedic Consultant', 'Dr. Arvind Sharma brings over a decade of clinical experience in classical Ayurvedic medicine, with a focus on chronic pain management, respiratory conditions, and stress-related disorders. He combines traditional diagnostic methods with personalised herbal and lifestyle protocols.', NULL, 1, 2, '2026-09-14 02:25:37', '2026-09-14 02:25:37'),
 (3, 'Dr. Neha Kulkarni', 'Ayurvedic Skin & Hair Specialist', 'Dr. Neha Kulkarni specialises in Ayurvedic dermatology, treating skin and hair concerns through internal and external herbal therapies rooted in classical texts, paired with modern lifestyle guidance.', NULL, 1, 3, '2026-09-14 02:25:37', '2026-09-14 02:25:37');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `transformations`
+--
+
+CREATE TABLE `transformations` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `customer_name` varchar(150) NOT NULL,
+  `before_image` varchar(500) NOT NULL,
+  `after_image` varchar(500) NOT NULL,
+  `description` text DEFAULT NULL,
+  `product_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `duration` varchar(50) DEFAULT NULL,
+  `is_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `status` enum('Active','Inactive') NOT NULL DEFAULT 'Active',
+  `sort_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -982,13 +1000,6 @@ ALTER TABLE `coupon_usages`
   ADD KEY `fk_coupon_usage_order` (`order_id`);
 
 --
--- Indexes for table `newsletter_subscribers`
---
-ALTER TABLE `newsletter_subscribers`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uniq_newsletter_subscribers_email` (`email`);
-
---
 -- Indexes for table `orders`
 --
 ALTER TABLE `orders`
@@ -1076,6 +1087,12 @@ ALTER TABLE `product_variants`
   ADD KEY `idx_variant_stock` (`stock`);
 
 --
+-- Indexes for table `promotional_videos`
+--
+ALTER TABLE `promotional_videos`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `reviews`
 --
 ALTER TABLE `reviews`
@@ -1098,6 +1115,13 @@ ALTER TABLE `settings`
 ALTER TABLE `team_members`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_team_members_status_sort` (`status`,`sort_order`);
+
+--
+-- Indexes for table `transformations`
+--
+ALTER TABLE `transformations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `product_id` (`product_id`);
 
 --
 -- Indexes for table `users`
@@ -1136,7 +1160,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `banners`
 --
 ALTER TABLE `banners`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `blog_posts`
@@ -1166,12 +1190,6 @@ ALTER TABLE `coupons`
 -- AUTO_INCREMENT for table `coupon_usages`
 --
 ALTER TABLE `coupon_usages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `newsletter_subscribers`
---
-ALTER TABLE `newsletter_subscribers`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
@@ -1229,6 +1247,12 @@ ALTER TABLE `product_variants`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
+-- AUTO_INCREMENT for table `promotional_videos`
+--
+ALTER TABLE `promotional_videos`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `reviews`
 --
 ALTER TABLE `reviews`
@@ -1245,6 +1269,12 @@ ALTER TABLE `settings`
 --
 ALTER TABLE `team_members`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `transformations`
+--
+ALTER TABLE `transformations`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -1355,6 +1385,12 @@ ALTER TABLE `product_variants`
 ALTER TABLE `reviews`
   ADD CONSTRAINT `fk_reviews_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_reviews_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `transformations`
+--
+ALTER TABLE `transformations`
+  ADD CONSTRAINT `transformations_product_id_fk` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `wishlist`

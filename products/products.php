@@ -419,7 +419,7 @@ $hasSidebar = !empty($categorySidebarItems);
                         ?>
 
                         <a
-                            href="<?php echo BASE_URL; ?>product_details.php?slug=<?php echo urlencode($product['slug']); ?>"
+                            href="<?php echo BASE_URL; ?>products/product_details.php?slug=<?php echo urlencode($product['slug']); ?>"
                             class="product-card<?php echo $isOutOfStock ? ' is-out-of-stock' : ''; ?>">
                             <div class="product-image-wrap">
                                 <?php if (!empty($product['primary_image'])): ?>

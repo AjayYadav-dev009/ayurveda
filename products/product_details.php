@@ -115,7 +115,7 @@ $detailSections = [
 ];
 ?>
 
-<?php include __DIR__ . '/includes/header.php'; ?>
+<?php include __DIR__ . '/../includes/header.php'; ?>
 
 <style>
     .pd-section {
@@ -880,4 +880,4 @@ $detailSections = [
     })();
 </script>
 
-<?php include __DIR__ . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>
