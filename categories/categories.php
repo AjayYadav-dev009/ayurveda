@@ -1,7 +1,7 @@
 <?php 
-require_once __DIR__ . '/config/config.php'; 
-require_once __DIR__ . '/config/database.php'; 
-require_once __DIR__ . '/function/category.php'; 
+require_once __DIR__ . '/../config/config.php'; 
+require_once __DIR__ . '/../config/database.php'; 
+require_once __DIR__ . '/../function/category.php'; 
 
 // This is the full "browse all categories" grid — every Active category,
 // top-level or sub, that has at least one Active product assigned to it
@@ -15,7 +15,7 @@ try {
 }
 ?> 
 
-<?php include __DIR__ . '/includes/header.php'; ?>
+<?php include __DIR__ . '/../includes/header.php'; ?>
 
 <style>
     .category-section {
@@ -227,4 +227,4 @@ try {
 
 </section>
 
-<?php include __DIR__ . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

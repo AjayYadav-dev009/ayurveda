@@ -38,13 +38,18 @@ while ($row = mysqli_fetch_assoc($productResult)) {
     $categoryProducts[] = $row;
 }
 
-// Sidebar: every top-level category that actually has products somewhere
-// in its subtree, so the page doubles as a category switcher without
-// linking to a bucket that would just show "no products". Fails closed
-// to an empty list (sidebar just won't render) rather than breaking the
-// whole page if this query has a problem.
+// Sidebar: every Active category, at any depth (root, child, grandchild),
+// that has at least one Active product assigned DIRECTLY to it — so the
+// page doubles as a category switcher without linking to a bucket that
+// would just show "no products". Deliberately NOT
+// getTopLevelCategoriesWithProducts(): that only looks at root categories,
+// which is why real (non-root) categories like "Digestive Powders" never
+// showed up even while browsing them. getAllCategoriesWithProducts()
+// already does the direct-only, any-depth check this page needs. Fails
+// closed to an empty list (sidebar just won't render) rather than
+// breaking the whole page if this query has a problem.
 try {
-    $categorySidebarItems = getTopLevelCategoriesWithProducts($conn);
+    $categorySidebarItems = getAllCategoriesWithProducts($conn);
 } catch (Exception $e) {
     $categorySidebarItems = [];
 }

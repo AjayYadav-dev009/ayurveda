@@ -513,14 +513,14 @@ if (isCustomerLogin()) {
             <nav class="main-nav">
                 <a href="<?= BASE_URL ?>index.php" class="active">Home</a>
                 <div class="nav-dropdown">
-                    <a href="<?= BASE_URL ?>categories.php" class="has-dropdown">
+                    <a href="<?= BASE_URL ?>categories/categories.php" class="has-dropdown">
                         Shop All <span class="caret">&#9662;</span>
                     </a>
                     <div class="mega-menu">
                         <ul class="mega-menu__sidebar">
                             <?php foreach ($browsableCategories as $index => $category): ?>
                                 <li class="mega-menu__sidebar-item<?= $index === 0 ? ' is-active' : '' ?>" data-panel-target="mega-panel-<?= (int) $category['id'] ?>">
-                                    <a href="<?= BASE_URL ?>products.php?category_slug=<?= urlencode($category['slug']) ?>">
+                                    <a href="<?= BASE_URL ?>products/products.php?category_slug=<?= urlencode($category['slug']) ?>">
                                         <?= htmlspecialchars($category['name']) ?>
                                     </a>
                                 </li>
@@ -533,12 +533,12 @@ if (isCustomerLogin()) {
                                 <div class="mega-menu__panel<?= $index === 0 ? ' is-active' : '' ?>" id="mega-panel-<?= (int) $category['id'] ?>">
                                     <div class="mega-menu__products">
                                         <?php foreach ($products as $product): ?>
-                                            <a href="<?= BASE_URL ?>product_details.php?slug=<?= urlencode($product['slug']) ?>">
+                                            <a href="<?= BASE_URL ?>products/product_details.php?slug=<?= urlencode($product['slug']) ?>">
                                                 <?= htmlspecialchars($product['title']) ?>
                                             </a>
                                         <?php endforeach; ?>
                                     </div>
-                                    <a class="mega-menu__view-all" href="<?= BASE_URL ?>products.php?category_slug=<?= urlencode($category['slug']) ?>">
+                                    <a class="mega-menu__view-all" href="<?= BASE_URL ?>products/products.php?category_slug=<?= urlencode($category['slug']) ?>">
                                         View all in <?= htmlspecialchars($category['name']) ?>
                                     </a>
                                 </div>
