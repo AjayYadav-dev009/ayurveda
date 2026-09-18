@@ -4,11 +4,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . '/../../config/config.php';
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../function/customer-auth.php';
-require_once __DIR__ . '/../../function/address.php';
-require_once __DIR__ . '/../../function/helper.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../function/customer.php';
+require_once __DIR__ . '/../function/address.php';
+require_once __DIR__ . '/../function/helper.php';
 
 if (!isCustomerLogin()) {
     redirect(BASE_URL . 'account/login.php?redirect=account/addresses/index.php');
@@ -45,7 +45,8 @@ $updated = isset($_GET['updated']);
 $defaultSet = isset($_GET['default_set']);
 
 $activeNav = 'addresses';
-require __DIR__ . '/../account-sidebar.php';
+
+include __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
@@ -240,4 +241,4 @@ require __DIR__ . '/../account-sidebar.php';
 </main>
 </div>
 
-<?php include __DIR__ . '/../../includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

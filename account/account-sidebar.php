@@ -4,24 +4,14 @@ if (!isset($activeNav)) {
     $activeNav = '';
 }
 
-// Absolute (BASE_URL-anchored) paths on purpose. This partial is included
-// from account/index.php, account/my-orders.php, account/profile.php AND
-// from account/addresses/*.php (one folder deeper) — relative links like
-// 'index.php' would resolve differently depending on which of those
-// included it, so every href (including the logout form's action) is
-// anchored to BASE_URL . 'account/...' instead.
 $navItems = [
     'dashboard' => ['label' => 'Dashboard', 'href' => BASE_URL . 'account/index.php'],
     'orders'    => ['label' => 'My Orders', 'href' => BASE_URL . 'account/my-orders.php'],
     'wishlist'  => ['label' => 'Wishlist', 'href' => BASE_URL . 'account/wishlist.php'],
-    'addresses' => ['label' => 'Addresses', 'href' => BASE_URL . 'account/addresses/index.php'],
+    'addresses' => ['label' => 'Addresses', 'href' => BASE_URL . 'account/address/index.php'],
     'profile'   => ['label' => 'Profile', 'href' => BASE_URL . 'account/profile.php'],
 ];
 
-// Prefer the full $user row when the including page already loaded one
-// (index.php, profile.php); otherwise fall back to the name already
-// stashed in the session at login, so pages like the addresses section
-// don't need to fetch the user row just to render the sidebar.
 $sidebarName = '';
 if (isset($user['name']) && $user['name'] !== '') {
     $sidebarName = $user['name'];

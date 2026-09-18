@@ -8,6 +8,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/helper.php';
+require_once __DIR__ . '/../function/order.php';
 
 if (!isCustomerLogin()) {
     redirect(BASE_URL . 'account/login.php?redirect=account/my-orders.php');
@@ -20,16 +21,11 @@ if ($user === null) {
     redirect(BASE_URL . 'account/login.php');
 }
 
-// -----------------------------------------------------------------------
-// PLACEHOLDER: no order functions/tables exist yet. Swap this out for
-// something like getOrdersForCustomer($conn, $user['id']) once that's
-// ready — the markup below already expects that same
-// number/item_count/total/status shape.
-// -----------------------------------------------------------------------
-$orders = [
-    ['number' => 'ORD1234', 'item_count' => 3, 'total' => 1299, 'status' => 'Delivered'],
-    ['number' => 'ORD1233', 'item_count' => 2, 'total' => 899, 'status' => 'Shipped'],
-];
+try {
+    $orders = getOrdersForCustomer($conn, $user['id']);
+} catch (Exception $e) {
+    $orders = [];
+}
 
 $activeNav = 'orders';
 require __DIR__ . '/account-sidebar.php';
@@ -55,6 +51,45 @@ require __DIR__ . '/account-sidebar.php';
         font-size: 15px;
         font-weight: 800;
         color: var(--color-text);
+    }
+
+    .order-card__number-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .order-card__number-link:hover {
+        color: var(--color-primary-dark);
+        text-decoration: underline;
+    }
+
+    .order-card__items {
+        list-style: none;
+        margin: 0 0 12px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .order-card__item {
+        font-size: 14px;
+        color: var(--color-text-light);
+    }
+
+    .order-card__item a {
+        color: var(--color-text);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .order-card__item a:hover {
+        color: var(--color-primary-dark);
+        text-decoration: underline;
+    }
+
+    .order-card__item-qty {
+        color: var(--color-text-light);
     }
 
     .order-card__meta {
@@ -95,9 +130,24 @@ require __DIR__ . '/account-sidebar.php';
         color: #856404;
     }
 
+    .status-badge--pending {
+        background: #f0f0f0;
+        color: #555555;
+    }
+
+    .status-badge--confirmed {
+        background: #eaf1fb;
+        color: #1c5aa8;
+    }
+
     .status-badge--cancelled {
         background: #fbeceb;
         color: #8a1c14;
+    }
+
+    .status-badge--returned {
+        background: #f3e8fd;
+        color: #6a1b9a;
     }
 
     .orders-empty {
@@ -114,7 +164,28 @@ require __DIR__ . '/account-sidebar.php';
     <?php foreach ($orders as $order): ?>
         <?php $statusClass = 'status-badge--' . strtolower($order['status']); ?>
         <div class="order-card">
-            <p class="order-card__number">#<?= htmlspecialchars($order['number']) ?></p>
+            <p class="order-card__number">
+                <a class="order-card__number-link" href="<?= htmlspecialchars(BASE_URL . 'account/order-details.php?id=' . $order['id']) ?>">#<?= htmlspecialchars($order['number']) ?></a>
+            </p>
+
+            <?php if (!empty($order['items'])): ?>
+                <ul class="order-card__items">
+                    <?php foreach ($order['items'] as $item): ?>
+                        <li class="order-card__item">
+                            <?php if ($item['url']): ?>
+                                <a href="<?= htmlspecialchars($item['url']) ?>"><?= htmlspecialchars($item['name']) ?></a>
+                            <?php else: ?>
+                                <?= htmlspecialchars($item['name']) ?>
+                            <?php endif; ?>
+                            <?php if (!empty($item['variant_name'])): ?>
+                                <span class="order-card__item-qty"> (<?= htmlspecialchars($item['variant_name']) ?>)</span>
+                            <?php endif; ?>
+                            <span class="order-card__item-qty"> &times; <?= (int) $item['quantity'] ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+
             <div class="order-card__meta">
                 <span><?= (int) $order['item_count'] ?> Items</span>
                 <span class="order-card__price">&#8377;<?= number_format((float) $order['total'], 2) ?></span>
