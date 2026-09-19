@@ -1,14 +1,15 @@
 <?php
 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/helper.php';
+require_once __DIR__ . '/../function/csrf.php';
 
 // Already logged in? Skip straight to the account area.
 if (isCustomerLogin()) {
-    redirect(BASE_URL . 'account/index.php');
+    redirect(BASE_URL . '');
 }
 
 $errors = [];
@@ -16,34 +17,41 @@ $email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $errors['login'] = 'Your session has expired. Please try again.';
+    } else {
 
-    // Validation
-    if ($email === '') {
-        $errors['email'] = 'Email is required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = 'Enter a valid email address.';
-    }
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
 
-    if ($password === '') {
-        $errors['password'] = 'Password is required.';
-    }
+        // Validation
+        if ($email === '') {
+            $errors['email'] = 'Email is required.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Enter a valid email address.';
+        }
 
-    // Authentication
-    if (empty($errors)) {
-        try {
-            loginUser($conn, $email, $password);
+        if ($password === '') {
+            $errors['password'] = 'Password is required.';
+        }
 
-            $redirectTo = $_GET['redirect'] ?? 'account/index.php';
-            redirect(BASE_URL . ltrim($redirectTo, '/'));
-        } catch (InvalidArgumentException $e) {
-            $errors['login'] = $e->getMessage();
-        } catch (Exception $e) {
-            $errors['login'] = 'Something went wrong while logging you in. Please try again.';
+        // Authentication
+        if (empty($errors)) {
+            try {
+                loginUser($conn, $email, $password);
+
+                $redirectTo = sanitizeInternalRedirect($_GET['redirect'] ?? '', 'account/index.php');
+                redirect(BASE_URL . $redirectTo);
+            } catch (InvalidArgumentException $e) {
+                $errors['login'] = $e->getMessage();
+            } catch (Exception $e) {
+                $errors['login'] = 'Something went wrong while logging you in. Please try again.';
+            }
         }
     }
 }
+
+$csrfToken = generateCSRFToken();
 ?>
 
 <style>
@@ -217,6 +225,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="login-page">
     <form class="login-form" method="post" action="">
         <h1>Log In</h1>
+
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
         <?php if (!empty($errors['login'])): ?>
             <p class="form-error"><?= htmlspecialchars($errors['login']) ?></p>

@@ -1,14 +1,15 @@
 <?php
 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/helper.php';
+require_once __DIR__ . '/../function/csrf.php';
 
 // Already logged in? No need to register again.
 if (isCustomerLogin()) {
-    redirect(BASE_URL . 'account/index.php');
+    redirect(BASE_URL . '/');
 }
 
 $errors = [];
@@ -18,46 +19,53 @@ $phone = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $errors['general'] = 'Your session has expired. Please try again.';
+    } else {
 
-    if ($name === '') {
-        $errors['name'] = 'Name is required.';
-    }
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    if ($email === '') {
-        $errors['email'] = 'Email is required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = 'Enter a valid email address.';
-    }
+        if ($name === '') {
+            $errors['name'] = 'Name is required.';
+        }
 
-    if ($password === '') {
-        $errors['password'] = 'Password is required.';
-    } elseif (strlen($password) < 8) {
-        $errors['password'] = 'Password must be at least 8 characters.';
-    } elseif ($password !== $confirmPassword) {
-        $errors['confirm_password'] = 'Passwords do not match.';
-    }
+        if ($email === '') {
+            $errors['email'] = 'Email is required.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Enter a valid email address.';
+        }
 
-    if (empty($errors)) {
-        try {
-            registerUser($conn, $name, $email, $phone !== '' ? $phone : null, $password);
+        if ($password === '') {
+            $errors['password'] = 'Password is required.';
+        } elseif (strlen($password) < 8) {
+            $errors['password'] = 'Password must be at least 8 characters.';
+        } elseif ($password !== $confirmPassword) {
+            $errors['confirm_password'] = 'Passwords do not match.';
+        }
 
-            // Log the new customer straight in rather than making them
-            // fill in the login form again right after registering.
-            $user = loginUser($conn, $email, $password);
+        if (empty($errors)) {
+            try {
+                registerUser($conn, $name, $email, $phone !== '' ? $phone : null, $password);
 
-            redirect(BASE_URL . 'account/index.php?welcome=1');
-        } catch (InvalidArgumentException $e) {
-            $errors['general'] = $e->getMessage();
-        } catch (Exception $e) {
-            $errors['general'] = 'Something went wrong while creating your account. Please try again.';
+                // Log the new customer straight in rather than making them
+                // fill in the login form again right after registering.
+                $user = loginUser($conn, $email, $password);
+
+                redirect(BASE_URL . 'account/index.php?welcome=1');
+            } catch (InvalidArgumentException $e) {
+                $errors['general'] = $e->getMessage();
+            } catch (Exception $e) {
+                $errors['general'] = 'Something went wrong while creating your account. Please try again.';
+            }
         }
     }
 }
+
+$csrfToken = generateCSRFToken();
 ?>
 
 <style>
@@ -193,6 +201,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="register-page">
     <form class="register-form" method="post" action="">
         <h1>Create an Account</h1>
+
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
         <?php if (!empty($errors['general'])): ?>
             <p class="form-error"><?= htmlspecialchars($errors['general']) ?></p>

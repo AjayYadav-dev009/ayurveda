@@ -1,10 +1,11 @@
 <?php
 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/helper.php';
+require_once __DIR__ . '/../function/csrf.php';
 
 $token = $_GET['token'] ?? ($_POST['token'] ?? '');
 
@@ -26,28 +27,35 @@ if ($reset === null && empty($errors)) {
 
 if ($reset !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $password = $_POST['password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $errors['general'] = 'Your session has expired. Please reload the page and try again.';
+    } else {
 
-    if ($password === '') {
-        $errors['password'] = 'Password is required.';
-    } elseif (strlen($password) < 8) {
-        $errors['password'] = 'Password must be at least 8 characters.';
-    } elseif ($password !== $confirmPassword) {
-        $errors['confirm_password'] = 'Passwords do not match.';
-    }
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    if (empty($errors)) {
-        try {
-            resetUserPassword($conn, $token, $password);
-            $success = true;
-        } catch (InvalidArgumentException $e) {
-            $errors['general'] = $e->getMessage();
-        } catch (Exception $e) {
-            $errors['general'] = 'Something went wrong while resetting your password. Please try again.';
+        if ($password === '') {
+            $errors['password'] = 'Password is required.';
+        } elseif (strlen($password) < 8) {
+            $errors['password'] = 'Password must be at least 8 characters.';
+        } elseif ($password !== $confirmPassword) {
+            $errors['confirm_password'] = 'Passwords do not match.';
+        }
+
+        if (empty($errors)) {
+            try {
+                resetUserPassword($conn, $token, $password);
+                $success = true;
+            } catch (InvalidArgumentException $e) {
+                $errors['general'] = $e->getMessage();
+            } catch (Exception $e) {
+                $errors['general'] = 'Something went wrong while resetting your password. Please try again.';
+            }
         }
     }
 }
+
+$csrfToken = generateCSRFToken();
 ?>
 
 <style>
@@ -194,6 +202,8 @@ if ($reset !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="auth-page">
     <form class="auth-form" method="post" action="?token=<?= urlencode($token) ?>">
         <h1>Reset Password</h1>
+
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
         <?php if ($success): ?>
             <p class="form-success">Your password has been reset. You can now log in with your new password.</p>

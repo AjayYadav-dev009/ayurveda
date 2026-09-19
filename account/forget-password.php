@@ -1,10 +1,11 @@
 <?php
 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/helper.php';
+require_once __DIR__ . '/../function/csrf.php';
 
 $errors = [];
 $email = '';
@@ -13,40 +14,51 @@ $devResetLink = null; // See note near the bottom of this file.
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $email = trim($_POST['email'] ?? '');
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $errors['general'] = 'Your session has expired. Please try again.';
+    } else {
 
-    if ($email === '') {
-        $errors['email'] = 'Email is required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = 'Enter a valid email address.';
-    }
+        $email = trim($_POST['email'] ?? '');
 
-    if (empty($errors)) {
-        try {
-            $token = createPasswordResetRequest($conn, $email);
+        if ($email === '') {
+            $errors['email'] = 'Email is required.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Enter a valid email address.';
+        }
 
-            // Deliberately identical whether or not the email is
-            // registered — never reveal which addresses have accounts.
-            $submitted = true;
+        if (empty($errors)) {
+            try {
+                $token = createPasswordResetRequest($conn, $email);
 
-            if ($token !== null) {
-                $resetLink = BASE_URL . 'account/reset-password.php?token=' . urlencode($token);
+                // Deliberately identical whether or not the email is
+                // registered — never reveal which addresses have accounts.
+                $submitted = true;
 
-                // ---------------------------------------------------------
-                // TODO: send $resetLink to the customer by email instead of
-                // displaying it. This project has no mailer wired up yet
-                // (no PHPMailer/SMTP config), so for local development the
-                // link is shown directly on the page below. Before this
-                // goes anywhere near production, swap this block out for a
-                // real email send and delete the $devResetLink display.
-                // ---------------------------------------------------------
-                $devResetLink = $resetLink;
+                if ($token !== null) {
+                    $resetLink = BASE_URL . 'account/reset-password.php?token=' . urlencode($token);
+
+                    // ---------------------------------------------------------
+                    // TODO: send $resetLink to the customer by email instead of
+                    // displaying it. This project has no mailer wired up yet
+                    // (no PHPMailer/SMTP config), so for local development the
+                    // link is shown directly on the page below. This is
+                    // gated to non-production environments only — showing a
+                    // password reset link in the HTTP response in production
+                    // would let anyone reset anyone else's password just by
+                    // knowing their email address.
+                    // ---------------------------------------------------------
+                    if (APP_ENV !== 'production') {
+                        $devResetLink = $resetLink;
+                    }
+                }
+            } catch (Exception $e) {
+                $errors['general'] = 'Something went wrong. Please try again.';
             }
-        } catch (Exception $e) {
-            $errors['general'] = 'Something went wrong. Please try again.';
         }
     }
 }
+
+$csrfToken = generateCSRFToken();
 ?>
 
 <style>
@@ -212,6 +224,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="reset-page">
     <form class="reset-form" method="post" action="">
         <h1>Forgot Password</h1>
+
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
         <?php if (!empty($errors['general'])): ?>
             <p class="form-error"><?= htmlspecialchars($errors['general']) ?></p>
