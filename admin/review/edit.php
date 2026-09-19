@@ -52,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+include __DIR__ . '/../include/header.php'
 ?>
 
 <style>
@@ -146,3 +148,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="submit" value="Save Changes">
     </form>
 </div>
+
+<?php include __DIR__ . '/../include/footer.php' ?>

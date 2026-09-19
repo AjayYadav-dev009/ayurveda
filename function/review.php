@@ -1,284 +1,221 @@
-<?php require_once __DIR__ . '/../config/database.php'; ?>
-
 <?php
 
-const REVIEW_STATUSES = ['Pending', 'Active', 'Rejected'];
-
-/**
- * All reviews for the admin list, most recent first, joined with the
- * customer's name/email and the product's title/slug (reviews.product_id
- * is NOT NULL per schema, so this is always a real product).
- *
- * @param mysqli $conn
- * @param array $filters Optional: ['status' => 'Pending'|'Active'|'Rejected']
- * @return array<int, array>
- * @throws Exception
- */
-function getAllReviews($conn, array $filters = [])
-{
-    $where = [];
-    $types = '';
-    $params = [];
-
-    if (!empty($filters['status']) && in_array($filters['status'], REVIEW_STATUSES, true)) {
-        $where[] = 'rv.status = ?';
-        $types .= 's';
-        $params[] = $filters['status'];
+if (!function_exists('REVIEW_ELIGIBLE_ORDER_STATUSES')) {
+    /**
+     * Order statuses that count as "bought". Change this one list to loosen
+     * the rule, e.g. ['shipped', 'delivered'] to allow reviews once an order
+     * has shipped.
+     */
+    function REVIEW_ELIGIBLE_ORDER_STATUSES()
+    {
+        return ['delivered'];
     }
+}
 
-    $whereSql = empty($where) ? '' : 'WHERE ' . implode(' AND ', $where);
+if (!function_exists('REVIEW_MAX_LENGTH')) {
+    function REVIEW_MAX_LENGTH()
+    {
+        return 2000;
+    }
+}
 
-    $sql = "SELECT rv.*, u.name AS customer_name, u.email AS customer_email,
-                   p.title AS product_title, p.slug AS product_slug
-            FROM reviews rv
-            INNER JOIN users u ON u.id = rv.user_id
-            INNER JOIN products p ON p.id = rv.product_id
-            $whereSql
-            ORDER BY rv.created_at DESC";
-
-    if (empty($params)) {
-        $result = mysqli_query($conn, $sql);
-        if (!$result) {
-            throw new Exception("Error fetching reviews: " . mysqli_error($conn));
+if (!function_exists('reviewPrepare')) {
+    /** prepare() that always throws on failure, in either mysqli error mode. */
+    function reviewPrepare(mysqli $conn, $sql)
+    {
+        $stmt = $conn->prepare($sql);
+        if ($stmt === false) {
+            throw new RuntimeException('Database error. Please try again.');
         }
-        return $result->fetch_all(MYSQLI_ASSOC);
-    }
-
-    $stmt = mysqli_prepare($conn, $sql);
-    if (!$stmt) {
-        throw new Exception("Error preparing statement: " . mysqli_error($conn));
-    }
-    mysqli_stmt_bind_param($stmt, $types, ...$params);
-    if (!mysqli_stmt_execute($stmt)) {
-        throw new Exception("Error fetching reviews: " . mysqli_error($conn));
-    }
-
-    return mysqli_stmt_get_result($stmt)->fetch_all(MYSQLI_ASSOC);
-}
-
-/**
- * Single review, joined the same way as getAllReviews(), for the admin
- * detail/edit pages.
- *
- * @param mysqli $conn
- * @param int $id
- * @return array|null
- */
-function getReviewById($conn, $id)
-{
-    $id = (int) $id;
-    $sql = "SELECT rv.*, u.name AS customer_name, u.email AS customer_email,
-                   p.title AS product_title, p.slug AS product_slug
-            FROM reviews rv
-            INNER JOIN users u ON u.id = rv.user_id
-            INNER JOIN products p ON p.id = rv.product_id
-            WHERE rv.id = ?
-            LIMIT 1";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'i', $id);
-    mysqli_stmt_execute($stmt);
-    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    return $row ?: null;
-}
-
-/**
- * Quick moderation action from the list page — approve or reject without
- * opening the full edit form.
- *
- * @param mysqli $conn
- * @param int $id
- * @param string $status One of REVIEW_STATUSES
- * @throws Exception|InvalidArgumentException
- */
-function updateReviewStatus($conn, $id, $status)
-{
-    if (!in_array($status, REVIEW_STATUSES, true)) {
-        throw new InvalidArgumentException('Invalid review status.');
-    }
-
-    $id = (int) $id;
-    $stmt = mysqli_prepare($conn, "UPDATE reviews SET status = ? WHERE id = ?");
-    mysqli_stmt_bind_param($stmt, 'si', $status, $id);
-    if (!mysqli_stmt_execute($stmt)) {
-        throw new Exception('Error updating review status: ' . mysqli_error($conn));
-    }
-    if (mysqli_stmt_affected_rows($stmt) === 0 && getReviewById($conn, $id) === null) {
-        throw new InvalidArgumentException('Review not found.');
+        return $stmt;
     }
 }
 
-/**
- * Full edit: an admin correcting an obviously mistyped rating, redacting a
- * problem line from the review text, or changing status, all at once.
- *
- * @param mysqli $conn
- * @param int $id
- * @param array $data ['rating' => int 1-5, 'review' => ?string, 'status' => string]
- * @throws Exception|InvalidArgumentException
- */
-function updateReview($conn, $id, array $data)
-{
-    $id = (int) $id;
-    $rating = (int) ($data['rating'] ?? 0);
-    $review = isset($data['review']) && trim((string) $data['review']) !== '' ? trim((string) $data['review']) : null;
-    $status = $data['status'] ?? 'Pending';
+if (!function_exists('customerHasPurchasedProduct')) {
+    /**
+     * True if this customer has an eligible (see above) order containing the
+     * product. This is the gatekeeper for reviewing.
+     */
+    function customerHasPurchasedProduct(mysqli $conn, $userId, $productId)
+    {
+        $userId    = (int) $userId;
+        $productId = (int) $productId;
+        if ($userId <= 0 || $productId <= 0) {
+            return false;
+        }
 
-    if ($rating < 1 || $rating > 5) {
-        throw new InvalidArgumentException('Rating must be between 1 and 5.');
-    }
-    if (!in_array($status, REVIEW_STATUSES, true)) {
-        throw new InvalidArgumentException('Invalid review status.');
-    }
+        $statuses = REVIEW_ELIGIBLE_ORDER_STATUSES();
+        $marks    = implode(',', array_fill(0, count($statuses), '?'));
 
-    $stmt = mysqli_prepare(
-        $conn,
-        "UPDATE reviews SET rating = ?, review = ?, status = ? WHERE id = ?"
-    );
-    mysqli_stmt_bind_param($stmt, 'issi', $rating, $review, $status, $id);
-    if (!mysqli_stmt_execute($stmt)) {
-        throw new Exception('Error updating review: ' . mysqli_error($conn));
-    }
-}
-
-/**
- * @param mysqli $conn
- * @param int $id
- * @throws Exception|InvalidArgumentException
- */
-function deleteReview($conn, $id)
-{
-    $id = (int) $id;
-    $stmt = mysqli_prepare($conn, "DELETE FROM reviews WHERE id = ?");
-    mysqli_stmt_bind_param($stmt, 'i', $id);
-    if (!mysqli_stmt_execute($stmt)) {
-        throw new Exception('Error deleting review: ' . mysqli_error($conn));
-    }
-    if (mysqli_stmt_affected_rows($stmt) === 0) {
-        throw new InvalidArgumentException('Review not found.');
+        $stmt = reviewPrepare(
+            $conn,
+            "SELECT 1
+               FROM order_items oi
+               JOIN orders o ON o.id = oi.order_id
+              WHERE o.user_id = ? AND oi.product_id = ? AND o.order_status IN ($marks)
+              LIMIT 1"
+        );
+        $params = array_merge([$userId, $productId], $statuses);
+        $stmt->bind_param('ii' . str_repeat('s', count($statuses)), ...$params);
+        $stmt->execute();
+        $stmt->store_result();
+        $found = $stmt->num_rows > 0;
+        $stmt->close();
+        return $found;
     }
 }
 
-/**
- * Reviews for the homepage "Trusted By" testimonial carousel: Active,
- * highest-rated and verified-purchase first, across all products (this is
- * a site-wide trust section, not tied to any one product page).
- *
- * @param mysqli $conn
- * @param int $limit
- * @return array<int, array>
- * @throws Exception
- */
-function getFeaturedReviews($conn, $limit = 9)
-{
-    $limit = max(1, (int) $limit);
+if (!function_exists('getReviewableProducts')) {
+    /**
+     * Every distinct product this customer has bought (eligible orders only),
+     * newest purchase first, each with their existing review if any:
+     * id, title, slug, last_purchased, review_id, rating, review,
+     * review_status, review_updated.
+     */
+    function getReviewableProducts(mysqli $conn, $userId)
+    {
+        $userId   = (int) $userId;
+        $statuses = REVIEW_ELIGIBLE_ORDER_STATUSES();
+        $marks    = implode(',', array_fill(0, count($statuses), '?'));
 
-    $sql = "SELECT rv.id, rv.rating, rv.review, rv.verified_purchase, rv.created_at,
-                   u.name AS customer_name
-            FROM reviews rv
-            INNER JOIN users u ON u.id = rv.user_id
-            WHERE rv.status = 'Active' AND rv.review IS NOT NULL AND rv.review != ''
-            ORDER BY rv.verified_purchase DESC, rv.rating DESC, rv.created_at DESC
-            LIMIT ?";
-
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'i', $limit);
-    mysqli_stmt_execute($stmt);
-    return mysqli_stmt_get_result($stmt)->fetch_all(MYSQLI_ASSOC);
+        $stmt = reviewPrepare(
+            $conn,
+            "SELECT p.id, p.title, p.slug,
+                    MAX(o.created_at) AS last_purchased,
+                    r.id         AS review_id,
+                    r.rating     AS rating,
+                    r.review     AS review,
+                    r.status     AS review_status,
+                    r.updated_at AS review_updated
+               FROM order_items oi
+               JOIN orders   o ON o.id = oi.order_id
+               JOIN products p ON p.id = oi.product_id
+          LEFT JOIN reviews  r ON r.product_id = p.id AND r.user_id = o.user_id
+              WHERE o.user_id = ? AND o.order_status IN ($marks)
+              GROUP BY p.id, p.title, p.slug, r.id, r.rating, r.review, r.status, r.updated_at
+              ORDER BY last_purchased DESC, p.title ASC"
+        );
+        $params = array_merge([$userId], $statuses);
+        $stmt->bind_param('i' . str_repeat('s', count($statuses)), ...$params);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $rows;
+    }
 }
 
-/**
- * Does this customer already have a review (in any status) for this
- * product? One review per customer per product — write-review.php uses
- * this to block a second submission rather than silently creating a
- * duplicate the admin queue would have to sort out.
- *
- * @param mysqli $conn
- * @param int $userId
- * @param int $productId
- * @return array|null The existing review row, or null if none exists.
- */
-function getUserReviewForProduct($conn, $userId, $productId)
-{
-    $userId = (int) $userId;
-    $productId = (int) $productId;
-
-    $stmt = mysqli_prepare(
-        $conn,
-        "SELECT * FROM reviews WHERE user_id = ? AND product_id = ? LIMIT 1"
-    );
-    mysqli_stmt_bind_param($stmt, 'ii', $userId, $productId);
-    mysqli_stmt_execute($stmt);
-    $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    return $row ?: null;
+if (!function_exists('getProductForReview')) {
+    /** Minimal product row (id, title, slug) or null. Looks up by id or slug. */
+    function getProductForReview(mysqli $conn, $productId = 0, $slug = '')
+    {
+        $productId = (int) $productId;
+        if ($productId > 0) {
+            $stmt = reviewPrepare($conn, 'SELECT id, title, slug FROM products WHERE id = ? LIMIT 1');
+            $stmt->bind_param('i', $productId);
+        } elseif ($slug !== '') {
+            $stmt = reviewPrepare($conn, 'SELECT id, title, slug FROM products WHERE slug = ? LIMIT 1');
+            $stmt->bind_param('s', $slug);
+        } else {
+            return null;
+        }
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
 }
 
-/**
- * Whether this customer has a delivered order containing this product —
- * the actual basis for verified_purchase, computed server-side rather than
- * trusting anything from the review form itself.
- *
- * @param mysqli $conn
- * @param int $userId
- * @param int $productId
- * @return bool
- */
-function userHasPurchasedProduct($conn, $userId, $productId)
-{
-    $userId = (int) $userId;
-    $productId = (int) $productId;
-
-    $sql = "SELECT 1
-            FROM order_items oi
-            INNER JOIN orders o ON o.id = oi.order_id
-            WHERE o.user_id = ? AND oi.product_id = ? AND o.order_status = 'delivered'
-            LIMIT 1";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, 'ii', $userId, $productId);
-    mysqli_stmt_execute($stmt);
-    return mysqli_stmt_get_result($stmt)->num_rows > 0;
+if (!function_exists('getCustomerReview')) {
+    /** This customer's review of the product, or null. */
+    function getCustomerReview(mysqli $conn, $userId, $productId)
+    {
+        $userId    = (int) $userId;
+        $productId = (int) $productId;
+        $stmt = reviewPrepare($conn, 'SELECT * FROM reviews WHERE user_id = ? AND product_id = ? LIMIT 1');
+        $stmt->bind_param('ii', $userId, $productId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
 }
 
-/**
- * Create a customer's review. Always goes in as 'Pending' — moderation
- * happens in admin/reviews/, never automatically, regardless of rating.
- * verified_purchase is computed here from real order history, never taken
- * from the form.
- *
- * @param mysqli $conn
- * @param int $userId
- * @param int $productId
- * @param int $rating 1-5
- * @param ?string $reviewText
- * @return int The new review's id
- * @throws InvalidArgumentException|Exception
- */
-function createReview($conn, $userId, $productId, $rating, $reviewText)
-{
-    $userId = (int) $userId;
-    $productId = (int) $productId;
-    $rating = (int) $rating;
-    $reviewText = $reviewText !== null && trim((string) $reviewText) !== '' ? trim((string) $reviewText) : null;
+if (!function_exists('validateReviewInput')) {
+    /**
+     * Returns [int $rating, string|null $text] or throws
+     * InvalidArgumentException. The text is optional; empty becomes null.
+     */
+    function validateReviewInput($rating, $text)
+    {
+        if (!is_scalar($rating) || !preg_match('/^[1-5]$/D', trim((string) $rating))) {
+            throw new InvalidArgumentException('Please choose a rating from 1 to 5 stars.');
+        }
 
-    if ($rating < 1 || $rating > 5) {
-        throw new InvalidArgumentException('Rating must be between 1 and 5.');
+        $text = is_scalar($text) ? trim(str_replace("\r\n", "\n", (string) $text)) : '';
+        if (mb_strlen($text) > REVIEW_MAX_LENGTH()) {
+            throw new InvalidArgumentException('Your review is too long (maximum ' . REVIEW_MAX_LENGTH() . ' characters).');
+        }
+
+        return [(int) $rating, $text === '' ? null : $text];
     }
+}
 
-    if (getUserReviewForProduct($conn, $userId, $productId) !== null) {
-        throw new InvalidArgumentException('You have already reviewed this product.');
+if (!function_exists('saveCustomerReview')) {
+    /**
+     * Create or edit the customer's review of a product.
+     *
+     * - Refuses unless the customer has bought the product.
+     * - New and edited reviews are saved as 'Pending' so admin approves them
+     *   before they appear on the storefront.
+     * - verified_purchase is always 1 (that's what the check above proves).
+     *
+     * @return string 'created' or 'updated'
+     * @throws InvalidArgumentException on bad input or a product they haven't bought
+     * @throws RuntimeException on database failure
+     */
+    function saveCustomerReview(mysqli $conn, $userId, $productId, $rating, $text)
+    {
+        $userId    = (int) $userId;
+        $productId = (int) $productId;
+        list($rating, $text) = validateReviewInput($rating, $text);
+
+        if (!customerHasPurchasedProduct($conn, $userId, $productId)) {
+            throw new InvalidArgumentException('You can only review products you have purchased and received.');
+        }
+
+        $existing = getCustomerReview($conn, $userId, $productId);
+
+        if ($existing) {
+            $reviewId = (int) $existing['id'];
+            $stmt = reviewPrepare(
+                $conn,
+                "UPDATE reviews SET rating = ?, review = ?, status = 'Pending', verified_purchase = 1
+                  WHERE id = ? AND user_id = ?"
+            );
+            $stmt->bind_param('isii', $rating, $text, $reviewId, $userId);
+            $ok = $stmt->execute();
+            $stmt->close();
+            if (!$ok) {
+                throw new RuntimeException('Unable to save your review. Please try again.');
+            }
+            return 'updated';
+        }
+
+        // ON DUPLICATE KEY covers two tabs submitting at the same moment
+        // (reviews has UNIQUE (product_id, user_id)).
+        $stmt = reviewPrepare(
+            $conn,
+            "INSERT INTO reviews (product_id, user_id, rating, review, status, verified_purchase)
+             VALUES (?, ?, ?, ?, 'Pending', 1)
+             ON DUPLICATE KEY UPDATE rating = VALUES(rating), review = VALUES(review),
+                                     status = 'Pending', verified_purchase = 1"
+        );
+        $stmt->bind_param('iiis', $productId, $userId, $rating, $text);
+        $ok = $stmt->execute();
+        $stmt->close();
+        if (!$ok) {
+            throw new RuntimeException('Unable to save your review. Please try again.');
+        }
+        return 'created';
     }
-
-    $verifiedPurchase = userHasPurchasedProduct($conn, $userId, $productId) ? 1 : 0;
-    $status = 'Pending';
-
-    $stmt = mysqli_prepare(
-        $conn,
-        "INSERT INTO reviews (product_id, user_id, rating, review, status, verified_purchase)
-         VALUES (?, ?, ?, ?, ?, ?)"
-    );
-    mysqli_stmt_bind_param($stmt, 'iiissi', $productId, $userId, $rating, $reviewText, $status, $verifiedPurchase);
-    if (!mysqli_stmt_execute($stmt)) {
-        throw new Exception('Error saving review: ' . mysqli_error($conn));
-    }
-
-    return mysqli_insert_id($conn);
 }

@@ -331,19 +331,6 @@ $detailSections = [
         color: var(--color-primary);
     }
 
-    .pd-write-review-link {
-        display: block;
-        margin: -14px 0 22px;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--color-text-light);
-        text-decoration: underline;
-    }
-
-    .pd-write-review-link:hover {
-        color: var(--color-primary);
-    }
-
     .pd-block {
         margin-bottom: 24px;
     }
@@ -638,8 +625,6 @@ $detailSections = [
                 <span class="pd-stock-dot"></span>
                 <span id="js-stock-text"><?php echo $isOutOfStock ? 'Out of Stock' : (($currentStock <= 5) ? 'Only ' . $currentStock . ' left' : 'In Stock'); ?></span>
             </span>
-
-            <a href="<?php echo BASE_URL; ?>write-review.php?slug=<?php echo urlencode($viewProduct['slug']); ?>" class="pd-write-review-link">Write a review</a>
 
             <?php if ($hasVariants): ?>
                 <div class="pd-block">

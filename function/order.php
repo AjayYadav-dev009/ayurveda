@@ -223,3 +223,261 @@ function getOrderDetailsForCustomer($conn, $orderId, $userId)
 
     return $order;
 }
+
+/**
+ * Admin-side order functions (list, details, manual status change).
+ * Same style as function/order.php: mysqli prepared statements, $conn first,
+ * throws Exception on failure.
+ */
+
+const ORDER_STATUSES   = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'];
+const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
+
+/**
+ * Prepare + execute a query and return all rows as assoc arrays.
+ *
+ * @param mysqli $conn
+ * @param string $sql
+ * @param string $types  bind_param type string ('' when no params)
+ * @param array  $params
+ * @return array
+ * @throws Exception
+ */
+function adminOrderFetchAll($conn, $sql, $types = '', array $params = [])
+{
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    if ($params) {
+        $stmt->bind_param($types, ...$params);
+    }
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error executing query: " . mysqli_stmt_error($stmt));
+    }
+    $rows = mysqli_stmt_get_result($stmt)->fetch_all(MYSQLI_ASSOC);
+    mysqli_stmt_close($stmt);
+    return $rows;
+}
+
+/**
+ * Prepare + execute a write query.
+ *
+ * @throws Exception
+ */
+function adminOrderExec($conn, $sql, $types = '', array $params = [])
+{
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        throw new Exception("Error preparing statement: " . mysqli_error($conn));
+    }
+    if ($params) {
+        $stmt->bind_param($types, ...$params);
+    }
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new Exception("Error executing query: " . mysqli_stmt_error($stmt));
+    }
+    mysqli_stmt_close($stmt);
+}
+
+/**
+ * Paginated, filterable order list for the admin.
+ *
+ * @return array{orders:array, total:int, page:int, pages:int}
+ * @throws Exception
+ */
+function getOrdersForAdmin($conn, $search = '', $status = '', $paymentStatus = '', $page = 1, $perPage = 20)
+{
+    $where  = [];
+    $types  = '';
+    $params = [];
+
+    $search = trim((string) $search);
+    if ($search !== '') {
+        $where[] = '(o.order_number LIKE ? OR u.name LIKE ? OR u.email LIKE ? OR o.shipping_phone LIKE ?)';
+        $like = '%' . $search . '%';
+        $types .= 'ssss';
+        array_push($params, $like, $like, $like, $like);
+    }
+    if (in_array($status, ORDER_STATUSES, true)) {
+        $where[] = 'o.order_status = ?';
+        $types .= 's';
+        $params[] = $status;
+    }
+    if (in_array($paymentStatus, PAYMENT_STATUSES, true)) {
+        $where[] = 'o.payment_status = ?';
+        $types .= 's';
+        $params[] = $paymentStatus;
+    }
+    $w = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    $countRow = adminOrderFetchAll(
+        $conn,
+        "SELECT COUNT(*) AS c FROM orders o LEFT JOIN users u ON u.id = o.user_id $w",
+        $types,
+        $params
+    );
+    $total   = (int) $countRow[0]['c'];
+    $perPage = max(1, (int) $perPage);
+    $pages   = max(1, (int) ceil($total / $perPage));
+    $page    = min(max(1, (int) $page), $pages);
+    $offset  = ($page - 1) * $perPage;
+
+    $orders = adminOrderFetchAll(
+        $conn,
+        "SELECT o.id, o.order_number, o.total, o.payment_method, o.payment_status,
+                o.order_status, o.created_at,
+                u.name AS user_name, u.email AS user_email
+         FROM orders o
+         LEFT JOIN users u ON u.id = o.user_id
+         $w
+         ORDER BY o.id DESC
+         LIMIT $perPage OFFSET $offset",
+        $types,
+        $params
+    );
+
+    return ['orders' => $orders, 'total' => $total, 'page' => $page, 'pages' => $pages];
+}
+
+/**
+ * Everything the admin order page shows: the order, its items, payments
+ * and status history. Unlike getOrderDetailsForCustomer() this is NOT
+ * scoped to a user — admins can open any order.
+ *
+ * @return array|null null if the order doesn't exist
+ * @throws Exception
+ */
+function getOrderDetailsForAdmin($conn, $orderId)
+{
+    $rows = adminOrderFetchAll(
+        $conn,
+        "SELECT o.*, u.name AS user_name, u.email AS user_email
+         FROM orders o
+         LEFT JOIN users u ON u.id = o.user_id
+         WHERE o.id = ? LIMIT 1",
+        'i',
+        [(int) $orderId]
+    );
+    if (!$rows) {
+        return null;
+    }
+    $order = $rows[0];
+
+    $order['items'] = adminOrderFetchAll(
+        $conn,
+        "SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC",
+        'i',
+        [(int) $orderId]
+    );
+    $order['payments'] = adminOrderFetchAll(
+        $conn,
+        "SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC",
+        'i',
+        [(int) $orderId]
+    );
+    $order['logs'] = adminOrderFetchAll(
+        $conn,
+        "SELECT l.*, a.name AS admin_name
+         FROM order_status_logs l
+         LEFT JOIN admins a ON a.id = l.admin_id
+         WHERE l.order_id = ?
+         ORDER BY l.id DESC",
+        'i',
+        [(int) $orderId]
+    );
+
+    return $order;
+}
+
+/**
+ * Manually change an order (for testing). There are NO transition rules:
+ * any status can be set from any other. Keys read from $in (all optional,
+ * missing keys are left unchanged): order_status, payment_status,
+ * tracking_number, shipping_provider, note.
+ *
+ * Also syncs payments.status (and paid_at) when the payment status
+ * changes, and writes rows to order_status_logs.
+ *
+ * @param int|null $adminId
+ * @return array{0:bool, 1:string} [success, message]
+ */
+function updateOrderForAdmin($conn, $orderId, array $in, $adminId = null)
+{
+    $orderId = (int) $orderId;
+    mysqli_begin_transaction($conn);
+
+    try {
+        $cur = adminOrderFetchAll(
+            $conn,
+            "SELECT order_status, payment_status FROM orders WHERE id = ? FOR UPDATE",
+            'i',
+            [$orderId]
+        );
+        if (!$cur) {
+            mysqli_rollback($conn);
+            return [false, 'Order not found.'];
+        }
+        $cur = $cur[0];
+
+        $newOrder = (isset($in['order_status']) && in_array($in['order_status'], ORDER_STATUSES, true))
+            ? $in['order_status'] : $cur['order_status'];
+        $newPay = (isset($in['payment_status']) && in_array($in['payment_status'], PAYMENT_STATUSES, true))
+            ? $in['payment_status'] : $cur['payment_status'];
+
+        $set    = ['order_status = ?', 'payment_status = ?'];
+        $types  = 'ss';
+        $params = [$newOrder, $newPay];
+
+        foreach (['tracking_number' => 150, 'shipping_provider' => 100] as $col => $max) {
+            if (array_key_exists($col, $in)) {
+                $val = trim((string) $in[$col]);
+                $set[]    = "$col = ?";
+                $types   .= 's';
+                $params[] = $val === '' ? null : mb_substr($val, 0, $max);
+            }
+        }
+        $types   .= 'i';
+        $params[] = $orderId;
+        adminOrderExec($conn, 'UPDATE orders SET ' . implode(', ', $set) . ' WHERE id = ?', $types, $params);
+
+        $note         = trim((string) ($in['note'] ?? ''));
+        $orderChanged = $newOrder !== $cur['order_status'];
+        $payChanged   = $newPay !== $cur['payment_status'];
+
+        if ($payChanged) {
+            adminOrderExec(
+                $conn,
+                "UPDATE payments
+                 SET status = ?,
+                     paid_at = CASE WHEN ? = 'paid' THEN COALESCE(paid_at, NOW()) ELSE paid_at END
+                 WHERE order_id = ?",
+                'ssi',
+                [$newPay, $newPay, $orderId]
+            );
+        }
+
+        $logSql = "INSERT INTO order_status_logs (order_id, old_status, new_status, note, admin_id)
+                   VALUES (?, ?, ?, ?, ?)";
+        if ($orderChanged) {
+            adminOrderExec($conn, $logSql, 'isssi', [
+                $orderId,
+                $cur['order_status'],
+                $newOrder,
+                $note !== '' ? mb_substr($note, 0, 500) : 'Manual change',
+                $adminId,
+            ]);
+        }
+        if ($payChanged) {
+            $n = "Payment status: {$cur['payment_status']} → $newPay"
+               . ($note !== '' && !$orderChanged ? " ($note)" : '');
+            adminOrderExec($conn, $logSql, 'isssi', [$orderId, $newOrder, $newOrder, mb_substr($n, 0, 500), $adminId]);
+        }
+
+        mysqli_commit($conn);
+        return [true, ($orderChanged || $payChanged) ? 'Order updated.' : 'Saved (no status change).'];
+    } catch (Throwable $ex) {
+        mysqli_rollback($conn);
+        return [false, 'Update failed: ' . $ex->getMessage()];
+    }
+}

@@ -17,6 +17,8 @@ $badgeClass = [
     'Pending' => 'badge-pending',
     'Rejected' => 'badge-rejected',
 ][$review['status']] ?? 'badge-pending';
+
+include __DIR__ . '/../include/header.php'
 ?>
 
 <style>
@@ -175,3 +177,5 @@ $badgeClass = [
     <dt>Last updated</dt>
     <dd><?php echo htmlspecialchars($review['updated_at']); ?></dd>
 </dl>
+
+<?php include __DIR__ . '/../include/footer.php' ?>

@@ -8,6 +8,7 @@ $navItems = [
     'dashboard' => ['label' => 'Dashboard', 'href' => BASE_URL . 'account/index.php'],
     'orders'    => ['label' => 'My Orders', 'href' => BASE_URL . 'account/my-orders.php'],
     'wishlist'  => ['label' => 'Wishlist', 'href' => BASE_URL . 'account/wishlist.php'],
+    'reviews'   => ['label' => 'My Reviews', 'href' => BASE_URL . 'account/reviews.php'],
     'addresses' => ['label' => 'Addresses', 'href' => BASE_URL . 'account/address/index.php'],
     'profile'   => ['label' => 'Profile', 'href' => BASE_URL . 'account/profile.php'],
 ];

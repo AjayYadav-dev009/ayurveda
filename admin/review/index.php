@@ -25,6 +25,8 @@ $updated = isset($_GET['updated']) && $_GET['updated'] === '1';
 // on this same page, so the admin isn't bounced back to "All" after acting
 // on a row from the "Pending" tab.
 $statusQuery = $statusFilter !== '' ? '&status=' . urlencode($statusFilter) : '';
+
+include __DIR__ . '/../include/header.php'
 ?>
 
 <style>
@@ -294,3 +296,5 @@ $statusQuery = $statusFilter !== '' ? '&status=' . urlencode($statusFilter) : ''
         </table>
     <?php endif; ?>
 </div>
+
+<?php include __DIR__ . '/../include/footer.php' ?>
