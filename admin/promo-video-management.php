@@ -5,11 +5,6 @@ require_once __DIR__ . '/../function/promotional-video.php';
 require_once __DIR__ . '/../function/csrf.php';
 require_once __DIR__ . '/../function/helper.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-
 $selfFile = basename(__FILE__);
 
 function promoVideoFlash($type, $message)

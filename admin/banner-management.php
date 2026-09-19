@@ -1,37 +1,10 @@
 <?php
 
-/**
- * Admin — Banner Management
- *
- * Full CRUD for the homepage hero banners: add, edit, delete, toggle
- * active/inactive, and reorder. Built on the existing `banners` table via
- * function/banner.php — no schema changes.
- *
- * INTEGRATION:
- *  - Drop this file into your admin area (e.g. admin/banner-management.php).
- *  - Swap the placeholder auth check below for your project's real one.
- *  - Swap the plain <header>/<style> block for your existing admin
- *    layout/header/footer includes — everything banner-specific lives
- *    between the "ADMIN CHROME" markers so it's easy to lift out.
- */
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../function/banner.php';
 require_once __DIR__ . '/../function/csrf.php';
 require_once __DIR__ . '/../function/helper.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// ---------------------------------------------------------------------------
-// TODO: wire this into your existing admin auth guard, e.g.:
-//   require_once __DIR__ . '/../function/auth.php';
-//   requireAdminLogin();
-// Left as a no-op placeholder so this file is self-contained to review.
-// ---------------------------------------------------------------------------
-
-// Computed instead of hardcoded, so every link/redirect below still works
-// no matter what this file is actually named or renamed to.
 $selfFile = basename(__FILE__);
 
 function bannerFlash($type, $message)

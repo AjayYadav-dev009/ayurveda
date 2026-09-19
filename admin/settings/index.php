@@ -1,11 +1,4 @@
 <?php
-/**
- * admin/settings/index.php
- *
- * Settings Management — list, search, filter, and delete site-wide settings.
- * Add/Edit happen on create.php / edit.php. Delete is a POST action handled
- * by delete.php.
- */
 
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
@@ -13,10 +6,6 @@ require_once __DIR__ . '/../../function/settings.php';
 require_once __DIR__ . '/../../function/csrf.php';
 require_once __DIR__ . '/../../function/helper.php';
 require_once __DIR__ . '/../../includes/auth.php';
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 $search = trim($_GET['search'] ?? '');
 $group  = trim($_GET['group'] ?? 'all');

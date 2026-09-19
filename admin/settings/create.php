@@ -12,10 +12,6 @@ require_once __DIR__ . '/../../function/settings.php';
 require_once __DIR__ . '/../../function/csrf.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 $error = null;
 
 // Defaults for a blank form.

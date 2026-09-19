@@ -1,10 +1,7 @@
 <?php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/cart.php';
@@ -489,7 +486,7 @@ $items = $totals['items'];
                     <path d="M52 24c-8 0-14 6-16 14 8 2 16-2 20-8 1.5-2.4 1-4.6-4-6z" />
                 </svg>
                 <p>Your cart is empty.</p>
-                <a href="<?php echo BASE_URL; ?>products.php" class="cart-btn cart-btn--primary">Continue Shopping</a>
+                <a href="<?php echo BASE_URL; ?>categories/categories.php" class="cart-btn cart-btn--primary">Continue Shopping</a>
             </div>
         <?php else: ?>
             <div class="cart-layout">
@@ -577,7 +574,7 @@ $items = $totals['items'];
                         <?php echo $totals['can_checkout'] ? '' : 'aria-disabled="true" onclick="return false;"'; ?>>
                         Proceed to Checkout
                     </a>
-                    <a href="<?php echo BASE_URL; ?>products.php" class="cart-continue">Continue Shopping</a>
+                    <a href="<?php echo BASE_URL; ?>categories/categories.php" class="cart-continue">Continue Shopping</a>
                 </div>
             </div>
         <?php endif; ?>

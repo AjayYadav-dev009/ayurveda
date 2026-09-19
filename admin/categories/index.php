@@ -3,12 +3,6 @@
 <?php include __DIR__ . '/../../includes/auth.php'; ?>
 
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-?>
-
-<?php
 $categories = getCategories($conn);
 ?>
 

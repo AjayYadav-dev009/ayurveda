@@ -13,10 +13,6 @@ require_once __DIR__ . '/../../function/settings.php';
 require_once __DIR__ . '/../../function/csrf.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Deleting must never happen from a plain link / GET request.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: index.php');

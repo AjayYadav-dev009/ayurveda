@@ -5,12 +5,6 @@
 <?php include __DIR__ . '/../../includes/auth.php'; ?>
 
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-?>
-
-<?php
 $errors = [];
 
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
