@@ -1,6 +1,35 @@
 <?php
 $pageTitle = $pageTitle ?? 'Admin';
 $activeNav = $activeNav ?? '';
+
+/**
+ * URL path of the /admin folder (e.g. "/ayurveda/admin"), so sidebar links
+ * work from any page depth. Derived from the running script's file path and
+ * URL, so it needs no config and works in a subfolder or at the site root.
+ */
+if (!isset($adminBase)) {
+    $adminBase = '/admin'; // last-resort fallback
+    $adminDir   = realpath(__DIR__ . '/..');
+    $scriptFile = isset($_SERVER['SCRIPT_FILENAME']) ? realpath($_SERVER['SCRIPT_FILENAME']) : false;
+    $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+
+    if ($adminDir !== false && $scriptFile !== false) {
+        $adminDir   = rtrim(str_replace('\\', '/', $adminDir), '/');
+        $scriptFile = str_replace('\\', '/', $scriptFile);
+
+        if (stripos($scriptFile, $adminDir . '/') === 0) {
+            // e.g. "/settings/index.php" — the script's path inside /admin
+            $rel = substr($scriptFile, strlen($adminDir));
+            if (strlen($scriptName) >= strlen($rel)
+                && strcasecmp(substr($scriptName, -strlen($rel)), $rel) === 0) {
+                $adminBase = substr($scriptName, 0, strlen($scriptName) - strlen($rel));
+            }
+        }
+    }
+}
+$adminUrl = function ($path) use ($adminBase) {
+    return htmlspecialchars($adminBase . '/' . ltrim($path, '/'), ENT_QUOTES, 'UTF-8');
+};
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -159,41 +188,41 @@ $activeNav = $activeNav ?? '';
             </p>
             <nav>
                 <span class="nav__section">Catalog</span>
-                <a href="products/index.php" class="<?= $activeNav === 'products' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('products/index.php') ?>" class="<?= $activeNav === 'products' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                     Products
                 </a>
-                <a href="categories/index.php" class="<?= $activeNav === 'categories' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('categories/index.php') ?>" class="<?= $activeNav === 'categories' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h10"/><path d="M4 19h6"/></svg>
                     Categories
                 </a>
                 <span class="nav__section">People</span>
-                <a href="users/index.php" class="<?= $activeNav === 'users' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('users/index.php') ?>" class="<?= $activeNav === 'users' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     Users
                 </a>
-                <a href="team-management.php" class="<?= $activeNav === 'team' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('team-management.php') ?>" class="<?= $activeNav === 'team' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     Team Management
                 </a>
                 <span class="nav__section">Storefront</span>
-                <a href="banner-management.php" class="<?= $activeNav === 'banners' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('banner-management.php') ?>" class="<?= $activeNav === 'banners' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 6 4-6 4"/><path d="M13 9h6"/><path d="M13 13h6"/></svg>
                     Banner Management
                 </a>
-                <a href="review/index.php" class="<?= $activeNav === 'banners' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('review/index.php') ?>" class="<?= $activeNav === 'reviews' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 6 4-6 4"/><path d="M13 9h6"/><path d="M13 13h6"/></svg>
                     Review Management
                 </a>
-                <a href="settings/index.php" class="<?= $activeNav === 'banners' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('settings/index.php') ?>" class="<?= $activeNav === 'settings' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 6 4-6 4"/><path d="M13 9h6"/><path d="M13 13h6"/></svg>
                     Settings Management
                 </a>
-                <a href="promo-video-management.php" class="<?= $activeNav === 'banners' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('promo-video-management.php') ?>" class="<?= $activeNav === 'promo' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 6 4-6 4"/><path d="M13 9h6"/><path d="M13 13h6"/></svg>
                     Promo Video Management
                 </a>
-                <a href="transformation-management.php" class="<?= $activeNav === 'banners' ? 'active' : '' ?>">
+                <a href="<?= $adminUrl('transformation-management.php') ?>" class="<?= $activeNav === 'transformations' ? 'active' : '' ?>">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 9 6 4-6 4"/><path d="M13 9h6"/><path d="M13 13h6"/></svg>
                     Transformation Management
                 </a>

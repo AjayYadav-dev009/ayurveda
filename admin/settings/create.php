@@ -1,9 +1,9 @@
 <?php
 /**
- * admin/settings/edit.php?id=123
+ * admin/settings/create.php
  *
- * Edit an existing setting. On success, flashes a message and returns to
- * index.php.
+ * Add a new site-wide setting. On success, flashes a message and returns
+ * to index.php.
  */
 
 require_once __DIR__ . '/../../config/config.php';
@@ -16,23 +16,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$id = (int) ($_GET['id'] ?? 0);
+$error = null;
 
-try {
-    $setting = $id > 0 ? getSettingById($conn, $id) : null;
-} catch (Throwable $ex) {
-    $setting = null;
-}
-
-if (!$setting) {
-    $_SESSION['settings_flash'] = ['type' => 'error', 'message' => 'Setting not found.'];
-    header('Location: index.php');
-    exit;
-}
-
-$error         = null;
-$form          = settingFormFromRow($setting);
-$existingImage = $setting['setting_type'] === 'image' ? (string) $setting['setting_value'] : '';
+// Defaults for a blank form.
+$form = settingFormFromPost([]);
+$form['setting_type']  = 'text';
+$form['setting_group'] = 'General';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form = settingFormFromPost($_POST);
@@ -43,22 +32,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newImage = null;
         try {
             if ($form['setting_type'] === 'image') {
-                // null = no file chosen; updateSetting() then keeps the current image.
                 $newImage = uploadSettingImage($_FILES['value_image'] ?? null);
                 $form['setting_value'] = $newImage ?? '';
             }
 
-            updateSetting($conn, $id, $form);
+            addSetting($conn, $form);
 
             $_SESSION['settings_flash'] = [
                 'type'    => 'success',
-                'message' => 'Setting "' . $form['label'] . '" was updated.',
+                'message' => 'Setting "' . $form['label'] . '" was created.',
             ];
             header('Location: index.php');
             exit;
         } catch (InvalidArgumentException $ex) {
             $error = $ex->getMessage();
         } catch (mysqli_sql_exception $ex) {
+            // 1062 = duplicate entry (two admins created the same key at once)
             $error = $ex->getCode() === 1062
                 ? 'A setting with the key "' . $form['setting_key'] . '" already exists.'
                 : 'A database error occurred. Please try again.';
@@ -66,18 +55,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = $ex->getMessage();
         }
 
-        // Saving failed, so discard the file we just uploaded.
+        // Don't leave an orphaned upload behind when saving failed.
         if ($newImage) {
             deleteSettingImageFile($newImage);
         }
     }
 }
 
-$csrfToken  = generateCSRFToken();
-$mode       = 'edit';
-$formAction = 'edit.php?id=' . $id;
+$csrfToken     = generateCSRFToken();
+$mode          = 'create';
+$formAction    = 'create.php';
+$existingImage = '';
 
-$pageTitle = 'Edit Setting';
+$pageTitle = 'Add Setting';
 $activeNav = 'settings';
 
 include __DIR__ . '/../include/header.php';
