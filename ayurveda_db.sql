@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 22, 2026 at 11:00 AM
+-- Generation Time: Sep 22, 2026 at 03:08 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -60,6 +60,13 @@ CREATE TABLE `admins` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admins`
+--
+
+INSERT INTO `admins` (`id`, `name`, `email`, `password`, `role`, `status`, `last_login_at`, `created_at`, `updated_at`) VALUES
+(1, 'Admin', 'admin@123.com', '$2y$10$./mHXqHBdscoscHPi2u74e5W1FLluhZJlvzU8PHbeLuB8G6OzeQum', 'super_admin', 'Active', NULL, '2026-09-22 09:28:42', '2026-09-22 09:38:42');
 
 -- --------------------------------------------------------
 
@@ -138,6 +145,15 @@ CREATE TABLE `categories` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `categories`
+--
+
+INSERT INTO `categories` (`id`, `parent_id`, `name`, `slug`, `meta_title`, `meta_description`, `description`, `image`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
+(1, NULL, 'Men\'s Wellness', 'mens-wellness', 'Men\'s Wellness | Vedorishi Ayurveda', 'Ayurvedic vitality, stamina and strength products for men.', 'Ayurvedic formulations to support men\'s vitality, stamina and strength.', 'menwell-category-1-87f8aa5dabf3.jpg', 'Active', 1, '2026-09-22 09:09:45', '2026-09-22 13:07:42'),
+(2, NULL, 'Weight Loss', 'weight-loss', 'Weight Loss | Vedorishi Ayurveda', 'Ayurvedic weight management products to support metabolism and appetite control.', 'Ayurvedic formulations to support healthy metabolism, fat reduction and appetite control.', 'uploads/categories/weight-loss-1.jpg', 'Active', 2, '2026-09-22 09:09:45', '2026-09-22 12:58:35'),
+(3, NULL, 'Combo', 'combo', 'Combo Packs | Vedorishi Ayurveda', 'Combo packs bundling our best-selling wellness products.', 'Bundled combo packs. Products and category image pending.', NULL, 'Active', 3, '2026-09-22 09:09:45', '2026-09-22 12:58:39');
 
 -- --------------------------------------------------------
 
@@ -308,6 +324,20 @@ CREATE TABLE `products` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `products`
+--
+
+INSERT INTO `products` (`id`, `title`, `slug`, `short_description`, `description`, `base_price`, `base_sale_price`, `has_variants`, `stock`, `featured`, `bestseller`, `trending`, `seasonal`, `status`, `meta_title`, `meta_description`, `created_at`, `updated_at`) VALUES
+(1, 'Alpha X Resin', 'alpha-x-resin', 'Natural resin for vitality and stamina.', 'Alpha X Resin is a traditional Ayurvedic resin formulation crafted to support vitality, stamina and overall male wellness.', 2499.00, 2374.05, 0, 0, 0, 0, 0, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-22 12:59:08'),
+(2, 'Alpha X Powder', 'alpha-x-powder', 'Strength, energy & endurance powder enriched with Kaunch Beej, Safed Musli & Gokhru. 150 gm.', 'Alpha X Powder is enriched with Kaunch Beej, Safed Musli and Gokhru to support strength, energy and endurance. Pack size: 150 gm.', 1999.00, 1899.05, 0, 0, 0, 0, 0, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-22 12:59:13'),
+(3, 'Alpha X Tablet', 'alpha-x-tablet', 'Vitality, stamina & confidence tablets enriched with Ashwagandha, Shilajit & Kaunch Beej. 60 tabs.', 'Alpha X Tablet is enriched with Ashwagandha, Shilajit and Kaunch Beej to support vitality, stamina and confidence. Pack size: 60 tablets.', 1999.00, 1899.05, 0, 0, 0, 0, 0, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-22 12:59:19'),
+(4, 'Alpha X Oil', 'alpha-x-oil', 'Massage & vitality oil. Natural, safe, effective. 30 ml.', 'Alpha X Oil is a natural massage and vitality oil formulated to be safe and effective. Pack size: 30 ml.', 1199.00, 1139.05, 0, 0, 0, 0, 0, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-22 13:00:23'),
+(5, 'Lean Plus Capsule', 'lean-plus-capsule', 'Ayurvedic weight management capsules. Proprietary medicine. 60 capsules.', 'Lean Plus Capsule supports healthy metabolism, helps reduce fat accumulation, and supports appetite and craving control. Pack size: 60 capsules.', 3095.00, 2940.25, 0, 0, 0, 0, 0, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-22 13:00:19'),
+(6, 'Lean Plus Syrup', 'lean-plus-syrup', 'Ayurvedic weight management syrup. Proprietary medicine. 300 ml.', 'Lean Plus Syrup supports healthy metabolism, helps reduce fat accumulation, supports appetite and craving control, and helps maintain energy levels. Pack size: 300 ml.', 0.00, NULL, 0, 0, 0, 0, 0, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-22 13:00:15'),
+(8, 'Men\'s Wellness Full Kit', 'mens-wellness-full-kit', 'Complete Alpha X kit: Resin, Powder, Tablet & Oil in one pack.', 'The Men\'s Wellness Full Kit bundles all four Alpha X formulations — Resin, Powder, Tablet and Oil — for a complete vitality, stamina and strength routine.', 7696.00, 6541.60, 0, 0, 0, 0, 0, 0, 'Active', NULL, NULL, '2026-09-22 09:21:03', '2026-09-22 13:00:11'),
+(9, 'Weight Loss Full Kit', 'weight-loss-full-kit', 'Complete Lean Plus kit: Capsule & Syrup in one pack.', 'The Weight Loss Full Kit bundles Lean Plus Capsule and Lean Plus Syrup together to support metabolism, fat reduction and appetite control.', 0.00, NULL, 0, 0, 0, 0, 0, 0, 'Active', NULL, NULL, '2026-09-22 09:21:03', '2026-09-22 13:00:08');
+
 -- --------------------------------------------------------
 
 --
@@ -319,6 +349,20 @@ CREATE TABLE `product_categories` (
   `category_id` bigint(20) UNSIGNED NOT NULL,
   `is_primary` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `product_categories`
+--
+
+INSERT INTO `product_categories` (`product_id`, `category_id`, `is_primary`) VALUES
+(1, 1, 1),
+(2, 1, 1),
+(3, 1, 1),
+(4, 1, 1),
+(5, 2, 1),
+(6, 2, 1),
+(8, 3, 1),
+(9, 3, 1);
 
 -- --------------------------------------------------------
 
@@ -341,6 +385,20 @@ CREATE TABLE `product_details` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `product_details`
+--
+
+INSERT INTO `product_details` (`id`, `product_id`, `ingredients`, `benefits`, `directions`, `dosage`, `precautions`, `manufacturer`, `country_of_origin`, `shelf_life`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Each 1 gm contains: Shuddh Shilajit extract 700 mg, Ashwagandha extract 100 mg, Gokhru extract 75 mg, Safed Musli extract 50 mg, Salam Panja extract 25 mg, Javitri/Jaiphal extract 20 mg, Base q.s.', 'Strength, energy & endurance. Supports vitality, stamina and confidence.', 'Take pea size (300 mg) with warm water or milk, or as directed by the physician.', '300 mg (pea size) once daily, or as directed by consultant.', 'Store in a cool, dry place away from children. Do not exceed recommended dosage.', NULL, 'India', '36 months from date of manufacture', '2026-09-22 09:32:01', '2026-09-22 09:32:01'),
+(2, 2, 'Each 10 gm contains: Kaunch Beej 2000 mg, Safed Musli 1500 mg, Ashwagandha root 1500 mg, Vidarikand 1000 mg, Gokhru 1000 mg, Salam Panja 500 mg, Shatavari 500 mg, Excipients q.s.', 'Strength, energy & endurance. Supports daily vitality, active lifestyle, men\'s wellness and overall wellbeing.', 'Take 10 gm of Alpha X powder with warm water or milk, or as directed by consultant.', '10 gm once daily, or as directed by consultant.', 'Store in a cool, dry & dark place. Keep away from children.', NULL, 'India', '36 months from date of manufacture', '2026-09-22 09:32:01', '2026-09-22 09:32:01'),
+(3, 3, 'Each tablet contains: Ashwagandha extract 300 mg, Gokhru extract 150 mg, Safed Musli extract 100 mg, Akarkara extract 75 mg, Shilajit extract 100 mg, Kaunch Beej extract 100 mg, Kesar 15 mg, Safedsi extract 25 mg, Excipients q.s.', 'Vitality, stamina & confidence. Supports daily vitality, active lifestyle, men\'s wellness and inner wellness.', 'Take 1 tablet a day with water, or as directed by consultant.', '1 tablet daily, or as directed by consultant.', 'Store in a cool, dry & dark place. Keep away from children.', NULL, 'India', '36 months from date of manufacture', '2026-09-22 09:32:01', '2026-09-22 09:32:01'),
+(4, 4, 'Each 30 ml contains: Malkangni 600 mg, Akarkara 300 mg, Jalphal 300 mg, Kesar 150 mg, Laung 100 mg, Til Tail q.s. to 30 ml.', 'Natural care, body comfort, relaxing muscles. Natural, safe, effective massage & vitality oil.', 'Apply 1-3 ml of oil externally on the affected area and massage gently once a day, or as directed by the physician.', '1-3 ml externally, once daily, or as directed by consultant.', 'Store in a cool, dry & dark place. Keep away from children. Do not refrigerate.', NULL, 'India', '36 months from date of manufacture', '2026-09-22 09:32:01', '2026-09-22 09:32:01'),
+(5, 5, 'Each capsule contains: Triphala 50 mg, Ajwain 40 mg, Punernava 30 mg, Heeng 20 mg, Vidang 50 mg, Guggal 50 mg, Shudh Shilajit 20 mg, Trikuta 20 mg, Yavkshar 30 mg, Pipplamool 50 mg, Arogyavardhini 50 mg, Sounth 40 mg, Methi Dana 50 mg, Garcinia 50 mg.', 'Supports healthy weight management by promoting fat metabolism, improving digestion, reducing appetite naturally, enhancing energy levels, and helping maintain a healthy lipid profile.', '1 capsule twice a day with water, or as directed by consultant.', '1 capsule twice daily, or as directed by consultant.', 'Store in a cool, dry & dark place. Keep away from children.', NULL, 'India', '36 months from date of manufacture', '2026-09-22 09:32:01', '2026-09-22 09:32:01'),
+(6, 6, 'Each 5 ml contains: Garcinia Cambogia 1000 mg, Trigonella foenum-graecum 100 mg, Allium sativum 750 mg, Emblica officinalis 200 mg, Terminalia chebula 200 mg, Terminalia bellerica 200 mg, Trachyspermum ammi 100 mg, Foeniculum vulgare 400 mg, Zingiber officinale 100 mg.', 'Supports by boosting metabolism, reducing fat accumulation, and controlling appetite & cravings. No side effects; best used alongside a healthy lifestyle.', 'As directed by the consultant. Shake well before use.', 'As directed by consultant.', 'Colour, taste & aroma may vary batch to batch (natural herbal extract). Consume within one month of opening. Store in a cool, dry place.', NULL, 'India', '36 months from date of manufacture', '2026-09-22 09:32:01', '2026-09-22 09:32:01'),
+(7, 8, 'Bundle of: Alpha X Resin, Alpha X Powder, Alpha X Tablet and Alpha X Oil. See each product\'s own listing for its full ingredient panel.', 'Complete men\'s wellness routine covering vitality, stamina, strength and topical massage support.', 'Follow the individual direction-for-use printed on each item in the kit.', 'As directed on each individual product, or by consultant.', 'Store all items in a cool, dry & dark place. Keep away from children.', NULL, 'India', '36 months from date of manufacture', '2026-09-22 09:32:01', '2026-09-22 09:32:01'),
+(8, 9, 'Bundle of: Lean Plus Capsule and Lean Plus Syrup. See each product\'s own listing for its full ingredient panel.', 'Complete weight management routine combining a capsule and syrup formulation to support metabolism, fat reduction and appetite control.', 'Follow the individual direction-for-use printed on each item in the kit.', 'As directed on each individual product, or by consultant.', 'Store all items in a cool, dry & dark place. Keep away from children.', NULL, 'India', '36 months from date of manufacture', '2026-09-22 09:32:01', '2026-09-22 09:32:01');
+
 -- --------------------------------------------------------
 
 --
@@ -356,6 +414,36 @@ CREATE TABLE `product_images` (
   `sort_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `product_images`
+--
+
+INSERT INTO `product_images` (`id`, `product_id`, `image`, `alt_text`, `is_primary`, `sort_order`, `created_at`) VALUES
+(1, 1, 'uploads/products/alpha-x-resin-1.jpg', 'Alpha X Resin', 1, 1, '2026-09-22 09:09:45'),
+(2, 1, 'uploads/products/alpha-x-resin-2.jpg', 'Alpha X Resin', 0, 2, '2026-09-22 09:09:45'),
+(3, 1, 'uploads/products/alpha-x-resin-3.jpg', 'Alpha X Resin', 0, 3, '2026-09-22 09:09:45'),
+(4, 1, 'uploads/products/alpha-x-resin-4.jpg', 'Alpha X Resin', 0, 4, '2026-09-22 09:09:45'),
+(5, 2, 'uploads/products/alpha-x-powder-1.jpg', 'Alpha X Powder', 1, 1, '2026-09-22 09:09:45'),
+(6, 2, 'uploads/products/alpha-x-powder-2.jpg', 'Alpha X Powder', 0, 2, '2026-09-22 09:09:45'),
+(7, 2, 'uploads/products/alpha-x-powder-3.jpg', 'Alpha X Powder', 0, 3, '2026-09-22 09:09:45'),
+(8, 3, 'uploads/products/alpha-x-tablet-1.jpg', 'Alpha X Tablet', 1, 1, '2026-09-22 09:09:45'),
+(9, 3, 'uploads/products/alpha-x-tablet-2.jpg', 'Alpha X Tablet', 0, 2, '2026-09-22 09:09:45'),
+(10, 3, 'uploads/products/alpha-x-tablet-3.jpg', 'Alpha X Tablet', 0, 3, '2026-09-22 09:09:45'),
+(11, 4, 'uploads/products/alpha-x-oil-1.jpg', 'Alpha X Oil', 1, 1, '2026-09-22 09:09:45'),
+(12, 4, 'uploads/products/alpha-x-oil-2.jpg', 'Alpha X Oil', 0, 2, '2026-09-22 09:09:45'),
+(13, 4, 'uploads/products/alpha-x-oil-3.jpg', 'Alpha X Oil', 0, 3, '2026-09-22 09:09:45'),
+(14, 5, 'uploads/products/lean-plus-capsule-1.jpg', 'Lean Plus Capsule', 1, 1, '2026-09-22 09:09:45'),
+(15, 5, 'uploads/products/lean-plus-capsule-2.jpg', 'Lean Plus Capsule', 0, 2, '2026-09-22 09:09:45'),
+(16, 5, 'uploads/products/lean-plus-capsule-3.jpg', 'Lean Plus Capsule', 0, 3, '2026-09-22 09:09:45'),
+(17, 5, 'uploads/products/lean-plus-capsule-4.jpg', 'Lean Plus Capsule', 0, 4, '2026-09-22 09:09:45'),
+(18, 6, 'uploads/products/lean-plus-syrup-1.jpg', 'Lean Plus Syrup', 1, 1, '2026-09-22 09:09:45'),
+(19, 6, 'uploads/products/lean-plus-syrup-2.jpg', 'Lean Plus Syrup', 0, 2, '2026-09-22 09:09:45'),
+(20, 6, 'uploads/products/lean-plus-syrup-3.jpg', 'Lean Plus Syrup', 0, 3, '2026-09-22 09:09:45'),
+(21, 8, 'uploads/products/mens-wellness-full-kit-1.jpg', 'Men\'s Wellness Full Kit', 1, 1, '2026-09-22 09:21:03'),
+(22, 8, 'uploads/products/mens-wellness-full-kit-2.jpg', 'Men\'s Wellness Full Kit', 0, 2, '2026-09-22 09:21:03'),
+(23, 9, 'uploads/products/weight-loss-full-kit-1.jpg', 'Weight Loss Full Kit', 1, 1, '2026-09-22 09:21:03'),
+(24, 9, 'uploads/products/weight-loss-full-kit-2.jpg', 'Weight Loss Full Kit', 0, 2, '2026-09-22 09:21:03');
 
 -- --------------------------------------------------------
 
@@ -727,7 +815,7 @@ ALTER TABLE `addresses`
 -- AUTO_INCREMENT for table `admins`
 --
 ALTER TABLE `admins`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `banners`
@@ -751,7 +839,7 @@ ALTER TABLE `cart`
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `coupons`
@@ -799,19 +887,19 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `product_details`
 --
 ALTER TABLE `product_details`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `product_images`
 --
 ALTER TABLE `product_images`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `product_variants`

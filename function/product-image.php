@@ -509,5 +509,5 @@ function setPrimaryProductImage($conn, $productId, $imageId)
  */
 function getProductImageUrl($imagePath)
 {
-    return rtrim(PRODUCT_IMAGE_PUBLIC_PATH, '/') . '/' . ltrim($imagePath, '/');
+    return rtrim(BASE_URL, '/') . '/uploads/products/' . ltrim($imagePath, '/');
 }

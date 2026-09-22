@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/product.php';
 require_once __DIR__ . '/../function/category.php';
+require_once __DIR__ . '/../function/product-image.php';
 
 $categorySlug = isset($_GET['category_slug']) ? trim($_GET['category_slug']) : '';
 
@@ -429,7 +430,7 @@ $hasSidebar = !empty($categorySidebarItems);
                             <div class="product-image-wrap">
                                 <?php if (!empty($product['primary_image'])): ?>
                                     <img
-                                        src="<?php echo rtrim(BASE_URL, '/') . getProductImageUrl($product['primary_image']); ?>"
+                                        src="<?php echo htmlspecialchars(getProductImageUrl($product['primary_image'])); ?>"
                                         alt="<?php echo htmlspecialchars($product['title']); ?>"
                                         class="product-image"
                                         loading="lazy">

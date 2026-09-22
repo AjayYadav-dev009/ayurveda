@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/product.php';
+require_once __DIR__ . '/../function/product-image.php';
 
 $slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
 
@@ -567,7 +568,7 @@ $detailSections = [
 
                 <?php if (!empty($images)): ?>
                     <img
-                        src="<?php echo BASE_URL . ltrim($images[0]['image'], '/'); ?>"
+                        src="<?php echo getProductImageUrl($images[0]['image']); ?>"
                         alt="<?php echo htmlspecialchars($images[0]['alt_text'] ?: $viewProduct['title']); ?>"
                         class="pd-main-image"
                         id="js-main-image">
@@ -589,10 +590,10 @@ $detailSections = [
                         <button
                             type="button"
                             class="pd-thumb<?php echo $i === 0 ? ' is-active' : ''; ?>"
-                            data-full="<?php echo BASE_URL . ltrim($image['image'], '/'); ?>"
+                            data-full="<?php echo getProductImageUrl($image['image']); ?>"
                             aria-label="View image <?php echo $i + 1; ?>">
                             <img
-                                src="<?php echo BASE_URL . ltrim($image['image'], '/'); ?>"
+                                src="<?php echo getProductImageUrl($image['image']); ?>"
                                 alt="<?php echo htmlspecialchars($image['alt_text'] ?: $viewProduct['title']); ?>">
                         </button>
                     <?php endforeach; ?>
