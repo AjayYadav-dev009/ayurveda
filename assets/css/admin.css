@@ -1,5 +1,3 @@
-
-
 :root {
   --bg: #faf8f3;
   --surface: #ffffff;
@@ -407,4 +405,123 @@ tbody tr:hover {
 }
 .empty-state p {
   margin: 0 0 16px;
+}
+
+/* --- Product form: section nav + layout --- */
+.product-form-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+}
+.form-section-nav {
+  position: sticky;
+  top: 24px;
+  width: 168px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.form-section-nav a {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.form-section-nav a:hover {
+  background: var(--sage-tint);
+  color: var(--sage-dark);
+  text-decoration: none;
+}
+.form-section-nav a.is-active {
+  background: var(--sage-tint);
+  color: var(--sage-dark);
+}
+.product-form {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+.product-form fieldset {
+  scroll-margin-top: 16px;
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 24px 28px;
+}
+.product-form fieldset:first-of-type {
+  padding-top: 26px;
+}
+.product-form fieldset:last-of-type {
+  border-bottom: none;
+}
+.product-form legend {
+  font-size: 15px;
+  padding: 0;
+  margin-bottom: 4px;
+}
+.product-form .form-actions {
+  margin: 0;
+  padding: 20px 28px;
+}
+
+/* --- Repeater rows / cards --- */
+.repeater-item {
+  position: relative;
+}
+.repeat-row.image-row {
+  grid-template-columns: 1.6fr 1.6fr 0.8fr 0.9fr auto;
+}
+.repeater-empty-hint {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0 0 10px;
+}
+
+.variant-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 16px;
+  margin-bottom: 10px;
+  background: var(--bg);
+}
+.variant-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.variant-card__header span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.variant-card .variant-row {
+  margin-bottom: 10px;
+}
+.variant-secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+/* --- Category checkbox grid --- */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+  margin-bottom: 16px;
+}
+.category-grid .checkbox-row {
+  padding: 4px 0;
+}
+
+/* --- Inventory toggle blocks --- */
+.inventory-toggle {
+  margin-bottom: 18px;
 }

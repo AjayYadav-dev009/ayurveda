@@ -5,6 +5,115 @@
 <?php include __DIR__ . '/../../includes/auth.php'; ?>
 
 <?php
+// A short, fixed list of common countries of origin. "Other" reveals a free
+// text field (admin.js: wireCountryOther) so admins aren't stuck typing
+// "India" from scratch every time but can still enter anything.
+const PRODUCT_COUNTRY_OPTIONS = ['India', 'Nepal', 'Sri Lanka', 'USA', 'Other'];
+
+/**
+ * Render the fields for one image repeater row. Used both for the
+ * server-rendered row(s) on initial/error load and — with $idx set to the
+ * literal string "__INDEX__" — for the <template> that admin.js clones
+ * when the admin clicks "Add image".
+ */
+function renderImageRowFields($idx, $altText = '', $isPrimary = false, $sortOrder = 0)
+{
+    ob_start();
+
+    include __DIR__ . '/../include/header.php';
+?>
+    <div class="field">
+        <label>Image file</label>
+        <input type="file" name="images[<?php echo $idx; ?>][file]" accept="image/jpeg,image/png,image/webp,image/gif">
+    </div>
+    <div class="field">
+        <label>Alt text</label>
+        <input type="text" name="images[<?php echo $idx; ?>][alt_text]" value="<?php echo htmlspecialchars($altText); ?>" placeholder="Describe the image">
+    </div>
+    <div class="field">
+        <label>Sort order</label>
+        <input type="number" name="images[<?php echo $idx; ?>][sort_order]" value="<?php echo (int) $sortOrder; ?>">
+    </div>
+    <div class="field">
+        <label>&nbsp;</label>
+        <label class="checkbox-row">
+            <input type="checkbox" class="primary-image-checkbox" name="images[<?php echo $idx; ?>][is_primary]" value="1" <?php echo $isPrimary ? 'checked' : ''; ?>>
+            Primary
+        </label>
+    </div>
+    <div class="field">
+        <label>&nbsp;</label>
+        <button type="button" class="btn btn-ghost btn-sm" data-remove-row>Remove</button>
+    </div>
+<?php
+    return ob_get_clean();
+}
+
+/**
+ * Render one variant repeater card (two rows of fields plus header/remove).
+ * Same "__INDEX__" trick as renderImageRowFields() for the JS template.
+ */
+function renderVariantCard($idx, array $v = [])
+{
+    ob_start();
+?>
+    <div class="variant-card repeater-item">
+        <div class="variant-card__header">
+            <span>Variant</span>
+            <button type="button" class="btn btn-ghost btn-sm" data-remove-row>Remove</button>
+        </div>
+        <div class="variant-row">
+            <div class="field">
+                <label>Name</label>
+                <input type="text" name="variants[<?php echo $idx; ?>][variant_name]" value="<?php echo htmlspecialchars($v['variant_name'] ?? ''); ?>" placeholder="e.g. 100g pack">
+            </div>
+            <div class="field">
+                <label>SKU</label>
+                <input type="text" name="variants[<?php echo $idx; ?>][sku]" value="<?php echo htmlspecialchars($v['sku'] ?? ''); ?>">
+            </div>
+            <div class="field">
+                <label>Price</label>
+                <input type="number" step="0.01" min="0" name="variants[<?php echo $idx; ?>][price]" value="<?php echo htmlspecialchars($v['price'] ?? ''); ?>">
+            </div>
+            <div class="field">
+                <label>Sale price</label>
+                <input type="number" step="0.01" min="0" name="variants[<?php echo $idx; ?>][sale_price]" value="<?php echo htmlspecialchars($v['sale_price'] ?? ''); ?>">
+            </div>
+            <div class="field">
+                <label>Stock</label>
+                <input type="number" min="0" name="variants[<?php echo $idx; ?>][stock]" value="<?php echo htmlspecialchars($v['stock'] ?? '0'); ?>">
+            </div>
+            <div class="field">
+                <label>Weight (g)</label>
+                <input type="number" min="0" name="variants[<?php echo $idx; ?>][weight_grams]" value="<?php echo htmlspecialchars($v['weight_grams'] ?? ''); ?>">
+            </div>
+        </div>
+        <div class="variant-secondary">
+            <div class="field">
+                <label>Status</label>
+                <select name="variants[<?php echo $idx; ?>][status]">
+                    <?php foreach (PRODUCT_VARIANT_STATUSES as $vStatus) : ?>
+                        <option value="<?php echo htmlspecialchars($vStatus); ?>" <?php echo (($v['status'] ?? 'Active') === $vStatus) ? 'selected' : ''; ?>><?php echo htmlspecialchars($vStatus); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="field">
+                <label>Sort order</label>
+                <input type="number" name="variants[<?php echo $idx; ?>][sort_order]" value="<?php echo (int) ($v['sort_order'] ?? 0); ?>">
+            </div>
+            <div class="field">
+                <label>&nbsp;</label>
+                <label class="checkbox-row">
+                    <input type="checkbox" class="default-variant-checkbox" name="variants[<?php echo $idx; ?>][is_default]" value="1" <?php echo !empty($v['is_default']) ? 'checked' : ''; ?>>
+                    Default variant
+                </label>
+            </div>
+        </div>
+    </div>
+<?php
+    return ob_get_clean();
+}
+
 $errors = [];
 
 $categoriesResult = getCategories($conn);
@@ -45,6 +154,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $categoryIds = array_map('intval', $_POST['category_ids'] ?? []);
 
+    // "Other" reveals a free-text country field on the client; resolve it
+    // back down to a single string here.
+    $countryOfOrigin = $_POST['country_of_origin'] ?? 'India';
+    if ($countryOfOrigin === 'Other') {
+        $customCountry = trim($_POST['country_of_origin_other'] ?? '');
+        $countryOfOrigin = $customCountry !== '' ? $customCountry : 'Other';
+    }
+
     // Images are handled after the product is saved (see below) — actual
     // files need to be uploaded and validated, and uploadProductImage()
     // needs a real product id to build the storage path, which doesn't
@@ -76,6 +193,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'base_price' => $_POST['base_price'] ?? null,
             'base_sale_price' => $_POST['base_sale_price'] ?? '',
             'has_variants' => isset($_POST['has_variants']),
+            // Simple (non-variant) products track stock directly on the
+            // product row. addProduct() already ignores this when
+            // has_variants is true, so it's always safe to send it.
+            'stock' => $_POST['stock'] ?? 0,
             'featured' => isset($_POST['featured']),
             'bestseller' => isset($_POST['bestseller']),
             'trending' => isset($_POST['trending']),
@@ -89,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'dosage' => $_POST['dosage'] ?? null,
                 'precautions' => $_POST['precautions'] ?? null,
                 'manufacturer' => $_POST['manufacturer'] ?? null,
-                'country_of_origin' => $_POST['country_of_origin'] ?? 'India',
+                'country_of_origin' => $countryOfOrigin,
                 'shelf_life' => $_POST['shelf_life'] ?? null,
             ],
             'category_ids' => $categoryIds,
@@ -150,231 +271,277 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Rebuild the repeater rows from posted data on a failed submit, so the
+// admin doesn't lose everything they typed. Re-indexed to a contiguous
+// 0..n-1 range — admin.js's "add row" logic assumes that shape.
+$postedImages = array_values($_POST['images'] ?? []);
+if (empty($postedImages)) {
+    $postedImages = [[]];
+}
+
+$postedVariants = array_values($_POST['variants'] ?? []);
+if (empty($postedVariants)) {
+    $postedVariants = [[]];
+}
+
+$selectedCategoryIds = array_map('intval', $_POST['category_ids'] ?? []);
+$postedCountry = $_POST['country_of_origin'] ?? 'India';
+$postedCountryOther = in_array($postedCountry, PRODUCT_COUNTRY_OPTIONS, true) ? '' : $postedCountry;
+if ($postedCountryOther !== '') {
+    $postedCountry = 'Other';
+}
 ?>
 
+<div class="page-header">
+    <div>
+        <h1>Add new product</h1>
+        <p>Fields marked <strong>*</strong> are required. Images and variants can also be edited later from the product's own page.</p>
+    </div>
+    <a href="index.php" class="btn btn-secondary">&larr; Back to products</a>
+</div>
+
 <?php if (!empty($errors)) : ?>
-    <ul>
-        <?php foreach ($errors as $error) : ?>
-            <li><?php echo htmlspecialchars($error); ?></li>
-        <?php endforeach; ?>
-    </ul>
+    <div class="notice notice-error">
+        <ul style="margin:0; padding-left:18px;">
+            <?php foreach ($errors as $error) : ?>
+                <li><?php echo htmlspecialchars($error); ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
 <?php endif; ?>
 
+<div class="product-form-layout">
+    <nav id="section-nav" class="form-section-nav">
+        <a href="#section-basic">Basic info</a>
+        <a href="#section-categories">Categories</a>
+        <a href="#section-details">Product details</a>
+        <a href="#section-images">Images</a>
+        <a href="#section-variants">Variants &amp; stock</a>
+    </nav>
 
-<style>
-    form {
-        max-width: 520px;
-        margin: 0 auto;
-        font-family: sans-serif;
-        font-size: 0.95rem;
-    }
+    <form method="POST" action="add.php" enctype="multipart/form-data" class="card product-form">
 
-    form label {
-        display: block;
-        margin-top: 14px;
-        margin-bottom: 5px;
-        font-weight: 600;
-        color: #333;
-    }
+        <fieldset id="section-basic">
+            <legend>Basic info</legend>
+            <div class="form-grid">
+                <div class="field full">
+                    <label for="title">Title *</label>
+                    <input type="text" id="title" name="title" value="<?php echo htmlspecialchars($_POST['title'] ?? ''); ?>" required>
+                    <p class="hint">The URL slug will be generated automatically from the title.</p>
+                </div>
 
-    form select,
-    form input[type="text"],
-    form textarea {
-        width: 100%;
-        padding: 9px 12px;
-        font-size: 0.95rem;
-        font-family: inherit;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
+                <div class="field full">
+                    <label for="short_description">Short description</label>
+                    <textarea id="short_description" name="short_description" rows="2"><?php echo htmlspecialchars($_POST['short_description'] ?? ''); ?></textarea>
+                </div>
 
-    form select:focus,
-    form input[type="text"]:focus,
-    form textarea:focus {
-        outline: none;
-        border-color: #007bff;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
-    }
+                <div class="field full">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="5"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+                </div>
 
-    form textarea {
-        min-height: 80px;
-        resize: vertical;
-    }
+                <div class="field">
+                    <label for="base_price">Base price *</label>
+                    <input type="number" step="0.01" min="0" id="base_price" name="base_price" value="<?php echo htmlspecialchars($_POST['base_price'] ?? ''); ?>" required>
+                </div>
 
-    form input[type="submit"] {
-        margin-top: 20px;
-        padding: 10px 24px;
-        font-size: 1rem;
-        font-weight: 600;
-        color: #fff;
-        background-color: #28a745;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
+                <div class="field">
+                    <label for="base_sale_price">Base sale price</label>
+                    <input type="number" step="0.01" min="0" id="base_sale_price" name="base_sale_price" value="<?php echo htmlspecialchars($_POST['base_sale_price'] ?? ''); ?>">
+                </div>
 
-    form input[type="submit"]:hover {
-        background-color: #218838;
-    }
+                <div class="field">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <?php foreach (PRODUCT_STATUSES as $statusOption) : ?>
+                            <option value="<?php echo htmlspecialchars($statusOption); ?>" <?php echo (($_POST['status'] ?? 'Draft') === $statusOption) ? 'selected' : ''; ?>><?php echo htmlspecialchars($statusOption); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-    form input[type="submit"]:focus-visible {
-        outline: 2px solid #28a745;
-        outline-offset: 2px;
-    }
-</style>
+                <div class="field">
+                    <label>&nbsp;</label>
+                    <div style="display:flex; gap:18px; padding-top:8px;">
+                        <label class="checkbox-row">
+                            <input type="checkbox" name="featured" value="1" <?php echo isset($_POST['featured']) ? 'checked' : ''; ?>>
+                            Featured
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" name="bestseller" value="1" <?php echo isset($_POST['bestseller']) ? 'checked' : ''; ?>>
+                            Bestseller
+                        </label>
+                        <label class="checkbox-row">
+                            <input type="checkbox" name="trending" value="1" <?php echo isset($_POST['trending']) ? 'checked' : ''; ?>>
+                            Trending
+                        </label>
+                    </div>
+                </div>
 
+                <div class="field full">
+                    <label for="meta_title">Meta title</label>
+                    <input type="text" id="meta_title" name="meta_title" value="<?php echo htmlspecialchars($_POST['meta_title'] ?? ''); ?>">
+                </div>
 
-<form method="POST" action="add.php" enctype="multipart/form-data">
+                <div class="field full">
+                    <label for="meta_description">Meta description</label>
+                    <textarea id="meta_description" name="meta_description" rows="2"><?php echo htmlspecialchars($_POST['meta_description'] ?? ''); ?></textarea>
+                    <p class="hint">Auto-trimmed to 200 characters if longer.</p>
+                </div>
+            </div>
+        </fieldset>
 
-    <h3>Basic info</h3>
+        <fieldset id="section-categories">
+            <legend>Categories</legend>
 
-    <label for="title">Title</label><br>
-    <input type="text" id="title" name="title" value="<?php echo htmlspecialchars($_POST['title'] ?? ''); ?>" required><br>
-    <small>The URL slug will be generated automatically from the title.</small><br>
-
-    <label for="short_description">Short description</label><br>
-    <textarea id="short_description" name="short_description" rows="2" cols="50"><?php echo htmlspecialchars($_POST['short_description'] ?? ''); ?></textarea><br>
-
-    <label for="description">Description</label><br>
-    <textarea id="description" name="description" rows="5" cols="50"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea><br>
-
-    <label for="base_price">Base price</label><br>
-    <input type="number" step="0.01" min="0" id="base_price" name="base_price" value="<?php echo htmlspecialchars($_POST['base_price'] ?? ''); ?>" required><br>
-
-    <label for="base_sale_price">Base sale price</label><br>
-    <input type="number" step="0.01" min="0" id="base_sale_price" name="base_sale_price" value="<?php echo htmlspecialchars($_POST['base_sale_price'] ?? ''); ?>"><br>
-
-    <label for="status">Status</label><br>
-    <select id="status" name="status">
-        <?php foreach (PRODUCT_STATUSES as $statusOption) : ?>
-            <option value="<?php echo htmlspecialchars($statusOption); ?>" <?php echo (($_POST['status'] ?? 'Draft') === $statusOption) ? 'selected' : ''; ?>><?php echo htmlspecialchars($statusOption); ?></option>
-        <?php endforeach; ?>
-    </select><br>
-
-    <label>
-        <input type="checkbox" name="featured" value="1" <?php echo isset($_POST['featured']) ? 'checked' : ''; ?>>
-        Featured
-    </label><br>
-
-    <label>
-        <input type="checkbox" name="bestseller" value="1" <?php echo isset($_POST['bestseller']) ? 'checked' : ''; ?>>
-        Bestseller
-    </label><br>
-
-    <label>
-        <input type="checkbox" name="trending" value="1" <?php echo isset($_POST['trending']) ? 'checked' : ''; ?>>
-        Trending
-    </label><br>
-
-    <label for="meta_title">Meta title</label><br>
-    <input type="text" id="meta_title" name="meta_title" value="<?php echo htmlspecialchars($_POST['meta_title'] ?? ''); ?>"><br>
-
-    <label for="meta_description">Meta description</label><br>
-    <textarea id="meta_description" name="meta_description" rows="2" cols="50"><?php echo htmlspecialchars($_POST['meta_description'] ?? ''); ?></textarea><br>
-    <small>Auto-trimmed to 200 characters if longer.</small><br>
-
-    <h3>Categories</h3>
-
-    <?php foreach ($categories as $category) : ?>
-        <label>
-            <input type="checkbox" name="category_ids[]" value="<?php echo (int) $category['id']; ?>">
-            <?php echo htmlspecialchars($category['name']); ?>
-        </label><br>
-    <?php endforeach; ?>
-
-    <label for="primary_category_id">Primary category</label><br>
-    <select id="primary_category_id" name="primary_category_id" required>
-        <option value="">-- select --</option>
-        <?php foreach ($categories as $category) : ?>
-            <option value="<?php echo (int) $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
-        <?php endforeach; ?>
-    </select><br>
-
-    <h3>Product details</h3>
-
-    <label for="ingredients">Ingredients</label><br>
-    <textarea id="ingredients" name="ingredients" rows="2" cols="50"><?php echo htmlspecialchars($_POST['ingredients'] ?? ''); ?></textarea><br>
-
-    <label for="benefits">Benefits</label><br>
-    <textarea id="benefits" name="benefits" rows="2" cols="50"><?php echo htmlspecialchars($_POST['benefits'] ?? ''); ?></textarea><br>
-
-    <label for="directions">Directions</label><br>
-    <textarea id="directions" name="directions" rows="2" cols="50"><?php echo htmlspecialchars($_POST['directions'] ?? ''); ?></textarea><br>
-
-    <label for="dosage">Dosage</label><br>
-    <textarea id="dosage" name="dosage" rows="2" cols="50"><?php echo htmlspecialchars($_POST['dosage'] ?? ''); ?></textarea><br>
-
-    <label for="precautions">Precautions</label><br>
-    <textarea id="precautions" name="precautions" rows="2" cols="50"><?php echo htmlspecialchars($_POST['precautions'] ?? ''); ?></textarea><br>
-
-    <label for="manufacturer">Manufacturer</label><br>
-    <input type="text" id="manufacturer" name="manufacturer" value="<?php echo htmlspecialchars($_POST['manufacturer'] ?? ''); ?>"><br>
-
-    <label for="country_of_origin">Country of origin</label><br>
-    <input type="text" id="country_of_origin" name="country_of_origin" value="<?php echo htmlspecialchars($_POST['country_of_origin'] ?? 'India'); ?>"><br>
-
-    <label for="shelf_life">Shelf life</label><br>
-    <input type="text" id="shelf_life" name="shelf_life" value="<?php echo htmlspecialchars($_POST['shelf_life'] ?? ''); ?>"><br>
-
-    <h3>Images</h3>
-
-    <?php for ($i = 0; $i < 5; $i++) : ?>
-        <p>
-            Image <?php echo $i + 1; ?><br>
-            <label>Image file</label>
-            <input type="file" name="images[<?php echo $i; ?>][file]" accept="image/jpeg,image/png,image/webp,image/gif"><br>
-            <label>Alt text</label>
-            <input type="text" name="images[<?php echo $i; ?>][alt_text]"><br>
-            <label>
-                <input type="checkbox" name="images[<?php echo $i; ?>][is_primary]" value="1">
-                Primary image
-            </label><br>
-            <label>Sort order</label>
-            <input type="number" name="images[<?php echo $i; ?>][sort_order]" value="0">
-        </p>
-    <?php endfor; ?>
-    <small>Leave a slot empty to skip it. You can always add, remove, or reorder images later from the product's image manager.</small><br>
-
-    <h3>Variants</h3>
-
-    <label>
-        <input type="checkbox" name="has_variants" value="1" <?php echo isset($_POST['has_variants']) ? 'checked' : ''; ?>>
-        This product has variants
-    </label><br><br>
-
-    <?php for ($i = 0; $i < 5; $i++) : ?>
-        <p>
-            Variant <?php echo $i + 1; ?><br>
-            <label>Name</label>
-            <input type="text" name="variants[<?php echo $i; ?>][variant_name]"><br>
-            <label>SKU</label>
-            <input type="text" name="variants[<?php echo $i; ?>][sku]"><br>
-            <label>Price</label>
-            <input type="number" step="0.01" min="0" name="variants[<?php echo $i; ?>][price]"><br>
-            <label>Sale price</label>
-            <input type="number" step="0.01" min="0" name="variants[<?php echo $i; ?>][sale_price]"><br>
-            <label>Stock</label>
-            <input type="number" min="0" name="variants[<?php echo $i; ?>][stock]" value="0"><br>
-            <label>Weight (grams)</label>
-            <input type="number" min="0" name="variants[<?php echo $i; ?>][weight_grams]"><br>
-            <label>
-                <input type="checkbox" name="variants[<?php echo $i; ?>][is_default]" value="1">
-                Default variant
-            </label><br>
-            <label>Status</label>
-            <select name="variants[<?php echo $i; ?>][status]">
-                <?php foreach (PRODUCT_VARIANT_STATUSES as $vStatus) : ?>
-                    <option value="<?php echo htmlspecialchars($vStatus); ?>"><?php echo htmlspecialchars($vStatus); ?></option>
+            <div id="category-checkboxes" class="category-grid">
+                <?php foreach ($categories as $category) : ?>
+                    <label class="checkbox-row">
+                        <input type="checkbox" class="category-checkbox" name="category_ids[]" value="<?php echo (int) $category['id']; ?>" <?php echo in_array((int) $category['id'], $selectedCategoryIds, true) ? 'checked' : ''; ?>>
+                        <?php echo htmlspecialchars($category['name']); ?>
+                    </label>
                 <?php endforeach; ?>
-            </select><br>
-            <label>Sort order</label>
-            <input type="number" name="variants[<?php echo $i; ?>][sort_order]" value="0">
-        </p>
-    <?php endfor; ?>
+            </div>
 
-    <br>
-    <button type="submit">Save product</button>
-</form>
+            <div class="field" style="max-width:340px;">
+                <label for="primary_category_id">Primary category *</label>
+                <select id="primary_category_id" name="primary_category_id" required>
+                    <option value="">-- select --</option>
+                    <?php foreach ($categories as $category) : ?>
+                        <option value="<?php echo (int) $category['id']; ?>" <?php echo (isset($_POST['primary_category_id']) && (int) $_POST['primary_category_id'] === (int) $category['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($category['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="hint">Check a category above to enable it here.</p>
+            </div>
+        </fieldset>
+
+        <fieldset id="section-details">
+            <legend>Product details</legend>
+            <div class="form-grid">
+                <div class="field">
+                    <label for="ingredients">Ingredients</label>
+                    <textarea id="ingredients" name="ingredients" rows="3"><?php echo htmlspecialchars($_POST['ingredients'] ?? ''); ?></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="benefits">Benefits</label>
+                    <textarea id="benefits" name="benefits" rows="3"><?php echo htmlspecialchars($_POST['benefits'] ?? ''); ?></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="directions">Directions</label>
+                    <textarea id="directions" name="directions" rows="3"><?php echo htmlspecialchars($_POST['directions'] ?? ''); ?></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="dosage">Dosage</label>
+                    <textarea id="dosage" name="dosage" rows="3"><?php echo htmlspecialchars($_POST['dosage'] ?? ''); ?></textarea>
+                </div>
+
+                <div class="field full">
+                    <label for="precautions">Precautions</label>
+                    <textarea id="precautions" name="precautions" rows="2"><?php echo htmlspecialchars($_POST['precautions'] ?? ''); ?></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="manufacturer">Manufacturer</label>
+                    <input type="text" id="manufacturer" name="manufacturer" value="<?php echo htmlspecialchars($_POST['manufacturer'] ?? ''); ?>">
+                </div>
+
+                <div class="field">
+                    <label for="country_of_origin">Country of origin</label>
+                    <select id="country_of_origin" name="country_of_origin">
+                        <?php foreach (PRODUCT_COUNTRY_OPTIONS as $countryOption) : ?>
+                            <option value="<?php echo htmlspecialchars($countryOption); ?>" <?php echo ($postedCountry === $countryOption) ? 'selected' : ''; ?>><?php echo htmlspecialchars($countryOption); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div id="country-other-wrap" class="country-other" style="<?php echo $postedCountry === 'Other' ? '' : 'display:none;'; ?>">
+                        <input type="text" name="country_of_origin_other" value="<?php echo htmlspecialchars($postedCountryOther); ?>" placeholder="Enter country">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="shelf_life">Shelf life</label>
+                    <input type="text" id="shelf_life" name="shelf_life" value="<?php echo htmlspecialchars($_POST['shelf_life'] ?? ''); ?>" placeholder="e.g. 24 months">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset id="section-images">
+            <legend>Images</legend>
+            <p class="hint" style="margin-top:0;">Add as many images as you need. You can also add, remove, or reorder them later from the product's image manager.</p>
+
+            <div id="image-rows">
+                <?php foreach ($postedImages as $i => $img) : ?>
+                    <div class="repeat-row image-row repeater-item">
+                        <?php echo renderImageRowFields($i, $img['alt_text'] ?? '', isset($img['is_primary']), $img['sort_order'] ?? 0); ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <template id="image-row-template">
+                <div class="repeat-row image-row repeater-item">
+                    <?php echo renderImageRowFields('__INDEX__'); ?>
+                </div>
+            </template>
+
+            <button type="button" id="add-image-btn" class="btn btn-secondary btn-sm">+ Add image</button>
+        </fieldset>
+
+        <fieldset id="section-variants">
+            <legend>Variants &amp; stock</legend>
+
+            <div class="inventory-toggle">
+                <label class="checkbox-row">
+                    <input type="checkbox" id="has_variants" name="has_variants" value="1" <?php echo isset($_POST['has_variants']) ? 'checked' : ''; ?>>
+                    This product has variants (different sizes, packs, etc.)
+                </label>
+            </div>
+
+            <div id="stock-simple-block" class="field" style="max-width:220px;">
+                <label for="stock">Stock quantity *</label>
+                <input type="number" id="stock" min="0" name="stock" value="<?php echo htmlspecialchars($_POST['stock'] ?? '0'); ?>">
+                <p class="hint">Units currently available. Not used once variants are turned on — stock is tracked per variant instead.</p>
+            </div>
+
+            <div id="variants-block" style="display:none;">
+                <div id="variant-rows">
+                    <?php foreach ($postedVariants as $i => $v) : ?>
+                        <?php echo renderVariantCard($i, $v); ?>
+                    <?php endforeach; ?>
+                </div>
+
+                <template id="variant-row-template">
+                    <?php echo renderVariantCard('__INDEX__'); ?>
+                </template>
+
+                <button type="button" id="add-variant-btn" class="btn btn-secondary btn-sm">+ Add variant</button>
+            </div>
+        </fieldset>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save product</button>
+            <a href="index.php" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<?php include __DIR__ . '/../include/footer.php'; ?>
+
+<script>
+    AdminProductForm.init({
+        variantContainer: '#variant-rows',
+        variantTemplate: '#variant-row-template',
+        addVariantBtn: '#add-variant-btn',
+        minVariantRows: 1,
+        imageContainer: '#image-rows',
+        imageTemplate: '#image-row-template',
+        addImageBtn: '#add-image-btn',
+        minImageRows: 1,
+        hasVariantsCheckbox: '#has_variants',
+        stockSimpleBlock: '#stock-simple-block',
+        variantsBlock: '#variants-block',
+        countrySelect: '#country_of_origin',
+        countryOtherField: '#country-other-wrap'
+    });
+</script>
