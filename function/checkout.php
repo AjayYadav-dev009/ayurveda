@@ -38,6 +38,7 @@ function getCartItems($conn, $userId)
                 p.status AS product_status,
                 p.base_price,
                 p.base_sale_price,
+                p.stock AS product_stock,
                 v.variant_name,
                 v.sku,
                 v.price AS variant_price,
@@ -66,7 +67,10 @@ function getCartItems($conn, $userId)
     while ($row = $result->fetch_assoc()) {
 
         // Price always comes from the DB row for the variant if one is
-        // selected, otherwise from the product's own base price.
+        // selected, otherwise from the product's own base price. Stock is
+        // read from products.stock for a simple product and from
+        // product_variants.stock for a variant — both are tracked in this
+        // schema, so this is never null either way.
         if ($row['variant_id'] !== null) {
             $price = $row['variant_sale_price'] !== null ? $row['variant_sale_price'] : $row['variant_price'];
             $stock = $row['variant_stock'];
@@ -75,7 +79,7 @@ function getCartItems($conn, $userId)
             $isAvailable = $row['product_status'] === 'Active' && $row['variant_status'] === 'Active';
         } else {
             $price = $row['base_sale_price'] !== null ? $row['base_sale_price'] : $row['base_price'];
-            $stock = null; // stock is only tracked at the variant level in this schema
+            $stock = $row['product_stock'];
             $variantName = null;
             $sku = null;
             $isAvailable = $row['product_status'] === 'Active';
@@ -394,8 +398,8 @@ function generateOrderNumber()
 }
 
 /**
- * Creates the order from server-verified data, decrements variant stock,
- * records coupon usage, and empties the user's cart. Runs inside a
+ * Creates the order from server-verified data, decrements product/variant
+ * stock, records coupon usage, and empties the user's cart. Runs inside a
  * transaction so a failure partway through doesn't leave things half-done.
  *
  * @param mysqli $conn
@@ -417,10 +421,12 @@ function createOrder($conn, $userId, array $address, array $cartItems, $coupon, 
     $conn->begin_transaction();
 
     try {
-        // Re-check stock for variant items right before committing, in case
-        // it changed since the cart was last loaded.
+        // Re-check stock for every item right before committing, in case
+        // it changed since the cart was last loaded. Applies to simple
+        // products (products.stock) just as much as variants
+        // (product_variants.stock) — stock is null for neither now.
         foreach ($cartItems as $item) {
-            if ($item['variant_id'] !== null && $item['stock'] !== null && $item['quantity'] > $item['stock']) {
+            if ($item['stock'] !== null && $item['quantity'] > $item['stock']) {
                 throw new RuntimeException("Not enough stock for {$item['name']}.");
             }
         }
@@ -488,6 +494,16 @@ function createOrder($conn, $userId, array $address, array $cartItems, $coupon, 
                     "UPDATE product_variants SET stock = stock - ? WHERE id = ? AND stock >= ?"
                 );
                 $stockStmt->bind_param('iii', $item['quantity'], $item['variant_id'], $item['quantity']);
+                $stockStmt->execute();
+
+                if ($stockStmt->affected_rows === 0) {
+                    throw new RuntimeException("Not enough stock for {$item['name']}.");
+                }
+            } else {
+                $stockStmt = $conn->prepare(
+                    "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?"
+                );
+                $stockStmt->bind_param('iii', $item['quantity'], $item['product_id'], $item['quantity']);
                 $stockStmt->execute();
 
                 if ($stockStmt->affected_rows === 0) {

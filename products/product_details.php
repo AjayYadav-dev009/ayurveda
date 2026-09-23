@@ -1137,24 +1137,15 @@ $reviewCsrfToken = generateCSRFToken();
         color: var(--color-text);
     }
 
-    .pd-review-badge {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 99px;
-        font-size: 11px;
+    .pd-my-review-status a {
+        color: var(--color-primary);
         font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
+        text-decoration: none;
     }
 
-    .pd-review-badge--pending {
-        background: #fdf3e3;
-        color: #92650f;
-    }
-
-    .pd-review-badge--rejected {
-        background: #fbeceb;
-        color: #8a1c14;
+    .pd-my-review-status a:hover {
+        color: var(--color-primary-dark);
+        text-decoration: underline;
     }
 
     .pd-review-form .form-error {
@@ -1353,17 +1344,9 @@ $reviewCsrfToken = generateCSRFToken();
                     </div>
 
                 <?php elseif ($myReview): ?>
-                    <h3>Your Review</h3>
                     <p class="pd-my-review-status">
-                        <?php if ($myReview['status'] === 'Pending'): ?>
-                            <span class="pd-review-badge pd-review-badge--pending">Pending</span>
-                            &nbsp;Your review has been submitted and is awaiting approval.
-                        <?php elseif ($myReview['status'] === 'Rejected'): ?>
-                            <span class="pd-review-badge pd-review-badge--rejected">Rejected</span>
-                            &nbsp;Your review was not approved for publication.
-                        <?php else: ?>
-                            You have already reviewed this product. Thank you!
-                        <?php endif; ?>
+                        You've already reviewed this product &mdash;
+                        <a href="<?php echo BASE_URL; ?>account/reviews.php">view it in My Reviews</a>.
                     </p>
 
                 <?php elseif (!$hasDeliveredPurchase): ?>

@@ -301,6 +301,101 @@ if (!function_exists('canUserReviewProduct')) {
     }
 }
 
+if (!function_exists('getReviewableProductsForCustomer')) {
+    /**
+     * Every product this customer has a DELIVERED order for and hasn't
+     * reviewed yet — the "write a review" list on account/reviews.php.
+     *
+     * @param mysqli $conn
+     * @param int $userId
+     * @return array<int, array{id:int, title:string, slug:string}>
+     * @throws Exception
+     */
+    function getReviewableProductsForCustomer($conn, $userId)
+    {
+        $userId = (int) $userId;
+        $deliveredStatus = REVIEW_VERIFIED_ORDER_STATUS;
+
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT DISTINCT p.id, p.title, p.slug
+             FROM order_items oi
+             INNER JOIN orders o ON o.id = oi.order_id
+             INNER JOIN products p ON p.id = oi.product_id
+             WHERE o.user_id = ? AND o.order_status = ?
+               AND NOT EXISTS (
+                   SELECT 1 FROM reviews r WHERE r.product_id = p.id AND r.user_id = o.user_id
+               )
+             ORDER BY p.title ASC"
+        );
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        mysqli_stmt_bind_param($stmt, 'is', $userId, $deliveredStatus);
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new Exception("Error fetching reviewable products: " . mysqli_stmt_error($stmt));
+        }
+        $result = mysqli_stmt_get_result($stmt);
+
+        $products = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $products[] = ['id' => (int) $row['id'], 'title' => $row['title'], 'slug' => $row['slug']];
+        }
+        return $products;
+    }
+}
+
+if (!function_exists('getReviewsForCustomer')) {
+    /**
+     * This customer's own reviews (any status), newest first, with
+     * product title/slug attached — the "your reviews" history list on
+     * account/reviews.php.
+     *
+     * @param mysqli $conn
+     * @param int $userId
+     * @return array<int, array>
+     * @throws Exception
+     */
+    function getReviewsForCustomer($conn, $userId)
+    {
+        $userId = (int) $userId;
+
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT r.id, r.rating, r.review, r.status, r.verified_purchase, r.created_at,
+                    p.id AS product_id, p.title AS product_title, p.slug AS product_slug
+             FROM reviews r
+             INNER JOIN products p ON p.id = r.product_id
+             WHERE r.user_id = ?
+             ORDER BY r.created_at DESC"
+        );
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+        mysqli_stmt_bind_param($stmt, 'i', $userId);
+        if (!mysqli_stmt_execute($stmt)) {
+            throw new Exception("Error fetching customer reviews: " . mysqli_stmt_error($stmt));
+        }
+        $result = mysqli_stmt_get_result($stmt);
+
+        $reviews = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $reviews[] = [
+                'id'                => (int) $row['id'],
+                'product_id'        => (int) $row['product_id'],
+                'product_title'     => $row['product_title'],
+                'product_slug'      => $row['product_slug'],
+                'rating'            => (int) $row['rating'],
+                'review'            => $row['review'],
+                'status'            => $row['status'],
+                'verified_purchase' => (bool) $row['verified_purchase'],
+                'created_at'        => $row['created_at'],
+            ];
+        }
+        return $reviews;
+    }
+}
+
 if (!function_exists('customerHasDeliveredOrderForProduct')) {
     /**
      * Whether this customer has a DELIVERED order containing this
@@ -676,4 +771,4 @@ if (!function_exists('getProductsForReviewFilter')) {
         }
         return $products;
     }
-}                                                                                                                                                                  
+}

@@ -16,7 +16,7 @@ $activeNav = 'reviews';
  */
 $currentQuery = $_GET;
 unset($currentQuery['msg']);
-$listingUrl = 'index.php' . ($currentQuery ? ('?' . http_build_query($currentQuery)) : '');
+$listingUrl = 'review-management.php' . ($currentQuery ? ('?' . http_build_query($currentQuery)) : '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
@@ -94,7 +94,7 @@ function reviewFilterUrl($overrides)
     $params = array_filter($params, function ($v) {
         return $v !== '' && $v !== null;
     });
-    return 'index.php' . ($params ? ('?' . http_build_query($params)) : '');
+    return 'review-management.php' . ($params ? ('?' . http_build_query($params)) : '');
 }
 
 include __DIR__ . '/include/header.php';
@@ -401,7 +401,7 @@ include __DIR__ . '/include/header.php';
         </a>
     </div>
 
-    <form class="rv-filters" method="GET" action="index.php">
+    <form class="rv-filters" method="GET" action="review-management.php">
         <?php if ($filterStatus !== ''): ?>
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($filterStatus); ?>">
         <?php endif; ?>
@@ -478,20 +478,20 @@ include __DIR__ . '/include/header.php';
                             <td>
                                 <div class="rv-actions">
                                     <?php if ($review['status'] === 'Pending'): ?>
-                                        <form method="POST" action="index.php">
+                                        <form method="POST" action="review-management.php">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                             <input type="hidden" name="review_id" value="<?php echo (int) $review['id']; ?>">
                                             <input type="hidden" name="action" value="approve">
                                             <button type="submit" class="approve">Approve</button>
                                         </form>
-                                        <form method="POST" action="index.php">
+                                        <form method="POST" action="review-management.php">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                             <input type="hidden" name="review_id" value="<?php echo (int) $review['id']; ?>">
                                             <input type="hidden" name="action" value="reject">
                                             <button type="submit" class="reject">Reject</button>
                                         </form>
                                     <?php endif; ?>
-                                    <form method="POST" action="index.php" onsubmit="return confirm('Delete this review permanently?');">
+                                    <form method="POST" action="review-management.php" onsubmit="return confirm('Delete this review permanently?');">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                         <input type="hidden" name="review_id" value="<?php echo (int) $review['id']; ?>">
                                         <input type="hidden" name="action" value="delete">
