@@ -3,6 +3,11 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/product.php';
 require_once __DIR__ . '/../function/product-image.php';
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../function/customer.php';
+require_once __DIR__ . '/../function/review.php';
+require_once __DIR__ . '/../function/csrf.php';
+require_once __DIR__ . '/../function/helper.php';
 
 $slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
 
@@ -114,6 +119,85 @@ $detailSections = [
     'Directions & Dosage' => null, // handled separately, combines two columns
     'Precautions' => 'precautions',
 ];
+
+/**
+ * ---------------------------------------------------------------------
+ * Reviews
+ * ---------------------------------------------------------------------
+ * Handled entirely in this top block, BEFORE header.php is included, for
+ * two reasons: a POST needs to redirect() (which calls header()) before
+ * any HTML has been emitted, and every value read here needs to be
+ * snapshotted into its own variable name — same reasoning as
+ * $viewProduct above — since header.php's mega-menu loop overwrites
+ * $product/$products and would otherwise silently corrupt anything that
+ * read from those names after the include.
+ *
+ * The review form POSTs back to this same page (BASE_URL +
+ * products/product_details.php?slug=...), matching the way
+ * login.php/register.php handle their own POST. On success this
+ * redirects (POST-Redirect-GET) so a page refresh can't resubmit the
+ * review; on a validation error it falls through and re-renders the
+ * page with $reviewErrors set.
+ */
+$reviewErrors = [];
+$reviewFormRating = '';
+$reviewFormText = '';
+$reviewJustSubmitted = isset($_GET['review']) && $_GET['review'] === 'submitted';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
+    $reviewFormRating = $_POST['rating'] ?? '';
+    $reviewFormText = $_POST['review'] ?? '';
+
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $reviewErrors['general'] = 'Your session has expired. Please refresh the page and try again.';
+    } elseif (!isCustomerLogin($conn)) {
+        $reviewErrors['general'] = 'Please log in to write a review.';
+    } else {
+        try {
+            // user_id comes from the session, product_id from the
+            // server-resolved $product above — never from $_POST — so a
+            // customer can never review as someone else or attach a
+            // review to a different product than the one they're on.
+            submitProductReview(
+                $conn,
+                $_SESSION['customer_id'],
+                $product['id'],
+                $reviewFormRating,
+                $reviewFormText
+            );
+            redirect(BASE_URL . 'products/product_details.php?slug=' . urlencode($slug) . '&review=submitted');
+        } catch (InvalidArgumentException $e) {
+            $reviewErrors['general'] = $e->getMessage();
+        } catch (Exception $e) {
+            error_log('Review submission failed: ' . $e->getMessage());
+            $reviewErrors['general'] = 'Something went wrong while submitting your review. Please try again.';
+        }
+    }
+}
+
+try {
+    $reviewSummary = getProductReviewSummary($conn, $product['id']);
+    $ratingDistribution = getRatingDistribution($conn, $product['id']);
+
+    $reviewPage = isset($_GET['review_page']) ? max(1, (int) $_GET['review_page']) : 1;
+    $reviewsData = getProductReviews($conn, $product['id'], $reviewPage, 5);
+} catch (Exception $e) {
+    error_log('Failed to load reviews: ' . $e->getMessage());
+    $reviewSummary = ['average' => 0.0, 'count' => 0];
+    $ratingDistribution = [5 => ['count' => 0, 'percent' => 0.0], 4 => ['count' => 0, 'percent' => 0.0], 3 => ['count' => 0, 'percent' => 0.0], 2 => ['count' => 0, 'percent' => 0.0], 1 => ['count' => 0, 'percent' => 0.0]];
+    $reviewsData = ['reviews' => [], 'total' => 0, 'page' => 1, 'pages' => 1];
+}
+
+$isCustomerLoggedIn = isCustomerLogin($conn);
+$myReview = null;
+if ($isCustomerLoggedIn) {
+    try {
+        $myReview = getUserReviewForProduct($conn, $_SESSION['customer_id'], $product['id']);
+    } catch (Exception $e) {
+        error_log('Failed to load the customer\'s own review: ' . $e->getMessage());
+    }
+}
+$reviewCsrfToken = generateCSRFToken();
 ?>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
@@ -609,6 +693,20 @@ $detailSections = [
 
             <h1 class="pd-title"><?php echo htmlspecialchars($viewProduct['title']); ?></h1>
 
+            <?php if ($reviewSummary['count'] > 0): ?>
+                <a href="#customer-reviews" class="pd-rating-summary-link">
+                    <span class="pd-stars">
+                        <?php $roundedAvgTop = (int) round($reviewSummary['average']); ?>
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <span class="<?php echo $i <= $roundedAvgTop ? 'filled' : ''; ?>">&#9733;</span>
+                        <?php endfor; ?>
+                    </span>
+                    <?php echo number_format($reviewSummary['average'], 1); ?> &#9733; (<?php echo (int) $reviewSummary['count']; ?> Review<?php echo $reviewSummary['count'] === 1 ? '' : 's'; ?>)
+                </a>
+            <?php else: ?>
+                <a href="#customer-reviews" class="pd-rating-summary-link pd-rating-summary-link--empty">No reviews yet &middot; Be the first to review this product</a>
+            <?php endif; ?>
+
             <div class="pd-price-row">
                 <span class="pd-price-current" id="js-price-current">
                     &#8377;<?php echo number_format($hasSale ? $currentSalePrice : $currentPrice, 0); ?>
@@ -761,6 +859,539 @@ $detailSections = [
 
     </div>
 
+</section>
+
+<style>
+    .pd-reviews {
+        max-width: var(--container-width);
+        margin: 0 auto 64px;
+        padding: 0 40px;
+    }
+
+    .pd-reviews h2 {
+        margin: 0 0 24px;
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--color-text);
+    }
+
+    .pd-reviews-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+        gap: 48px;
+        align-items: start;
+    }
+
+    /* --- Summary --- */
+
+    .pd-review-summary {
+        text-align: center;
+        padding: 24px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        background: var(--color-white);
+    }
+
+    .pd-review-avg {
+        font-size: 44px;
+        font-weight: 800;
+        color: var(--color-text);
+        line-height: 1;
+    }
+
+    .pd-review-avg-stars {
+        margin: 10px 0 6px;
+        font-size: 18px;
+        letter-spacing: 2px;
+        color: var(--color-border);
+    }
+
+    .pd-review-avg-stars .filled {
+        color: var(--color-accent);
+    }
+
+    .pd-review-count {
+        font-size: 13px;
+        color: var(--color-text-light);
+        margin-bottom: 20px;
+    }
+
+    .pd-review-dist-row {
+        display: grid;
+        grid-template-columns: 42px 1fr 34px;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 12.5px;
+        color: var(--color-text-light);
+    }
+
+    .pd-review-dist-bar {
+        height: 7px;
+        border-radius: 99px;
+        background: var(--color-primary-light);
+        overflow: hidden;
+    }
+
+    .pd-review-dist-fill {
+        height: 100%;
+        background: var(--color-accent);
+        border-radius: 99px;
+    }
+
+    /* --- Compact rating line under the product title --- */
+
+    .pd-rating-summary-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: -4px 0 16px;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--color-text-light);
+        text-decoration: none;
+    }
+
+    .pd-rating-summary-link:hover {
+        color: var(--color-primary);
+    }
+
+    .pd-rating-summary-link--empty {
+        font-weight: 500;
+    }
+
+    /* --- Star display (read-only) --- */
+
+    .pd-stars {
+        color: var(--color-border);
+        letter-spacing: 1px;
+        font-size: 15px;
+        white-space: nowrap;
+    }
+
+    .pd-stars .filled {
+        color: var(--color-accent);
+    }
+
+    /* --- Review list --- */
+
+    .pd-review-card {
+        padding: 18px 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .pd-review-card:first-child {
+        padding-top: 0;
+    }
+
+    .pd-review-card-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+    }
+
+    .pd-review-name {
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--color-text);
+    }
+
+    .pd-review-verified {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 99px;
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark);
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .pd-review-date {
+        font-size: 12px;
+        color: var(--color-text-light);
+        margin-left: auto;
+    }
+
+    .pd-review-text {
+        margin: 6px 0 0;
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--color-text);
+        white-space: pre-line;
+    }
+
+    .pd-review-empty {
+        padding: 28px 0;
+        color: var(--color-text-light);
+        font-size: 14px;
+    }
+
+    .pd-review-empty strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--color-text);
+        font-size: 15px;
+    }
+
+    /* --- Pagination --- */
+
+    .pd-review-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 24px;
+    }
+
+    .pd-review-pagination a,
+    .pd-review-pagination span {
+        min-width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 8px;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+    }
+
+    .pd-review-pagination a:hover {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .pd-review-pagination .is-current {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: var(--color-white);
+    }
+
+    .pd-review-pagination .is-disabled {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+
+    /* --- Write a review --- */
+
+    .pd-write-review {
+        margin-top: 40px;
+        padding: 24px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        background: var(--color-white);
+    }
+
+    .pd-write-review h3 {
+        margin: 0 0 16px;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--color-text);
+    }
+
+    .pd-login-prompt {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 14px;
+        color: var(--color-text-light);
+    }
+
+    .pd-login-prompt a {
+        flex-shrink: 0;
+        padding: 10px 20px;
+        border-radius: var(--radius-md);
+        background: var(--color-primary);
+        color: var(--color-white);
+        font-size: 13.5px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .pd-login-prompt a:hover {
+        background: var(--color-primary-dark);
+    }
+
+    .pd-my-review-status {
+        font-size: 14px;
+        color: var(--color-text-light);
+    }
+
+    .pd-my-review-status strong {
+        color: var(--color-text);
+    }
+
+    .pd-review-badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .pd-review-badge--pending {
+        background: #fdf3e3;
+        color: #92650f;
+    }
+
+    .pd-review-badge--rejected {
+        background: #fbeceb;
+        color: #8a1c14;
+    }
+
+    .pd-review-form .form-error {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        font-size: 13px;
+        color: #8a1c14;
+        background: #fbeceb;
+        border: 1px solid #f2c6c2;
+        border-radius: var(--radius-sm);
+    }
+
+    /* Pure-CSS interactive star rating: markup is 5,4,3,2,1 (reversed),
+       displayed left-to-right via row-reverse, so ~ selects "this star
+       and everything to its left" for both hover and :checked. */
+    .pd-star-input {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 2px;
+        border: none;
+        padding: 0;
+        margin: 0 0 18px;
+        width: max-content;
+    }
+
+    .pd-star-input input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+    }
+
+    .pd-star-input label {
+        font-size: 30px;
+        line-height: 1;
+        color: var(--color-border);
+        cursor: pointer;
+        transition: color 0.1s ease;
+    }
+
+    .pd-star-input label:hover,
+    .pd-star-input label:hover ~ label,
+    .pd-star-input input:checked ~ label {
+        color: var(--color-accent);
+    }
+
+    .pd-review-form textarea {
+        width: 100%;
+        min-height: 110px;
+        padding: 12px 14px;
+        font-size: 14px;
+        font-family: inherit;
+        color: var(--color-text);
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        box-sizing: border-box;
+        resize: vertical;
+        margin-bottom: 16px;
+    }
+
+    .pd-review-form textarea:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px var(--color-primary-light);
+    }
+
+    .pd-review-form button[type="submit"] {
+        padding: 12px 26px;
+        border: none;
+        border-radius: var(--radius-md);
+        background: var(--color-primary);
+        color: var(--color-white);
+        font-size: 14.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+
+    .pd-review-form button[type="submit"]:hover {
+        background: var(--color-primary-dark);
+    }
+
+    .pd-review-success {
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        font-size: 13px;
+        color: var(--color-primary-dark);
+        background: var(--color-primary-light);
+        border: 1px solid var(--color-primary);
+        border-radius: var(--radius-sm);
+        line-height: 1.5;
+    }
+
+    @media (max-width: 860px) {
+        .pd-reviews-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 500px) {
+        .pd-reviews {
+            padding: 0 20px;
+        }
+    }
+</style>
+
+<section class="pd-reviews">
+    <h2>Customer Reviews</h2>
+
+    <div class="pd-reviews-layout">
+
+        <!-- Summary + rating distribution -->
+        <div class="pd-review-summary">
+            <?php if ($reviewSummary['count'] > 0): ?>
+                <div class="pd-review-avg"><?php echo number_format($reviewSummary['average'], 1); ?></div>
+                <div class="pd-review-avg-stars">
+                    <?php
+                    $roundedAvg = (int) round($reviewSummary['average']);
+                    for ($i = 1; $i <= 5; $i++):
+                    ?>
+                        <span class="<?php echo $i <= $roundedAvg ? 'filled' : ''; ?>">&#9733;</span>
+                    <?php endfor; ?>
+                </div>
+                <div class="pd-review-count">Based on <?php echo (int) $reviewSummary['count']; ?> review<?php echo $reviewSummary['count'] === 1 ? '' : 's'; ?></div>
+
+                <?php for ($star = 5; $star >= 1; $star--): ?>
+                    <?php $d = $ratingDistribution[$star]; ?>
+                    <div class="pd-review-dist-row">
+                        <span><?php echo $star; ?> &#9733;</span>
+                        <span class="pd-review-dist-bar"><span class="pd-review-dist-fill" style="width:<?php echo (float) $d['percent']; ?>%;"></span></span>
+                        <span><?php echo (int) $d['percent']; ?>%</span>
+                    </div>
+                <?php endfor; ?>
+            <?php else: ?>
+                <div class="pd-review-avg" style="font-size:20px;color:var(--color-text-light);">No reviews yet</div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Review list + write-a-review -->
+        <div>
+            <?php if ($reviewsData['total'] > 0): ?>
+                <?php foreach ($reviewsData['reviews'] as $review): ?>
+                    <div class="pd-review-card">
+                        <div class="pd-review-card-head">
+                            <span class="pd-review-name"><?php echo htmlspecialchars($review['customer_name']); ?></span>
+                            <span class="pd-stars">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <span class="<?php echo $i <= $review['rating'] ? 'filled' : ''; ?>">&#9733;</span>
+                                <?php endfor; ?>
+                            </span>
+                            <?php if ($review['verified_purchase']): ?>
+                                <span class="pd-review-verified">&#10003; Verified Purchase</span>
+                            <?php endif; ?>
+                            <span class="pd-review-date"><?php echo date('d M Y', strtotime($review['created_at'])); ?></span>
+                        </div>
+                        <?php if (!empty($review['review'])): ?>
+                            <p class="pd-review-text"><?php echo htmlspecialchars($review['review']); ?></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+
+                <?php if ($reviewsData['pages'] > 1): ?>
+                    <nav class="pd-review-pagination" aria-label="Review pages">
+                        <?php
+                        $reviewBaseUrl = BASE_URL . 'products/product_details.php?slug=' . urlencode($slug);
+                        $curPage = $reviewsData['page'];
+                        $totalPages = $reviewsData['pages'];
+                        ?>
+                        <a href="<?php echo $reviewBaseUrl . '&review_page=' . max(1, $curPage - 1); ?>#customer-reviews" class="<?php echo $curPage <= 1 ? 'is-disabled' : ''; ?>">&laquo;</a>
+                        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                            <?php if ($p === $curPage): ?>
+                                <span class="is-current"><?php echo $p; ?></span>
+                            <?php else: ?>
+                                <a href="<?php echo $reviewBaseUrl . '&review_page=' . $p; ?>#customer-reviews"><?php echo $p; ?></a>
+                            <?php endif; ?>
+                        <?php endfor; ?>
+                        <a href="<?php echo $reviewBaseUrl . '&review_page=' . min($totalPages, $curPage + 1); ?>#customer-reviews" class="<?php echo $curPage >= $totalPages ? 'is-disabled' : ''; ?>">&raquo;</a>
+                    </nav>
+                <?php endif; ?>
+            <?php else: ?>
+                <div class="pd-review-empty">
+                    <strong>No reviews yet</strong>
+                    Be the first customer to review this product.
+                </div>
+            <?php endif; ?>
+
+            <!-- Write a review -->
+            <div class="pd-write-review" id="customer-reviews">
+                <?php if (!$isCustomerLoggedIn): ?>
+                    <h3>Write a Review</h3>
+                    <div class="pd-login-prompt">
+                        <span>Please login to write a review.</span>
+                        <a href="<?php echo BASE_URL; ?>account/login.php?redirect=<?php echo urlencode('products/product_details.php?slug=' . $slug); ?>">Login to write a review</a>
+                    </div>
+
+                <?php elseif ($myReview): ?>
+                    <h3>Your Review</h3>
+                    <p class="pd-my-review-status">
+                        <?php if ($myReview['status'] === 'Pending'): ?>
+                            <span class="pd-review-badge pd-review-badge--pending">Pending</span>
+                            &nbsp;Your review has been submitted and is awaiting approval.
+                        <?php elseif ($myReview['status'] === 'Rejected'): ?>
+                            <span class="pd-review-badge pd-review-badge--rejected">Rejected</span>
+                            &nbsp;Your review was not approved for publication.
+                        <?php else: ?>
+                            You have already reviewed this product. Thank you!
+                        <?php endif; ?>
+                    </p>
+
+                <?php else: ?>
+                    <h3><?php echo $reviewJustSubmitted ? 'Write a Review' : (($reviewsData['total'] === 0) ? 'Write the first review' : 'Write a Review'); ?></h3>
+
+                    <?php if ($reviewJustSubmitted): ?>
+                        <p class="pd-review-success">Thanks! Your review has been submitted and will appear once approved.</p>
+                    <?php endif; ?>
+
+                    <?php if (!empty($reviewErrors['general'])): ?>
+                        <p class="form-error"><?php echo htmlspecialchars($reviewErrors['general']); ?></p>
+                    <?php endif; ?>
+
+                    <form class="pd-review-form" method="POST" action="<?php echo BASE_URL; ?>products/product_details.php?slug=<?php echo urlencode($slug); ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($reviewCsrfToken); ?>">
+                        <input type="hidden" name="submit_review" value="1">
+
+                        <span class="pd-block-label">Your Rating</span>
+                        <fieldset class="pd-star-input">
+                            <?php for ($i = 5; $i >= 1; $i--): ?>
+                                <input type="radio" id="pd-star<?php echo $i; ?>" name="rating" value="<?php echo $i; ?>" <?php echo ((string) $reviewFormRating === (string) $i) ? 'checked' : ''; ?> required>
+                                <label for="pd-star<?php echo $i; ?>" title="<?php echo $i; ?> star<?php echo $i === 1 ? '' : 's'; ?>">&#9733;</label>
+                            <?php endfor; ?>
+                        </fieldset>
+
+                        <label for="pd-review-text" class="pd-block-label">Your Review (optional)</label>
+                        <textarea id="pd-review-text" name="review" maxlength="2000" placeholder="Write your review..."><?php echo htmlspecialchars($reviewFormText); ?></textarea>
+
+                        <button type="submit">Submit Review</button>
+                    </form>
+                <?php endif; ?>
+            </div>
+        </div>
+
+    </div>
 </section>
 
 <script>
