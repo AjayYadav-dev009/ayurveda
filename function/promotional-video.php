@@ -251,23 +251,44 @@ function getPromoVideoById($conn, $id)
 }
 
 /**
- * For the public homepage section (includes/promotion-video.php): active
- * videos only, in display order, shaped to match what that file expects
- * — 'id', 'title', 'video_url', 'thumbnail', 'orientation'.
- *
- * Note: promotion-video.php renders every row into a plain <video> tag —
- * it has no YouTube/Vimeo iframe embed support. So only videos with
- * video_type = 'upload' are included here; a YouTube/Vimeo entry added
- * via the admin panel simply won't appear in this particular section
- * (it's still stored, in case another part of the site is built to embed
- * it later).
+ * Turns a stored YouTube/Vimeo URL into an embeddable iframe src.
+ * Returns ['src' => ..., 'orientation' => ...] or null if the URL can't be parsed.
+ * YouTube Shorts links are treated as vertical, everything else as horizontal.
+ */
+function getPromoVideoEmbed($type, $url)
+{
+    $url = trim((string) $url);
+
+    if ($type === 'youtube'
+        && preg_match('~(?:youtube\.com/(?:watch\?(?:[^#]*&)?v=|shorts/|embed/|live/)|youtu\.be/)([A-Za-z0-9_-]{11})~', $url, $m)) {
+        return [
+            'src'         => 'https://www.youtube.com/embed/' . $m[1] . '?rel=0&playsinline=1',
+            'orientation' => strpos($url, '/shorts/') !== false ? 'vertical' : 'horizontal',
+        ];
+    }
+
+    if ($type === 'vimeo' && preg_match('~vimeo\.com/(?:video/)?(\d+)~', $url, $m)) {
+        return [
+            'src'         => 'https://player.vimeo.com/video/' . $m[1],
+            'orientation' => 'horizontal',
+        ];
+    }
+
+    return null;
+}
+
+/**
+ * For the public homepage section (home/promotion-video.php): active videos
+ * only, in display order. Uploaded files come back with 'video_url' set to
+ * the stored file path; YouTube/Vimeo entries come back with 'embed_src'
+ * set to an iframe URL (and 'video_url' left as the original link).
  */
 function getFeaturedPromoVideos($conn, $limit = 12)
 {
     $stmt = $conn->prepare(
-        "SELECT id, title, video_file, thumbnail, orientation
+        "SELECT id, title, description, video_type, video_url, video_file, thumbnail, orientation
          FROM promotional_videos
-         WHERE status = ? AND video_type = 'upload'
+         WHERE status = ?
          ORDER BY sort_order ASC, id ASC
          LIMIT ?"
     );
@@ -277,10 +298,29 @@ function getFeaturedPromoVideos($conn, $limit = 12)
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
-    foreach ($rows as &$row) {
-        $row['video_url'] = $row['video_file'];
+    $out = [];
+    foreach ($rows as $row) {
+        $row['embed_src'] = null;
+
+        if ($row['video_type'] === 'upload') {
+            if (empty($row['video_file'])) {
+                continue;
+            }
+            $row['video_url'] = $row['video_file'];
+        } else {
+            $embed = getPromoVideoEmbed($row['video_type'], $row['video_url']);
+            if (!$embed) {
+                continue; // unparseable URL: skip rather than render a broken card
+            }
+            $row['embed_src'] = $embed['src'];
+            if (empty($row['orientation'])) {
+                $row['orientation'] = $embed['orientation'];
+            }
+        }
+
         unset($row['video_file']);
+        $out[] = $row;
     }
 
-    return $rows;
+    return $out;
 }
