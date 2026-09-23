@@ -17,7 +17,6 @@
     <?php include __DIR__ . '/home/seasonalproduct.php'; ?>
     <?php include __DIR__ . '/home/dosha-banner.php'; ?>
     <?php include __DIR__ . '/home/ourteam.php'; ?>
-    <?php include __DIR__ . '/home/review.php'; ?>
 </main>
 
 
