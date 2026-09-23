@@ -171,10 +171,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Only Cash on Delivery is actually wired up right now. Other
+        // methods appear on the page as disabled/"coming soon" options
+        // (see the Payment Method card below), but a disabled <input>
+        // never gets submitted by a real browser — this check just makes
+        // sure a tampered/forged request can't sneak a different value
+        // through and claim to have paid online when nothing charged it.
+        $allowedPaymentMethods = ['cod' => 'COD'];
+        $submittedPaymentMethod = strtolower(trim($_POST['payment_method'] ?? 'cod'));
+
+        if (!isset($allowedPaymentMethods[$submittedPaymentMethod])) {
+            $errors['general'] = 'That payment method isn\'t available yet. Please choose Cash on Delivery.';
+            $_SESSION['checkout_flash'] = ['notice' => $notice, 'errors' => $errors];
+            redirect('checkout.php');
+        }
+
         $shipping = calculateShipping($conn, $subtotal);
         $tax = calculateTax($conn, $subtotal - $discount);
         $total = $subtotal - $discount + $tax + $shipping;
-        $paymentMethod = 'COD';
+        $paymentMethod = $allowedPaymentMethods[$submittedPaymentMethod];
 
         try {
             $orderId = createOrder($conn, $userId, $address, $cartItems, $coupon, $discount, $subtotal, $tax, $shipping, $total, $paymentMethod);
@@ -182,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($_SESSION['checkout_coupon']);
             unset($_SESSION['checkout_address_id']);
 
-            redirect(BASE_URL . 'order-success.php?order_id=' . $orderId);
+            redirect(BASE_URL . 'checkout/order-success.php?order_id=' . $orderId);
         } catch (Exception $e) {
             $errors['general'] = $e->getMessage() ?: 'Something went wrong while placing your order.';
             $_SESSION['checkout_flash'] = ['notice' => $notice, 'errors' => $errors];
@@ -501,6 +516,66 @@ $canPlaceOrder = empty($unavailableItems) && $selectedAddressId !== null;
         font-weight: 600;
     }
 
+    /* --- Payment method --- */
+
+    .payment-option {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        margin-bottom: 10px;
+    }
+
+    .payment-option:last-child {
+        margin-bottom: 0;
+    }
+
+    .payment-option:has(input:checked) {
+        border-color: var(--color-primary);
+        background: var(--color-primary-light);
+    }
+
+    .payment-option input {
+        accent-color: var(--color-primary);
+    }
+
+    .payment-option--disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    .payment-option--disabled .payment-name {
+        color: var(--color-text-light);
+    }
+
+    .payment-option-body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .payment-name {
+        font-weight: 700;
+        color: var(--color-text);
+        font-size: 14px;
+    }
+
+    .payment-badge {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: var(--color-border);
+        color: var(--color-text-light);
+        white-space: nowrap;
+    }
+
     /* --- Buttons --- */
 
     .checkout-btn {
@@ -735,6 +810,46 @@ $canPlaceOrder = empty($unavailableItems) && $selectedAddressId !== null;
                         </form>
                     <?php endif; ?>
                 </div>
+
+                <!-- Payment method -->
+                <div class="checkout-card">
+                    <h2>Payment Method</h2>
+
+                    <label class="payment-option">
+                        <input type="radio" name="payment_method" value="cod" checked form="placeOrderForm">
+                        <div class="payment-option-body">
+                            <span class="payment-name">Cash on Delivery</span>
+                        </div>
+                    </label>
+
+                    <label class="payment-option payment-option--disabled">
+                        <input type="radio" name="payment_method" value="upi" disabled>
+                        <div class="payment-option-body">
+                            <span class="payment-name">UPI</span>
+                            <span class="payment-badge">Coming soon</span>
+                        </div>
+                    </label>
+
+                    <label class="payment-option payment-option--disabled">
+                        <input type="radio" name="payment_method" value="card" disabled>
+                        <div class="payment-option-body">
+                            <span class="payment-name">Credit / Debit Card</span>
+                            <span class="payment-badge">Coming soon</span>
+                        </div>
+                    </label>
+
+                    <label class="payment-option payment-option--disabled">
+                        <input type="radio" name="payment_method" value="netbanking" disabled>
+                        <div class="payment-option-body">
+                            <span class="payment-name">Net Banking</span>
+                            <span class="payment-badge">Coming soon</span>
+                        </div>
+                    </label>
+
+                    <p class="checkout-summary-note" style="margin-top:14px; color: var(--color-text-light);">
+                        Online payments are launching soon. For now, all orders are Cash on Delivery.
+                    </p>
+                </div>
             </div>
 
             <!-- Summary -->
@@ -771,11 +886,11 @@ $canPlaceOrder = empty($unavailableItems) && $selectedAddressId !== null;
                     </p>
                 <?php endif; ?>
 
-                <form method="POST" action="checkout.php">
+                <form method="POST" action="checkout.php" id="placeOrderForm">
                     <input type="hidden" name="action" value="place_order">
                     <input type="hidden" name="address_id" value="<?php echo (int) $selectedAddressId; ?>">
                     <button type="submit" class="place-order-btn" <?php echo $canPlaceOrder ? '' : 'disabled'; ?>>
-                        Place Order &middot; Cash on Delivery
+                        Place Order
                     </button>
                 </form>
             </div>

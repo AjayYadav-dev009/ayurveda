@@ -391,13 +391,98 @@ function getOrderDetailsForAdmin($conn, $orderId)
 }
 
 /**
+ * Order statuses that mean "this stock is back on the shelf" —
+ * cancelling or returning an order releases the stock that was
+ * decremented for it at createOrder() time.
+ */
+const RESTOCKING_ORDER_STATUSES = ['cancelled', 'returned'];
+
+/**
+ * Adds each line item's quantity back onto products.stock /
+ * product_variants.stock. Called when an order moves INTO cancelled or
+ * returned.
+ *
+ * @param mysqli $conn
+ * @param int $orderId
+ * @throws Exception
+ */
+function restockOrderItems($conn, $orderId)
+{
+    $items = adminOrderFetchAll(
+        $conn,
+        "SELECT product_id, variant_id, quantity FROM order_items WHERE order_id = ?",
+        'i',
+        [(int) $orderId]
+    );
+
+    foreach ($items as $item) {
+        if ($item['variant_id'] !== null) {
+            adminOrderExec(
+                $conn,
+                "UPDATE product_variants SET stock = stock + ? WHERE id = ?",
+                'ii',
+                [(int) $item['quantity'], (int) $item['variant_id']]
+            );
+        } else {
+            adminOrderExec(
+                $conn,
+                "UPDATE products SET stock = stock + ? WHERE id = ?",
+                'ii',
+                [(int) $item['quantity'], (int) $item['product_id']]
+            );
+        }
+    }
+}
+
+/**
+ * Reverse of restockOrderItems() — deducts stock again. Called when an
+ * order moves OUT of cancelled/returned back into an active status, so
+ * stock that was put back isn't double-counted as available. Throws if
+ * any item no longer has enough stock, so the caller's transaction rolls
+ * back instead of going negative.
+ *
+ * @param mysqli $conn
+ * @param int $orderId
+ * @throws Exception
+ */
+function deductOrderItemsStock($conn, $orderId)
+{
+    $items = adminOrderFetchAll(
+        $conn,
+        "SELECT product_id, variant_id, quantity, product_name FROM order_items WHERE order_id = ?",
+        'i',
+        [(int) $orderId]
+    );
+
+    foreach ($items as $item) {
+        if ($item['variant_id'] !== null) {
+            $stmt = mysqli_prepare($conn, "UPDATE product_variants SET stock = stock - ? WHERE id = ? AND stock >= ?");
+        } else {
+            $stmt = mysqli_prepare($conn, "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?");
+        }
+        if (!$stmt) {
+            throw new Exception("Error preparing statement: " . mysqli_error($conn));
+        }
+
+        $targetId = $item['variant_id'] !== null ? (int) $item['variant_id'] : (int) $item['product_id'];
+        mysqli_stmt_bind_param($stmt, 'iii', $item['quantity'], $targetId, $item['quantity']);
+        mysqli_stmt_execute($stmt);
+
+        if (mysqli_stmt_affected_rows($stmt) === 0) {
+            throw new RuntimeException("Not enough stock left to move \"{$item['product_name']}\" out of cancelled/returned.");
+        }
+    }
+}
+
+/**
  * Manually change an order (for testing). There are NO transition rules:
  * any status can be set from any other. Keys read from $in (all optional,
  * missing keys are left unchanged): order_status, payment_status,
  * tracking_number, shipping_provider, note.
  *
  * Also syncs payments.status (and paid_at) when the payment status
- * changes, and writes rows to order_status_logs.
+ * changes, restocks/deducts product stock when order_status crosses in
+ * or out of cancelled/returned, and writes rows to order_status_logs.
  *
  * @param int|null $adminId
  * @return array{0:bool, 1:string} [success, message]
@@ -445,6 +530,21 @@ function updateOrderForAdmin($conn, $orderId, array $in, $adminId = null)
         $orderChanged = $newOrder !== $cur['order_status'];
         $payChanged   = $newPay !== $cur['payment_status'];
 
+        if ($orderChanged) {
+            $wasRestocked = in_array($cur['order_status'], RESTOCKING_ORDER_STATUSES, true);
+            $isRestocked  = in_array($newOrder, RESTOCKING_ORDER_STATUSES, true);
+
+            if ($isRestocked && !$wasRestocked) {
+                // Order just became cancelled/returned — release its stock.
+                restockOrderItems($conn, $orderId);
+            } elseif ($wasRestocked && !$isRestocked) {
+                // Order is being moved back out of cancelled/returned —
+                // take that stock again. Throws (and rolls back the whole
+                // transaction, below) if there isn't enough left.
+                deductOrderItemsStock($conn, $orderId);
+            }
+        }
+
         if ($payChanged) {
             adminOrderExec(
                 $conn,
@@ -470,7 +570,7 @@ function updateOrderForAdmin($conn, $orderId, array $in, $adminId = null)
         }
         if ($payChanged) {
             $n = "Payment status: {$cur['payment_status']} → $newPay"
-               . ($note !== '' && !$orderChanged ? " ($note)" : '');
+                . ($note !== '' && !$orderChanged ? " ($note)" : '');
             adminOrderExec($conn, $logSql, 'isssi', [$orderId, $newOrder, $newOrder, mb_substr($n, 0, 500), $adminId]);
         }
 

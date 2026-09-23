@@ -1,6 +1,17 @@
 <?php
 
 require_once __DIR__ . '/../config/config.php';
+
+// header.php reads $_SESSION['customer_id'] below (for the cart badge and
+// account link) but can't assume the page that included it already started
+// the session — some pages (e.g. index.php) don't. config.php's session.*
+// ini_set() calls above have already run by this point (or were already
+// applied earlier in the request, since require_once only runs a file's
+// body once), so it's safe to start the session here if it isn't already.
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once __DIR__ . '/../function/category.php';
 require_once __DIR__ . '/../function/product.php';
 
