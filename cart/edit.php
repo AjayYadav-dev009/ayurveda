@@ -1,5 +1,5 @@
 <?php include __DIR__ . '/../../config/config.php'; ?>
-<?php include __DIR__ . '/../../includes/auth.php'; ?>
+<?php include __DIR__ . '/../../includes/session.php'; ?>
 <?php include __DIR__ . '/../../function/product.php'; ?>
 <?php include __DIR__ . '/../../function/category.php'; ?>
 <?php include __DIR__ . '/../../function/helper.php'; ?>

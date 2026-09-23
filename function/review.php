@@ -286,12 +286,18 @@ if (!function_exists('canUserReviewProduct')) {
      * @param int $userId
      * @param int $productId
      * @return bool True if this logged-in customer may submit a NEW
-     *              review for this product (hasn't already reviewed it).
+     *              review for this product: hasn't already reviewed it
+     *              AND has a delivered order containing it. Only
+     *              customers who actually bought and received a product
+     *              may review it.
      * @throws Exception
      */
     function canUserReviewProduct($conn, $userId, $productId)
     {
-        return !hasUserReviewedProduct($conn, $userId, $productId);
+        if (hasUserReviewedProduct($conn, $userId, $productId)) {
+            return false;
+        }
+        return customerHasDeliveredOrderForProduct($conn, $userId, $productId);
     }
 }
 
@@ -395,7 +401,15 @@ if (!function_exists('submitProductReview')) {
             throw new InvalidArgumentException('You have already reviewed this product.');
         }
 
-        $verifiedPurchase = customerHasDeliveredOrderForProduct($conn, $userId, $productId) ? 1 : 0;
+        // Only customers who actually bought and received this product
+        // may review it at all — this is the same check used for the
+        // verified_purchase flag, so every review that gets inserted is
+        // verified_purchase = 1 by construction.
+        if (!customerHasDeliveredOrderForProduct($conn, $userId, $productId)) {
+            throw new InvalidArgumentException('You can only review products you have purchased and received.');
+        }
+
+        $verifiedPurchase = 1;
 
         $stmt = mysqli_prepare(
             $conn,
@@ -662,4 +676,4 @@ if (!function_exists('getProductsForReviewFilter')) {
         }
         return $products;
     }
-}
+}                                                                                                                                                                  

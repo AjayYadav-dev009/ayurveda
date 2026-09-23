@@ -190,11 +190,18 @@ try {
 
 $isCustomerLoggedIn = isCustomerLogin($conn);
 $myReview = null;
+$hasDeliveredPurchase = false;
 if ($isCustomerLoggedIn) {
     try {
         $myReview = getUserReviewForProduct($conn, $_SESSION['customer_id'], $product['id']);
+        if (!$myReview) {
+            // Only worth checking purchase history when they haven't
+            // already reviewed — hasUserReviewedProduct already covers
+            // that case in submitProductReview() server-side.
+            $hasDeliveredPurchase = customerHasDeliveredOrderForProduct($conn, $_SESSION['customer_id'], $product['id']);
+        }
     } catch (Exception $e) {
-        error_log('Failed to load the customer\'s own review: ' . $e->getMessage());
+        error_log('Failed to load the customer\'s review eligibility: ' . $e->getMessage());
     }
 }
 $reviewCsrfToken = generateCSRFToken();
@@ -1358,6 +1365,10 @@ $reviewCsrfToken = generateCSRFToken();
                             You have already reviewed this product. Thank you!
                         <?php endif; ?>
                     </p>
+
+                <?php elseif (!$hasDeliveredPurchase): ?>
+                    <h3>Write a Review</h3>
+                    <p class="pd-my-review-status">Only customers who have purchased and received this product can write a review.</p>
 
                 <?php else: ?>
                     <h3><?php echo $reviewJustSubmitted ? 'Write a Review' : (($reviewsData['total'] === 0) ? 'Write the first review' : 'Write a Review'); ?></h3>
