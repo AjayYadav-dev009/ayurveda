@@ -6,8 +6,8 @@
  * Assumes this file lives in the project root, next to config/, function/
  * and includes/. Adjust the paths below if yours differs.
  */
-require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/function/blog.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../function/blog.php';
 
 // ---- Site-specific settings (edit these) -------------------------------
 const BD_LIST_URL     = 'blog.php';                          // blog listing page

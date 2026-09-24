@@ -593,7 +593,7 @@ include __DIR__ . '/../includes/header.php';
             <?php else: ?>
 
                 <?php if ($featuredPost): ?>
-                    <a href="<?= BASE_URL ?>blog/blog-single.php?slug=<?= urlencode($featuredPost['slug']) ?>" class="blog-featured">
+                    <a href="<?= BASE_URL ?>blog/blog-details.php?slug=<?= urlencode($featuredPost['slug']) ?>" class="blog-featured">
                         <div class="blog-featured__image">
                             <?php if (!empty($featuredPost['category_name'])): ?>
                                 <span class="blog-badge"><?= htmlspecialchars(strtoupper($featuredPost['category_name'])) ?></span>
@@ -615,7 +615,7 @@ include __DIR__ . '/../includes/header.php';
                 <?php if (!empty($posts)): ?>
                     <div class="blog-grid">
                         <?php foreach ($posts as $post): ?>
-                            <a href="<?= BASE_URL ?>blog/blog-single.php?slug=<?= urlencode($post['slug']) ?>" class="blog-card">
+                            <a href="<?= BASE_URL ?>blog/blog-details.php?slug=<?= urlencode($post['slug']) ?>" class="blog-card">
                                 <div class="blog-card__image">
                                     <?php if (!empty($post['category_name'])): ?>
                                         <span class="blog-badge"><?= htmlspecialchars(strtoupper($post['category_name'])) ?></span>
@@ -678,7 +678,7 @@ include __DIR__ . '/../includes/header.php';
                 <div class="blog-widget">
                     <h3 class="blog-widget__title">&#9733; Popular Posts</h3>
                     <?php foreach ($popularPosts as $popularPost): ?>
-                        <a href="<?= BASE_URL ?>blog/blog-single.php?slug=<?= urlencode($popularPost['slug']) ?>" class="blog-popular-item">
+                        <a href="<?= BASE_URL ?>blog/blog-details.php?slug=<?= urlencode($popularPost['slug']) ?>" class="blog-popular-item">
                             <img src="<?= htmlspecialchars(getBlogImageUrl($popularPost['image']) ?? BASE_URL . 'assets/images/placeholder.png') ?>" alt="<?= htmlspecialchars($popularPost['title']) ?>">
                             <div>
                                 <div class="blog-popular-item__title"><?= htmlspecialchars($popularPost['title']) ?></div>
