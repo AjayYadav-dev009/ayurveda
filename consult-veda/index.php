@@ -12,7 +12,7 @@ include __DIR__ . '/../includes/header.php';
     <?php include __DIR__ . '/journey.php'; ?>
     <?php include __DIR__ . '/pricing.php'; ?>
     <?php include __DIR__ . '/cta.php'; ?>
-    <?php include __DIR__ . '/home-2.php'; ?>
+    <?php include __DIR__ . '/faqs.php'; ?>
 
 </main>
 
