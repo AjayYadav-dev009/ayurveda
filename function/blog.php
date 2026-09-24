@@ -8,8 +8,28 @@ if (!defined('BLOG_IMAGE_UPLOAD_DIR')) {
 }
 
 // Public web path used to build <img src="..."> URLs.
+// The uploads folder is <project>/uploads/blog/. When the project lives in a
+// sub-folder of the web root (e.g. http://localhost/ayurveda/), a hard-coded
+// '/uploads/blog/' points at the wrong place and images 404, so work the URL
+// out from the folder's real location under DOCUMENT_ROOT.
 if (!defined('BLOG_IMAGE_PUBLIC_PATH')) {
-    define('BLOG_IMAGE_PUBLIC_PATH', '/uploads/blog/');
+    $blogPublicPath = '/uploads/blog/';
+    $blogPathDerived = false;
+
+    $blogDocRoot = !empty($_SERVER['DOCUMENT_ROOT']) ? realpath($_SERVER['DOCUMENT_ROOT']) : false;
+    $blogProjectRoot = realpath(dirname(__DIR__));
+    if ($blogDocRoot !== false && $blogProjectRoot !== false) {
+        $blogDocRoot = rtrim(str_replace('\\', '/', $blogDocRoot), '/');
+        $blogProjectRoot = rtrim(str_replace('\\', '/', $blogProjectRoot), '/');
+        if ($blogDocRoot !== '' && stripos($blogProjectRoot, $blogDocRoot) === 0) {
+            $blogPublicPath = substr($blogProjectRoot, strlen($blogDocRoot)) . '/uploads/blog/';
+            $blogPathDerived = true;
+        }
+    }
+
+    define('BLOG_IMAGE_PUBLIC_PATH', $blogPublicPath);
+    define('BLOG_IMAGE_PATH_DERIVED', $blogPathDerived);
+    unset($blogPublicPath, $blogPathDerived, $blogDocRoot, $blogProjectRoot);
 }
 
 if (!defined('BLOG_IMAGE_MAX_BYTES')) {
@@ -127,6 +147,12 @@ if (!function_exists('getBlogImageUrl')) {
 
         $path = rtrim(BLOG_IMAGE_PUBLIC_PATH, '/') . '/' . ltrim($imagePath, '/');
 
+        // A derived path already includes any sub-folder, so BASE_URL must
+        // not be prepended again.
+        if (defined('BLOG_IMAGE_PATH_DERIVED') && BLOG_IMAGE_PATH_DERIVED) {
+            return $path;
+        }
+
         if (defined('BASE_URL') && BASE_URL !== '') {
             return rtrim(BASE_URL, '/') . $path;
         }
@@ -215,11 +241,13 @@ if (!function_exists('addBlogPost')) {
      * @param string|null $published_at  Raw value from the form (datetime-local format), or null.
      * @param string|null $meta_title
      * @param string|null $meta_description
+     * @param int|string|null $category_id
+     * @param string|null $hero_image Filename from uploadBlogImage() for the top banner, or null.
      * @return int Newly created blog post id.
      * @throws Exception
      * @throws InvalidArgumentException
      */
-    function addBlogPost($conn, $title, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id = null)
+    function addBlogPost($conn, $title, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id = null, $hero_image = null)
     {
         $title = trim($title);
 
@@ -251,14 +279,14 @@ if (!function_exists('addBlogPost')) {
         $category_id = ($category_id === '' || $category_id === null) ? null : (int) $category_id;
 
         $sql = "INSERT INTO blog_posts
-                (title, slug, excerpt, content, image, status, published_at, meta_title, meta_description, category_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                (title, slug, excerpt, content, image, hero_image, status, published_at, meta_title, meta_description, category_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
         $stmt = mysqli_prepare($conn, $sql);
         if (!$stmt) {
             throw new Exception("Error preparing statement: " . mysqli_error($conn));
         }
 
-        mysqli_stmt_bind_param($stmt, 'sssssssssi', $title, $slug, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id);
+        mysqli_stmt_bind_param($stmt, 'ssssssssssi', $title, $slug, $excerpt, $content, $image, $hero_image, $status, $published_at, $meta_title, $meta_description, $category_id);
 
         if (!mysqli_stmt_execute($stmt)) {
             if (mysqli_errno($conn) === 1062) {
@@ -292,11 +320,13 @@ if (!function_exists('updateBlogPost')) {
      * @param string|null $published_at  Raw value from the form (datetime-local format), or null.
      * @param string|null $meta_title
      * @param string|null $meta_description
+     * @param int|string|null $category_id
+     * @param string|null|false $hero_image New hero filename, null to clear it, or false (default) to leave it unchanged.
      * @return bool
      * @throws Exception
      * @throws InvalidArgumentException
      */
-    function updateBlogPost($conn, $id, $title, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id = null)
+    function updateBlogPost($conn, $id, $title, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id = null, $hero_image = false)
     {
         $id = (int) $id;
         $title = trim($title);
@@ -315,6 +345,10 @@ if (!function_exists('updateBlogPost')) {
             throw new InvalidArgumentException('Blog post not found.');
         }
         $oldImage = $existingRow['image'];
+        $oldHeroImage = $existingRow['hero_image'] ?? null;
+        if ($hero_image === false) {
+            $hero_image = $oldHeroImage;
+        }
 
         $slug = createSlug($title);
 
@@ -344,14 +378,14 @@ if (!function_exists('updateBlogPost')) {
         $category_id = ($category_id === '' || $category_id === null) ? null : (int) $category_id;
 
         $sql = "UPDATE blog_posts
-                SET title = ?, slug = ?, excerpt = ?, content = ?, image = ?, status = ?, published_at = ?, meta_title = ?, meta_description = ?, category_id = ?, updated_at = NOW()
+                SET title = ?, slug = ?, excerpt = ?, content = ?, image = ?, hero_image = ?, status = ?, published_at = ?, meta_title = ?, meta_description = ?, category_id = ?, updated_at = NOW()
                 WHERE id = ?";
         $stmt = mysqli_prepare($conn, $sql);
         if (!$stmt) {
             throw new Exception("Error preparing statement: " . mysqli_error($conn));
         }
 
-        mysqli_stmt_bind_param($stmt, 'sssssssssii', $title, $slug, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id, $id);
+        mysqli_stmt_bind_param($stmt, 'ssssssssssii', $title, $slug, $excerpt, $content, $image, $hero_image, $status, $published_at, $meta_title, $meta_description, $category_id, $id);
 
         if (!mysqli_stmt_execute($stmt)) {
             if (mysqli_errno($conn) === 1062) {
@@ -366,6 +400,12 @@ if (!function_exists('updateBlogPost')) {
             $oldPath = rtrim(BLOG_IMAGE_UPLOAD_DIR, '/') . '/' . ltrim($oldImage, '/');
             if (is_file($oldPath)) {
                 @unlink($oldPath);
+            }
+        }
+        if ($oldHeroImage !== null && $oldHeroImage !== '' && $oldHeroImage !== $hero_image) {
+            $oldHeroPath = rtrim(BLOG_IMAGE_UPLOAD_DIR, '/') . '/' . ltrim($oldHeroImage, '/');
+            if (is_file($oldHeroPath)) {
+                @unlink($oldHeroPath);
             }
         }
 
@@ -405,11 +445,12 @@ if (!function_exists('deleteBlogPost')) {
             throw new Exception('Error deleting blog post: ' . mysqli_error($conn));
         }
 
-        $image = $existingRow['image'];
-        if ($image !== null && $image !== '') {
-            $imagePath = rtrim(BLOG_IMAGE_UPLOAD_DIR, '/') . '/' . ltrim($image, '/');
-            if (is_file($imagePath)) {
-                @unlink($imagePath);
+        foreach ([$existingRow['image'] ?? null, $existingRow['hero_image'] ?? null] as $file) {
+            if ($file !== null && $file !== '') {
+                $filePath = rtrim(BLOG_IMAGE_UPLOAD_DIR, '/') . '/' . ltrim($file, '/');
+                if (is_file($filePath)) {
+                    @unlink($filePath);
+                }
             }
         }
 
@@ -833,9 +874,12 @@ if (!function_exists('prepareBlogContent')) {
         $toc = [];
         $used = [];
 
+        $emptyHeadings = [];
         foreach ($root->getElementsByTagName('h2') as $h2) {
-            $text = trim($h2->textContent);
+            // trim() does not strip &nbsp; (U+00A0), which CKEditor leaves in blank headings.
+            $text = preg_replace('/^[\s\x{00A0}]+|[\s\x{00A0}]+$/u', '', $h2->textContent);
             if ($text === '') {
+                $emptyHeadings[] = $h2;
                 continue;
             }
             $base = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $text), '-')) ?: 'section';
@@ -846,6 +890,11 @@ if (!function_exists('prepareBlogContent')) {
             $used[$id] = true;
             $h2->setAttribute('id', $id);
             $toc[] = ['id' => $id, 'text' => $text];
+        }
+
+        // Blank headings would otherwise render as an empty numbered circle.
+        foreach ($emptyHeadings as $node) {
+            $node->parentNode->removeChild($node);
         }
 
         $out = '';

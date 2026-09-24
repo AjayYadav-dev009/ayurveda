@@ -12,8 +12,7 @@ require_once __DIR__ . '/../function/blog.php';
 // ---- Site-specific settings (edit these) -------------------------------
 const BD_LIST_URL     = 'blog.php';                          // blog listing page
 const BD_HOME_URL     = 'index.php';
-const BD_HERO_IMAGE   = '/assets/images/blog-hero.jpg';      // decorative hero art (right side)
-const BD_NEWSLETTER   = 'newsletter-subscribe.php';          // form action for the subscribe box
+const BD_HERO_IMAGE   = '';                                  // optional site-wide fallback hero art (posts use their own Hero Image)
 const BD_AUTHOR = [                                          // schema has no author column yet
     'name'  => 'Dr. Radhika Tiwari',
     'role'  => 'Ayurveda Practitioner',
@@ -35,7 +34,8 @@ if (!$post) {
 } else {
     $pageTitle       = $post['meta_title'] ?: $post['title'];
     $metaDescription = $post['meta_description'] ?: strip_tags((string) $post['excerpt']);
-    $ogImage         = getBlogImageUrl($post['image']);
+    $ogImage         = getBlogImageUrl($post['image'] ?: ($post['hero_image'] ?? null));
+    $heroUrl         = !empty($post['hero_image']) ? getBlogImageUrl($post['hero_image']) : BD_HERO_IMAGE;
 
     $body     = prepareBlogContent($post['content']);
     $readTime = estimateBlogReadTime($post['content']);
@@ -45,8 +45,8 @@ if (!$post) {
     $initials = implode('', array_map(fn($w) => mb_substr($w, 0, 1), array_slice(preg_split('/\s+/', preg_replace('/^Dr\.?\s+/i', '', $author['name'])), 0, 2)));
 }
 
-$headerFile = __DIR__ . '/includes/header.php';
-$footerFile = __DIR__ . '/includes/footer.php';
+$headerFile = __DIR__ . '/../includes/header.php';
+$footerFile = __DIR__ . '/../includes/footer.php';
 $hasChrome  = is_file($headerFile);
 
 if ($hasChrome) {
@@ -138,7 +138,7 @@ if ($hasChrome) {
             content: '';
             position: absolute;
             inset: 0 0 0 46%;
-            background: url('<?= $e(BD_HERO_IMAGE) ?>') center / cover, linear-gradient(135deg, #b7c8ab, #6f8f6a);
+            background: var(--bd-hero-img, none) center / cover, linear-gradient(135deg, #b7c8ab, #6f8f6a);
             -webkit-mask-image: linear-gradient(to right, transparent, #000 38%);
             mask-image: linear-gradient(to right, transparent, #000 38%);
         }
@@ -293,6 +293,31 @@ if ($hasChrome) {
             max-width: 100%;
             height: auto;
             border-radius: 8px;
+        }
+
+        .bd-body figure.table {
+            margin: 22px 0;
+            overflow-x: auto;
+        }
+
+        .bd-body table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .88rem;
+        }
+
+        .bd-body th,
+        .bd-body td {
+            padding: 10px 14px;
+            text-align: left;
+            vertical-align: top;
+            border-bottom: 1px solid var(--bd-line);
+        }
+
+        .bd-body th {
+            color: var(--bd-ink);
+            font-weight: 600;
+            background: var(--bd-sage-soft);
         }
 
         .bd-body a {
@@ -523,75 +548,6 @@ if ($hasChrome) {
             font-size: .72rem;
         }
 
-        /* Newsletter */
-        .bd-news {
-            background: var(--bd-dark);
-            color: #d5dfd8;
-            padding: 40px 0;
-        }
-
-        .bd-news .bd-wrap {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
-            align-items: center;
-        }
-
-        .bd-news h2 {
-            color: #fff;
-            font-size: 1.75rem;
-            margin: 0 0 8px;
-        }
-
-        .bd-news p {
-            margin: 0;
-            font-size: .85rem;
-            max-width: 340px;
-        }
-
-        .bd-news small {
-            color: #d1a94f;
-            font-size: .68rem;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-        }
-
-        .bd-news form {
-            display: flex;
-            gap: 12px;
-        }
-
-        .bd-news label {
-            flex: 1;
-            position: relative;
-        }
-
-        .bd-news input[type=email] {
-            width: 100%;
-            height: 44px;
-            border: 0;
-            border-radius: 6px;
-            padding: 0 14px;
-            font: inherit;
-            font-size: .84rem;
-            background: #f6f3ec;
-        }
-
-        .bd-news button {
-            height: 44px;
-            padding: 0 26px;
-            border: 0;
-            border-radius: 6px;
-            background: var(--bd-gold);
-            color: #fff;
-            font: 600 .86rem 'DM Sans', sans-serif;
-            cursor: pointer;
-        }
-
-        .bd-news button:hover {
-            background: #a37824;
-        }
-
         .bd-empty {
             padding: 96px 0;
             text-align: center;
@@ -673,7 +629,7 @@ if ($hasChrome) {
             </div>
         <?php else: ?>
 
-            <header class="bd-hero">
+            <header class="bd-hero"<?php if (!empty($heroUrl)): ?> style="--bd-hero-img: url('<?= $e($heroUrl) ?>')"<?php endif; ?>>
                 <div class="bd-wrap">
                     <div class="bd-hero-copy">
                         <nav class="bd-crumbs" aria-label="Breadcrumb">
@@ -800,23 +756,6 @@ if ($hasChrome) {
                     <?php endif; ?>
                 </aside>
             </div>
-
-            <section class="bd-news" aria-labelledby="bd-news-title">
-                <div class="bd-wrap">
-                    <div>
-                        <small>Your wellness matters</small>
-                        <h2 class="bd-serif" id="bd-news-title">Subscribe to our newsletter</h2>
-                        <p>Get the latest articles, wellness tips, and special offers delivered to your inbox.</p>
-                    </div>
-                    <form action="<?= $e(BD_NEWSLETTER) ?>" method="post">
-                        <label>
-                            <span class="sr-only" style="position:absolute;left:-9999px">Email address</span>
-                            <input type="email" name="email" placeholder="Enter your email address" required>
-                        </label>
-                        <button type="submit">Subscribe</button>
-                    </form>
-                </div>
-            </section>
 
             <script>
                 (function() {

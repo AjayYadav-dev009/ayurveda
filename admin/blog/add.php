@@ -23,14 +23,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // filename string (or null if no file was chosen) — safe to pass
         // straight into addBlogPost().
         $image = uploadBlogImage($_FILES['image'] ?? null);
+        // Second image: the wide banner shown at the top of the post page.
+        $heroImage = uploadBlogImage($_FILES['hero_image'] ?? null);
 
-        $blog_id = addBlogPost($conn, $title, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id);
+        $blog_id = addBlogPost($conn, $title, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id, $heroImage);
 
         header("Location: index.php");
         exit;
     } catch (Exception $e) {
 
         $error = $e->getMessage();
+
+        // Don't leave freshly uploaded files behind when the post wasn't saved.
+        foreach ([$image ?? null, $heroImage ?? null] as $orphan) {
+            if ($orphan) {
+                @unlink(rtrim(BLOG_IMAGE_UPLOAD_DIR, '/') . '/' . $orphan);
+            }
+        }
     }
 }
 ?>
@@ -131,8 +140,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <label for="content">Content:</label>
     <textarea name="content" id="content"><?php echo isset($_POST['content']) ? $_POST['content'] : ''; ?></textarea>
 
-    <label for="image">Featured Image:</label>
-    <input type="file" name="image" id="image">
+    <label for="hero_image">Hero Image: <small>(banner at the top of the post, wide, e.g. 1600&times;700)</small></label>
+    <input type="file" name="hero_image" id="hero_image" accept="image/*">
+
+    <label for="image">Featured Image: <small>(shown above the article text, 2:1, e.g. 1200&times;600)</small></label>
+    <input type="file" name="image" id="image" accept="image/*">
 
     <label for="category_id">Category:</label>
     <select name="category_id" id="category_id">

@@ -44,12 +44,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // replacement.
         $image = $newImage ?? $blog['image'];
 
-        updateBlogPost($conn, $id, $title, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id);
+        // Same rule for the hero banner: keep the current one unless replaced.
+        $newHeroImage = uploadBlogImage($_FILES['hero_image'] ?? null);
+        $heroImage = $newHeroImage ?? ($blog['hero_image'] ?? null);
+
+        updateBlogPost($conn, $id, $title, $excerpt, $content, $image, $status, $published_at, $meta_title, $meta_description, $category_id, $heroImage);
 
         header('Location: index.php');
         exit;
     } catch (Exception $e) {
         $error = $e->getMessage();
+
+        // The post wasn't saved, so remove any files uploaded during this attempt.
+        foreach ([$newImage ?? null, $newHeroImage ?? null] as $orphan) {
+            if ($orphan) {
+                @unlink(rtrim(BLOG_IMAGE_UPLOAD_DIR, '/') . '/' . $orphan);
+            }
+        }
         // Re-fetch so the form below still shows the saved values on error,
         // not the stale pre-edit row.
         $blog['title'] = $title;
@@ -175,10 +186,16 @@ if (!empty($blog['published_at'])) {
     <label for="content">Content:</label>
     <textarea name="content" id="content"><?= $blog['content'] ?? ''; ?></textarea>
 
-    <label for="image">Featured Image:</label>
-    <input type="file" name="image" id="image">
+    <label for="hero_image">Hero Image: <small>(banner at the top of the post, wide, e.g. 1600&times;700)</small></label>
+    <input type="file" name="hero_image" id="hero_image" accept="image/*">
+    <?php if (!empty($blog['hero_image'])): ?>
+        <img src="<?= htmlspecialchars(getBlogImageUrl($blog['hero_image'])); ?>" alt="Current hero image" class="current-image">
+    <?php endif; ?>
+
+    <label for="image">Featured Image: <small>(shown above the article text, 2:1, e.g. 1200&times;600)</small></label>
+    <input type="file" name="image" id="image" accept="image/*">
     <?php if (!empty($blog['image'])): ?>
-        <img src="<?= htmlspecialchars(getBlogImageUrl($blog['image'])); ?>" alt="Current image" class="current-image">
+        <img src="<?= htmlspecialchars(getBlogImageUrl($blog['image'])); ?>" alt="Current featured image" class="current-image">
     <?php endif; ?>
 
     <label for="category_id">Category:</label>
