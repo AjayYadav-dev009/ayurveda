@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 23, 2026 at 05:18 AM
+-- Generation Time: Sep 24, 2026 at 04:55 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -42,6 +42,13 @@ CREATE TABLE `addresses` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `addresses`
+--
+
+INSERT INTO `addresses` (`id`, `user_id`, `full_name`, `phone`, `address_line1`, `address_line2`, `city`, `state`, `country`, `pincode`, `is_default`, `created_at`, `updated_at`) VALUES
+(1, 1, 'Ajay Yadav', '+91-11-45052477', 'Tikri Boarder', '', 'Jharoda Kalan', 'Delhi', 'India', '110072', 1, '2026-09-23 10:13:01', '2026-09-23 10:13:01');
 
 -- --------------------------------------------------------
 
@@ -132,6 +139,13 @@ CREATE TABLE `cart` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `cart`
+--
+
+INSERT INTO `cart` (`id`, `user_id`, `product_id`, `variant_id`, `quantity`, `created_at`, `updated_at`) VALUES
+(6, 1, 8, NULL, 1, '2026-09-23 15:21:40', '2026-09-23 15:21:40');
 
 -- --------------------------------------------------------
 
@@ -234,6 +248,16 @@ CREATE TABLE `orders` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `orders`
+--
+
+INSERT INTO `orders` (`id`, `user_id`, `order_number`, `subtotal`, `discount`, `tax`, `shipping`, `total`, `coupon_id`, `coupon_code`, `payment_method`, `payment_status`, `order_status`, `shipping_name`, `shipping_phone`, `shipping_address`, `shipping_city`, `shipping_state`, `shipping_country`, `shipping_pincode`, `tracking_number`, `shipping_provider`, `notes`, `created_at`, `updated_at`) VALUES
+(1, 1, 'ORD-20260923-6AE763', 3798.10, 0.00, 0.00, 49.00, 3847.10, NULL, NULL, 'COD', 'failed', 'returned', 'Ajay Yadav', '+91-11-45052477', 'Tikri Boarder', 'Jharoda Kalan', 'Delhi', 'India', '110072', NULL, NULL, NULL, '2026-09-23 10:13:08', '2026-09-23 10:46:45'),
+(2, 1, 'ORD-20260923-FFAC87', 3798.10, 0.00, 0.00, 49.00, 3847.10, NULL, NULL, 'COD', 'paid', 'delivered', 'Ajay Yadav', '+91-11-45052477', 'Tikri Boarder', 'Jharoda Kalan', 'Delhi', 'India', '110072', NULL, NULL, NULL, '2026-09-23 11:03:00', '2026-09-23 11:15:09'),
+(3, 1, 'ORD-20260923-ECEF51', 4748.10, 0.00, 0.00, 49.00, 4797.10, NULL, NULL, 'COD', 'refunded', 'cancelled', 'Ajay Yadav', '+91-11-45052477', 'Tikri Boarder', 'Jharoda Kalan', 'Delhi', 'India', '110072', NULL, NULL, NULL, '2026-09-23 11:14:25', '2026-09-23 11:15:05'),
+(4, 1, 'ORD-20260923-E31932', 21205.00, 0.00, 0.00, 49.00, 21254.00, NULL, NULL, 'COD', 'refunded', 'cancelled', 'Ajay Yadav', '+91-11-45052477', 'Tikri Boarder', 'Jharoda Kalan', 'Delhi', 'India', '110072', NULL, NULL, NULL, '2026-09-23 11:22:25', '2026-09-23 11:22:44');
+
 -- --------------------------------------------------------
 
 --
@@ -254,6 +278,16 @@ CREATE TABLE `order_items` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `order_items`
+--
+
+INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `variant_id`, `product_name`, `variant_name`, `sku`, `price`, `quantity`, `subtotal`, `created_at`) VALUES
+(1, 1, 2, NULL, 'Alpha X Powder', NULL, NULL, 1899.05, 2, 3798.10, '2026-09-23 10:13:08'),
+(2, 2, 2, NULL, 'Alpha X Powder', NULL, NULL, 1899.05, 2, 3798.10, '2026-09-23 11:03:00'),
+(3, 3, 1, NULL, 'Alpha X Resin', NULL, NULL, 2374.05, 2, 4748.10, '2026-09-23 11:14:25'),
+(4, 4, 9, NULL, 'Weight Loss Full Kit', NULL, NULL, 4241.00, 5, 21205.00, '2026-09-23 11:22:25');
+
 -- --------------------------------------------------------
 
 --
@@ -269,6 +303,22 @@ CREATE TABLE `order_status_logs` (
   `admin_id` bigint(20) UNSIGNED DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `order_status_logs`
+--
+
+INSERT INTO `order_status_logs` (`id`, `order_id`, `old_status`, `new_status`, `note`, `admin_id`, `created_at`) VALUES
+(1, 1, 'pending', 'delivered', 'Manual change', 1, '2026-09-23 10:14:12'),
+(2, 1, 'delivered', 'delivered', 'Payment status: pending → paid', 1, '2026-09-23 10:14:12'),
+(3, 1, 'delivered', 'delivered', 'Payment status: paid → failed', 1, '2026-09-23 10:46:38'),
+(4, 1, 'delivered', 'returned', 'Manual change', 1, '2026-09-23 10:46:45'),
+(5, 2, 'pending', 'delivered', 'Manual change', 1, '2026-09-23 11:03:12'),
+(6, 3, 'pending', 'cancelled', 'Manual change', 1, '2026-09-23 11:15:05'),
+(7, 3, 'cancelled', 'cancelled', 'Payment status: pending → refunded', 1, '2026-09-23 11:15:05'),
+(8, 2, 'delivered', 'delivered', 'Payment status: pending → paid', 1, '2026-09-23 11:15:09'),
+(9, 4, 'pending', 'cancelled', 'Manual change', 1, '2026-09-23 11:22:44'),
+(10, 4, 'cancelled', 'cancelled', 'Payment status: pending → refunded', 1, '2026-09-23 11:22:44');
 
 -- --------------------------------------------------------
 
@@ -337,14 +387,14 @@ CREATE TABLE `products` (
 --
 
 INSERT INTO `products` (`id`, `title`, `slug`, `short_description`, `description`, `base_price`, `base_sale_price`, `has_variants`, `stock`, `featured`, `bestseller`, `trending`, `seasonal`, `status`, `meta_title`, `meta_description`, `created_at`, `updated_at`) VALUES
-(1, 'Alpha X Resin', 'alpha-x-resin', 'Natural resin for vitality and stamina.', 'Alpha X Resin is a traditional Ayurvedic resin formulation crafted to support vitality, stamina and overall male wellness.', 2499.00, 2374.05, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-23 02:19:48'),
-(2, 'Alpha X Powder', 'alpha-x-powder', 'Strength, energy & endurance powder enriched with Kaunch Beej, Safed Musli & Gokhru. 150 gm.', 'Alpha X Powder is enriched with Kaunch Beej, Safed Musli and Gokhru to support strength, energy and endurance. Pack size: 150 gm.', 1999.00, 1899.05, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-23 02:19:58'),
+(1, 'Alpha X Resin', 'alpha-x-resin', 'Natural resin for vitality and stamina.', 'Alpha X Resin is a traditional Ayurvedic resin formulation crafted to support vitality, stamina and overall male wellness.', 2499.00, 2374.05, 0, 98, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-23 11:14:25'),
+(2, 'Alpha X Powder', 'alpha-x-powder', 'Strength, energy & endurance powder enriched with Kaunch Beej, Safed Musli & Gokhru. 150 gm.', 'Alpha X Powder is enriched with Kaunch Beej, Safed Musli and Gokhru to support strength, energy and endurance. Pack size: 150 gm.', 1999.00, 1899.05, 0, 0, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-23 11:03:00'),
 (3, 'Alpha X Tablet', 'alpha-x-tablet', 'Vitality, stamina & confidence tablets enriched with Ashwagandha, Shilajit & Kaunch Beej. 60 tabs.', 'Alpha X Tablet is enriched with Ashwagandha, Shilajit and Kaunch Beej to support vitality, stamina and confidence. Pack size: 60 tablets.', 1999.00, 1899.05, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-23 02:20:09'),
 (4, 'Alpha X Oil', 'alpha-x-oil', 'Massage & vitality oil. Natural, safe, effective. 30 ml.', 'Alpha X Oil is a natural massage and vitality oil formulated to be safe and effective. Pack size: 30 ml.', 1199.00, 1139.05, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-23 02:20:18'),
 (5, 'Lean Plus Capsule', 'lean-plus-capsule', 'Ayurvedic weight management capsules. Proprietary medicine. 60 capsules.', 'Lean Plus Capsule supports healthy metabolism, helps reduce fat accumulation, and supports appetite and craving control. Pack size: 60 capsules.', 3095.00, 2940.25, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-23 02:20:27'),
 (6, 'Lean Plus Syrup', 'lean-plus-syrup', 'Ayurvedic weight management syrup. Proprietary medicine. 300 ml.', 'Lean Plus Syrup supports healthy metabolism, helps reduce fat accumulation, supports appetite and craving control, and helps maintain energy levels. Pack size: 300 ml.', 1895.00, 1800.25, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:09:45', '2026-09-23 02:20:35'),
 (8, 'Men\'s Wellness Full Kit', 'men-s-wellness-full-kit', 'Complete Alpha X kit: Resin, Powder, Tablet & Oil in one pack.', 'The Men\'s Wellness Full Kit bundles all four Alpha X formulations — Resin, Powder, Tablet and Oil — for a complete vitality, stamina and strength routine.', 7696.00, 6541.60, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:21:03', '2026-09-23 02:19:25'),
-(9, 'Weight Loss Full Kit', 'weight-loss-full-kit', 'Complete Lean Plus kit: Capsule & Syrup in one pack.', 'The Weight Loss Full Kit bundles Lean Plus Capsule and Lean Plus Syrup together to support metabolism, fat reduction and appetite control.', 4990.00, 4241.00, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:21:03', '2026-09-23 02:19:35');
+(9, 'Weight Loss Full Kit', 'weight-loss-full-kit', 'Complete Lean Plus kit: Capsule & Syrup in one pack.', 'The Weight Loss Full Kit bundles Lean Plus Capsule and Lean Plus Syrup together to support metabolism, fat reduction and appetite control.', 4990.00, 4241.00, 0, 100, 1, 1, 1, 0, 'Active', NULL, NULL, '2026-09-22 09:21:03', '2026-09-23 11:22:44');
 
 -- --------------------------------------------------------
 
@@ -500,6 +550,15 @@ CREATE TABLE `promotional_videos` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `promotional_videos`
+--
+
+INSERT INTO `promotional_videos` (`id`, `title`, `description`, `video_type`, `video_url`, `video_file`, `thumbnail`, `orientation`, `button_text`, `button_url`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
+(1, 'Promotion 1', 'Promotion', 'youtube', 'https://www.youtube.com/watch?v=9hMC7NA0yMw&list=RD9hMC7NA0yMw&start_radio=1', NULL, NULL, NULL, '', '', 1, 1, '2026-09-23 17:46:07', '2026-09-23 17:46:07'),
+(2, 'Promotion 2', 'Promotion', 'youtube', 'https://www.youtube.com/watch?v=EiiOYwqk3A0&list=RD9hMC7NA0yMw&index=6', NULL, NULL, NULL, '', '', 1, 2, '2026-09-23 17:47:03', '2026-09-23 17:47:03'),
+(3, 'Promotion 3', 'Promotion', 'youtube', 'https://www.youtube.com/shorts/fPdneOqcKKY', NULL, NULL, NULL, '', '', 1, 3, '2026-09-23 17:48:13', '2026-09-23 17:48:13');
+
 -- --------------------------------------------------------
 
 --
@@ -523,7 +582,7 @@ CREATE TABLE `reviews` (
 --
 
 INSERT INTO `reviews` (`id`, `product_id`, `user_id`, `rating`, `review`, `status`, `verified_purchase`, `created_at`, `updated_at`) VALUES
-(1, 8, 1, 5, 'It\'s a good product.', 'Pending', 0, '2026-09-23 03:08:17', '2026-09-23 03:08:17');
+(2, 2, 1, 5, '234569', 'Active', 1, '2026-09-23 10:15:06', '2026-09-23 10:22:30');
 
 -- --------------------------------------------------------
 
@@ -556,6 +615,16 @@ CREATE TABLE `team_members` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `team_members`
+--
+
+INSERT INTO `team_members` (`id`, `name`, `designation`, `bio`, `image`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
+(1, 'Dr. Karan Yadav', 'Senior Ayurveda Practitioner', 'An experienced and dedicated Ayurveda practitioner focused on holistic wellness, natural healing, and helping patients build healthier lifestyles through traditional Ayurvedic principles.', 'uploads/team/6092ed21277cc3e0f78ea993e4efce92.jpg', 1, 1, '2026-09-24 02:09:20', '2026-09-24 02:11:37'),
+(2, 'Dr. Radhika Tiwari', 'Ayurveda Practitioner', 'A compassionate Ayurveda practitioner with a patient-focused approach, combining traditional Ayurvedic knowledge with practical wellness guidance for balanced health and well-being.', 'uploads/team/66c6de8f60b6c45504cdcbd922e8ddb4.jpg', 1, 2, '2026-09-24 02:12:29', '2026-09-24 02:12:39'),
+(3, 'Vaidya Manoj Panday', 'Senior Vaidya', 'An experienced Ayurveda practitioner dedicated to traditional Ayurvedic wellness, natural healing, and personalized guidance for healthier living.', 'uploads/team/9488618bdd1f84ebf5f3f0a1fcf734bb.jpg', 1, 3, '2026-09-24 02:14:15', '2026-09-24 02:14:15'),
+(4, 'Vaidya Monika Satyapati', 'Ayurveda Consultant', 'A compassionate Ayurveda practitioner focused on holistic well-being, combining traditional Ayurvedic principles with practical lifestyle guidance for balanced health.', 'uploads/team/0a504579687320826d7861ad90a954a3.jpg', 1, 4, '2026-09-24 02:15:12', '2026-09-24 02:15:12');
+
 -- --------------------------------------------------------
 
 --
@@ -576,6 +645,15 @@ CREATE TABLE `transformations` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `transformations`
+--
+
+INSERT INTO `transformations` (`id`, `customer_name`, `before_image`, `after_image`, `description`, `product_id`, `duration`, `is_verified`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
+(1, 'Rasmika Tiwari', 'uploads/transformations/before-51fac8d218a2e7c4.jpg', 'uploads/transformations/after-3d370a747cfdf27b.jpg', 'Rasmika Tiwari chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of her wellness journey. With consistency and a dedicated approach to her lifestyle, she worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 1, '2026-09-23 17:34:45', '2026-09-23 17:39:37'),
+(2, 'Arjun Pandey', 'uploads/transformations/before-2e5915d1ccb5e1c4.jpg', 'uploads/transformations/after-16b42a920afd14be.jpg', 'Arjun Pandey chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of his wellness journey. With consistency and a dedicated approach to his lifestyle, he worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 2, '2026-09-23 17:35:55', '2026-09-23 17:40:09'),
+(3, 'Anshika', 'uploads/transformations/before-75a43446372146ac.jpg', 'uploads/transformations/after-38ab5b9a11a29f4c.jpg', 'Anshika chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of her wellness journey. With consistency and a dedicated approach to her lifestyle, she worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 3, '2026-09-23 17:37:39', '2026-09-23 17:40:21');
 
 -- --------------------------------------------------------
 
@@ -833,7 +911,7 @@ ALTER TABLE `wishlist`
 -- AUTO_INCREMENT for table `addresses`
 --
 ALTER TABLE `addresses`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `admins`
@@ -857,7 +935,7 @@ ALTER TABLE `blog_posts`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -881,19 +959,19 @@ ALTER TABLE `coupon_usages`
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `order_status_logs`
 --
 ALTER TABLE `order_status_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
@@ -935,13 +1013,13 @@ ALTER TABLE `product_variants`
 -- AUTO_INCREMENT for table `promotional_videos`
 --
 ALTER TABLE `promotional_videos`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `reviews`
 --
 ALTER TABLE `reviews`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `settings`
@@ -953,13 +1031,13 @@ ALTER TABLE `settings`
 -- AUTO_INCREMENT for table `team_members`
 --
 ALTER TABLE `team_members`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `transformations`
 --
 ALTER TABLE `transformations`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `users`
