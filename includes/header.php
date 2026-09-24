@@ -417,62 +417,307 @@ if (isCustomerLogin()) {
         }
 
         /* =========================================
-                Mobile / Tablet
+                Mobile navigation (hamburger + drawer)
+           Hidden on desktop; switched on inside the
+           max-width: 900px block below.
         ========================================= */
+
+        .nav-toggle,
+        .main-nav__head,
+        .nav-dropdown__toggle,
+        .nav-overlay {
+            display: none;
+        }
 
         @media (max-width: 900px) {
 
-            .mega-menu {
-                position: static;
+            .announcement-bar {
+                font-size: 10.5px;
+            }
+
+            /* Header bar: [hamburger]   [logo]   [icons] */
+            .main-header {
+                display: grid;
+                grid-template-columns: 1fr auto 1fr;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 14px;
+            }
+
+            .nav-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                justify-self: start;
+                width: 42px;
+                height: 42px;
+                margin-left: -8px;
+                padding: 0;
+                border: 0;
+                border-radius: var(--radius-sm);
+                background: none;
+                color: var(--color-primary);
+                cursor: pointer;
+            }
+
+            .nav-toggle svg {
+                width: 26px;
+                height: 26px;
+            }
+
+            .nav-toggle:focus-visible,
+            .main-nav__close:focus-visible,
+            .nav-dropdown__toggle:focus-visible {
+                outline: 2px solid var(--color-primary);
+                outline-offset: 2px;
+            }
+
+            .logo {
+                justify-self: center;
+            }
+
+            .logo__icon {
+                width: 30px;
+                height: 30px;
+            }
+
+            .logo__name {
+                font-size: 16px;
+            }
+
+            .logo__tagline {
+                font-size: 10px;
+            }
+
+            .header-actions {
+                justify-self: end;
+                gap: 16px;
+            }
+
+            .header-actions svg {
+                width: 21px;
+                height: 21px;
+            }
+
+            /* ---- Slide-in drawer ---- */
+
+            .main-nav {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                z-index: 1101;
+                width: min(86vw, 340px);
                 flex-direction: column;
+                flex-wrap: nowrap;
+                align-items: stretch;
+                justify-content: flex-start;
+                gap: 0;
+                padding: 0 0 28px;
+                background: var(--color-white);
+                box-shadow: 8px 0 30px rgba(0, 0, 0, 0.18);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                transform: translateX(-100%);
+                visibility: hidden;
+                transition: transform 0.3s ease, visibility 0.3s ease;
+            }
 
-                width: 100%;
-                max-height: none;
-
+            .main-nav.is-open {
                 transform: none;
-
-                box-shadow: none;
-
-                opacity: 1;
                 visibility: visible;
-                pointer-events: auto;
+            }
 
+            .main-nav__head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 12px 12px 22px;
+                background: var(--color-primary-light);
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .main-nav__title {
+                font-size: 13px;
+                font-weight: 700;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: var(--color-primary);
+            }
+
+            .main-nav__close {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 42px;
+                height: 42px;
+                padding: 0;
+                border: 0;
+                border-radius: var(--radius-sm);
+                background: none;
+                color: var(--color-primary);
+                cursor: pointer;
+            }
+
+            .main-nav__close svg {
+                width: 22px;
+                height: 22px;
+            }
+
+            .main-nav>a,
+            .main-nav .nav-dropdown>a {
+                display: block;
+                padding: 15px 22px;
+                font-size: 16px;
+                font-weight: 600;
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .main-nav a.active {
+                background: var(--color-primary-light);
+                border-bottom-color: var(--color-border);
+                box-shadow: inset 3px 0 0 var(--color-accent);
+            }
+
+            /* "Shop All" row: link + chevron button that expands categories */
+            .main-nav .nav-dropdown {
+                display: flex;
+                flex-wrap: wrap;
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .main-nav .nav-dropdown>a {
+                flex: 1 1 auto;
+                border-bottom: 0;
+            }
+
+            .nav-dropdown>a .caret {
                 display: none;
             }
 
+            .nav-dropdown__toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 56px;
+                padding: 0;
+                border: 0;
+                border-left: 1px solid var(--color-border);
+                background: none;
+                color: var(--color-primary);
+                cursor: pointer;
+            }
+
+            .nav-dropdown__toggle svg {
+                width: 18px;
+                height: 18px;
+                transition: transform 0.2s ease;
+            }
+
+            .nav-dropdown.is-open .nav-dropdown__toggle svg {
+                transform: rotate(180deg);
+            }
+
+            /* Mega menu becomes a simple category list inside the drawer */
+            .mega-menu,
             .nav-dropdown:hover .mega-menu {
-                display: flex;
+                position: static;
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                max-height: none;
                 transform: none;
+                border: 0;
+                border-top: 1px solid var(--color-border);
+                border-radius: 0;
+                box-shadow: none;
+                overflow: visible;
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+            }
+
+            .nav-dropdown.is-open .mega-menu {
+                display: flex;
+            }
+
+            .mega-menu::before {
+                display: none;
+            }
+
+            .mega-menu__panels {
+                display: none;
             }
 
             .mega-menu__sidebar {
                 flex: none;
-                max-height: 220px;
-                border-right: none;
-                border-bottom: 1px solid var(--color-border);
+                max-height: none;
+                margin: 0;
+                padding: 4px 0 8px;
+                list-style: none;
+                overflow: visible;
+                border: 0;
+                background: var(--color-primary-light);
             }
 
-            .mega-menu__panel.is-active {
-                display: flex;
-            }
-        }
-
-        @media (max-width: 900px) {
-            .main-header {
-                flex-wrap: wrap;
-                row-gap: 12px;
+            .mega-menu__sidebar-item>a {
+                padding: 12px 22px 12px 36px;
+                font-size: 14.5px;
+                font-weight: 500;
+                border-radius: 0;
             }
 
-            .main-nav {
-                order: 3;
-                width: 100%;
-                justify-content: center;
-                gap: 18px;
+            .mega-menu__sidebar-item.is-active>a {
+                background: none;
+                box-shadow: none;
+            }
+
+            /* ---- Dim overlay behind the drawer ---- */
+
+            .nav-overlay {
+                display: block;
+                position: fixed;
+                inset: 0;
+                z-index: 1100;
+                background: rgba(15, 30, 24, 0.5);
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+            }
+
+            .nav-overlay.is-open {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            body.nav-open {
+                overflow: hidden;
             }
 
             .announcement-bar__viewport {
                 mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
                 -webkit-mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            /* Keep the bar from crowding on small phones */
+            .icon-track {
+                display: none;
+            }
+
+            .header-actions {
+                gap: 14px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .main-nav,
+            .nav-overlay,
+            .nav-dropdown__toggle svg {
+                transition: none;
             }
         }
     </style>
@@ -504,6 +749,12 @@ if (isCustomerLogin()) {
         </div>
 
         <div class="main-header">
+            <button type="button" class="nav-toggle" data-nav-toggle aria-label="Open menu" aria-controls="site-nav" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <path d="M4 7h16M4 12h16M4 17h16" />
+                </svg>
+            </button>
+
             <a href="<?= BASE_URL ?>index.php" class="logo">
                 <svg class="logo__icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <defs>
@@ -521,12 +772,25 @@ if (isCustomerLogin()) {
                 <span class="logo__tagline">&ndash; ayurveda &ndash;</span>
             </a>
 
-            <nav class="main-nav">
+            <nav class="main-nav" id="site-nav" aria-label="Main navigation">
+                <div class="main-nav__head">
+                    <span class="main-nav__title">Menu</span>
+                    <button type="button" class="main-nav__close" data-nav-close aria-label="Close menu">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                            <path d="M6 6l12 12M18 6L6 18" />
+                        </svg>
+                    </button>
+                </div>
                 <a href="<?= BASE_URL ?>index.php" class="active">Home</a>
                 <div class="nav-dropdown">
                     <a href="<?= BASE_URL ?>categories/categories.php" class="has-dropdown">
                         Shop All <span class="caret">&#9662;</span>
                     </a>
+                    <button type="button" class="nav-dropdown__toggle" data-nav-dropdown-toggle aria-label="Show categories" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M6 9l6 6 6-6" />
+                        </svg>
+                    </button>
                     <div class="mega-menu">
                         <ul class="mega-menu__sidebar">
                             <?php foreach ($browsableCategories as $index => $category): ?>
@@ -564,11 +828,11 @@ if (isCustomerLogin()) {
             </nav>
 
             <div class="header-actions">
-                <a href="#" title="Track order">
+                <!-- <a href="#" class="icon-track" title="Track order">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
                         <path fill="#17483D" d="M64 96c0-35.3 28.7-64 64-64l288 0c35.3 0 64 28.7 64 64l0 32 50.7 0c17 0 33.3 6.7 45.3 18.7L621.3 192c12 12 18.7 28.3 18.7 45.3L640 384c0 35.3-28.7 64-64 64l-3.3 0c-10.4 36.9-44.4 64-84.7 64s-74.2-27.1-84.7-64l-102.6 0c-10.4 36.9-44.4 64-84.7 64s-74.2-27.1-84.7-64l-3.3 0c-35.3 0-64-28.7-64-64l0-48-40 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l112 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L24 240c-13.3 0-24-10.7-24-24s10.7-24 24-24l176 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L24 144c-13.3 0-24-10.7-24-24S10.7 96 24 96l40 0zM576 288l0-50.7-45.3-45.3-50.7 0 0 96 96 0zM256 424a40 40 0 1 0 -80 0 40 40 0 1 0 80 0zm232 40a40 40 0 1 0 0-80 40 40 0 1 0 0 80z" />
                     </svg>
-                </a>
+                </a> -->
                 <a href="<?= BASE_URL ?>search.php" title="Search">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
                         <path fill="#17483D" d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376C296.3 401.1 253.9 416 208 416 93.1 416 0 322.9 0 208S93.1 0 208 0 416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z" />
@@ -589,4 +853,75 @@ if (isCustomerLogin()) {
                 </a>
             </div>
         </div>
+        <div class="nav-overlay" data-nav-overlay></div>
     </header>
+
+    <script>
+        (function () {
+            // Mobile menu: hamburger opens the drawer, "Shop All" chevron
+            // expands the category list. Desktop keeps the hover mega menu.
+            var nav = document.getElementById('site-nav');
+            var toggle = document.querySelector('[data-nav-toggle]');
+            var overlay = document.querySelector('[data-nav-overlay]');
+
+            if (!nav || !toggle || !overlay) {
+                return;
+            }
+
+            var closeBtn = nav.querySelector('[data-nav-close]');
+            var mobile = window.matchMedia('(max-width: 900px)');
+
+            function setOpen(open, moveFocus) {
+                nav.classList.toggle('is-open', open);
+                overlay.classList.toggle('is-open', open);
+                document.body.classList.toggle('nav-open', open);
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+
+                if (moveFocus) {
+                    (open ? closeBtn : toggle).focus();
+                }
+            }
+
+            toggle.addEventListener('click', function () {
+                setOpen(!nav.classList.contains('is-open'), true);
+            });
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function () { setOpen(false, true); });
+            }
+
+            overlay.addEventListener('click', function () { setOpen(false, false); });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && nav.classList.contains('is-open')) {
+                    setOpen(false, true);
+                }
+            });
+
+            // Category list expand / collapse
+            nav.querySelectorAll('[data-nav-dropdown-toggle]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var item = btn.closest('.nav-dropdown');
+                    var isOpen = item.classList.toggle('is-open');
+                    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            });
+
+            // Leaving mobile width (e.g. rotating a tablet): reset everything.
+            function onBreakpoint(event) {
+                if (!event.matches) {
+                    setOpen(false, false);
+                    nav.querySelectorAll('.nav-dropdown.is-open').forEach(function (item) {
+                        item.classList.remove('is-open');
+                    });
+                }
+            }
+
+            if (mobile.addEventListener) {
+                mobile.addEventListener('change', onBreakpoint);
+            } else if (mobile.addListener) {
+                mobile.addListener(onBreakpoint);
+            }
+        })();
+    </script>

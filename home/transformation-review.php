@@ -487,34 +487,51 @@ $transformationCount = count($transformations);
         }
     }
 
+    /* Phones: one card, fully visible.
+       The side arrow buttons used to squeeze the viewport so the card was
+       wider than the space left for it (that's what cut it off). They are
+       hidden here; swipe and the dots below do the navigating, and the
+       card is sized from the actual stage width so it always fits. */
+
     @media (max-width: 720px) {
         .trf {
-            --trf-width: min(80vw, 320px);
-            --trf-gap: 16px;
+            --trf-width: min(calc(100vw - 56px), 340px);
+            --trf-gap: 14px;
+            --trf-scale: 1;
+            padding: 52px 0 56px;
+        }
+
+        @supports (width: 1cqw) {
+            .trf {
+                --trf-width: min(calc(100cqw - 8px), 360px);
+            }
         }
 
         .trf__stage {
-            gap: 8px;
+            display: block;
+            container-type: inline-size;
         }
 
         .trf__nav {
-            width: 38px;
-            height: 38px;
+            display: none;
         }
-    }
 
-    @media (max-width: 420px) {
-        .trf {
-            --trf-width: min(88vw, 320px);
+        .trf__surface {
+            padding: 12px 12px 20px;
         }
 
         .trf__poster {
-            height: 260px;
+            height: 270px;
         }
 
-        .trf__nav {
-            width: 34px;
-            height: 34px;
+        .trf__body {
+            padding: 18px 6px 0;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .trf__poster {
+            height: 240px;
         }
     }
 </style>
@@ -734,7 +751,7 @@ $transformationCount = count($transformations);
             }
 
             function updatePadding() {
-                var pad = Math.max(20, Math.round((viewport.clientWidth - cards[0].offsetWidth) / 2));
+                var pad = Math.max(0, Math.round((viewport.clientWidth - cards[0].offsetWidth) / 2));
                 track.style.paddingInline = pad + 'px';
             }
 

@@ -349,10 +349,80 @@ $sbcSprig = '<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/200
         .sbc__go { width: 38px; height: 38px; }
     }
 
-    @media (max-width: 480px) {
+    /* ---- Dots (mobile carousel only) ---- */
+
+    .sbc__dots {
+        display: none;
+    }
+
+    /* ---- Phones: one card at a time, swipe sideways ---- */
+
+    @media (max-width: 640px) {
+        .sbc { --sbc-gap: 14px; }
+
         .sbc__heading { font-size: 27px; }
-        .sbc__desc { display: none; }
-        .sbc__cta-long { display: none; }
+
+        .sbc__grid {
+            flex-wrap: nowrap;
+            justify-content: flex-start;
+            max-width: 460px;
+            padding: 6px 6px 22px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding: 0 6px;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scrollbar-width: none;
+        }
+
+        .sbc__grid::-webkit-scrollbar { display: none; }
+
+        .sbc__item {
+            flex: 0 0 100%;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+        }
+
+        .sbc__media { aspect-ratio: 1.25 / 1; }
+
+        .sbc__body { padding: 24px 24px 26px; margin-top: -26px; border-radius: 26px 26px 0 0; }
+        .sbc__icon { width: 52px; height: 52px; }
+        .sbc__icon svg { width: 28px; height: 28px; }
+        .sbc__name { font-size: 25px; margin-top: 18px; }
+        .sbc__desc { font-size: 15.5px; }
+        .sbc__foot { padding-top: 24px; }
+        .sbc__cta { font-size: 15px; }
+        .sbc__go { width: 42px; height: 42px; }
+
+        .sbc__dots:not([hidden]) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            margin-top: 4px;
+        }
+
+        .sbc__dot {
+            width: 9px;
+            height: 9px;
+            padding: 0;
+            border: 0;
+            border-radius: 999px;
+            background: #b4c4b8;
+            cursor: pointer;
+            transition: width 0.25s ease, background 0.25s ease;
+        }
+
+        .sbc__dot.is-active {
+            width: 26px;
+            background: var(--sbc-green-dark);
+        }
+
+        .sbc__dot:focus-visible {
+            outline: 2px solid var(--sbc-green);
+            outline-offset: 2px;
+        }
+
         .sbc__leaf--tl { width: 100px; height: 100px; }
         .sbc__leaf--br { display: none; }
     }
@@ -430,6 +500,60 @@ $sbcSprig = '<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/200
                     </div>
                 <?php endforeach; ?>
             </div>
+
+            <div class="sbc__dots" data-sbc-dots hidden></div>
         </div>
     </section>
+
+    <script>
+        (function () {
+            // Phones show one category card at a time. This only builds the
+            // page dots and keeps them in sync with the swipe position; on
+            // wider screens the grid doesn't scroll, so it stays inert.
+            document.querySelectorAll('[data-sbc]').forEach(function (root) {
+                var grid = root.querySelector('.sbc__grid');
+                var dotsWrap = root.querySelector('[data-sbc-dots]');
+                var items = Array.prototype.slice.call(grid.children);
+
+                if (!dotsWrap || items.length < 2) {
+                    return;
+                }
+
+                function step() {
+                    var gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
+                    return items[0].offsetWidth + gap;
+                }
+
+                items.forEach(function (item, i) {
+                    var dot = document.createElement('button');
+                    dot.type = 'button';
+                    dot.className = 'sbc__dot' + (i === 0 ? ' is-active' : '');
+                    dot.setAttribute('aria-label', 'Show category ' + (i + 1));
+                    dot.addEventListener('click', function () {
+                        grid.scrollTo({ left: i * step(), behavior: 'smooth' });
+                    });
+                    dotsWrap.appendChild(dot);
+                });
+                dotsWrap.hidden = false;
+
+                var dots = Array.prototype.slice.call(dotsWrap.children);
+                var ticking = false;
+
+                grid.addEventListener('scroll', function () {
+                    if (ticking) {
+                        return;
+                    }
+                    ticking = true;
+                    window.requestAnimationFrame(function () {
+                        var active = Math.round(grid.scrollLeft / step());
+                        active = Math.max(0, Math.min(items.length - 1, active));
+                        dots.forEach(function (dot, i) {
+                            dot.classList.toggle('is-active', i === active);
+                        });
+                        ticking = false;
+                    });
+                }, { passive: true });
+            });
+        })();
+    </script>
 <?php endif; ?>
