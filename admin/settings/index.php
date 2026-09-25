@@ -38,298 +38,160 @@ include __DIR__ . '/../include/header.php';
 
 ?>
 <style>
-    :root {
-        --leaf: #2f9e6e;
-        --leaf-dark: #22794f;
-        --leaf-tint: #e7f6ee;
-        --ink: #1c2b3a;
-        --sky: #0f6fb0;
-        --sky-tint: #eaf4fb;
-        --paper: #ffffff;
-        --mist: #f4f8fb;
-        --line: #e1e9f0;
-        --muted: #64798c;
-        --danger: #c8412f;
-        --danger-tint: #fbebe8;
+    /* This page shares the admin shell's --leaf / --ink / --line / etc.
+       tokens from header.php, so it no longer redeclares :root or body
+       here — that duplicate block was overriding nothing useful and just
+       drifting out of sync with the shell. Everything below is scoped
+       to .sadm so it can't leak into the sidebar/topbar. */
+
+    .sadm { max-width: 1200px; margin: 0 auto; }
+    .sadm * { box-sizing: border-box; }
+
+    .sadm .toolbar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .sadm .toolbar h1 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+    .sadm .toolbar .subtitle { display: block; margin-top: 2px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+
+    .sadm .btn {
+        display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; font-size: 0.86rem; font-weight: 700;
+        text-decoration: none; border: 1px solid transparent; border-radius: 10px; cursor: pointer;
+        transition: background-color 0.15s ease, transform 0.15s ease;
+    }
+    .sadm .btn svg { width: 15px; height: 15px; }
+    .sadm .btn:hover { transform: translateY(-1px); }
+    .sadm .btn:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+    .sadm .btn-primary { background: var(--leaf); color: #fff; }
+    .sadm .btn-primary:hover { background: var(--leaf-dark); }
+    .sadm .btn-secondary { background: #fff; color: var(--ink); border-color: var(--line); }
+    .sadm .btn-secondary:hover { background: var(--mist); }
+    .sadm .btn-danger { background: #fdeceb; color: #c23b32; border-color: transparent; }
+    .sadm .btn-danger:hover { background: #fadedb; }
+    .sadm .btn-sm { padding: 7px 12px; font-size: 0.8rem; }
+
+    .sadm .flash {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 13px 16px; margin-bottom: 16px;
+        border-radius: 12px; font-size: 0.9rem; font-weight: 600;
+    }
+    .sadm .flash svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+    .sadm .flash-success { background: var(--leaf-tint); color: var(--leaf-dark); }
+    .sadm .flash-error { background: #fdeceb; color: #9a2e25; }
+
+    .sadm .card {
+        background: #fff; border: 1px solid var(--line); border-radius: 16px;
+        padding: 20px; box-shadow: 0 1px 2px rgba(23, 72, 61, 0.04);
     }
 
-    body {
-        font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-        background: var(--mist);
-        margin: 0;
-        color: var(--ink);
+    .sadm .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+
+    .sadm .search { position: relative; flex: 1; min-width: 220px; display: flex; align-items: center; }
+    .sadm .search svg { position: absolute; left: 12px; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+    .sadm .search input {
+        width: 100%; padding: 9px 12px 9px 34px; font-size: 0.88rem; font-family: inherit;
+        border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
     }
 
-    .admin-wrap {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 24px 20px 60px;
+    .sadm .filter-bar select {
+        padding: 9px 30px 9px 12px; font-size: 0.88rem; font-family: inherit;
+        border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%2364798c' stroke-width='1.6' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 11px center;
     }
 
-    h1 {
-        font-size: 21px;
-        font-weight: 800;
-        letter-spacing: -0.01em;
-        margin: 0 0 2px;
-        color: var(--ink);
+    .sadm .filter-bar input:focus,
+    .sadm .filter-bar select:focus {
+        outline: none; border-color: var(--leaf); box-shadow: 0 0 0 3px var(--leaf-tint);
     }
 
-    .page-subtitle {
-        color: var(--muted);
-        font-size: 13px;
-        margin: 0 0 20px;
+    .sadm table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .sadm th, .sadm td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    .sadm th { color: var(--muted); font-weight: 800; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .sadm tbody tr:last-child td { border-bottom: none; }
+    .sadm tbody tr:hover { background: #fafcf9; }
+
+    .sadm .setting-label { font-weight: 700; color: var(--ink); }
+    .sadm .setting-key { color: var(--muted); font-size: 0.78rem; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
+
+    .sadm .value-preview {
+        max-width: 220px; color: var(--muted); overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap; display: block; margin-top: 2px;
     }
 
-    .card {
-        background: var(--paper);
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        padding: 22px;
-        margin-bottom: 20px;
-        box-shadow: 0 1px 2px rgba(28, 43, 58, 0.04);
+    .sadm .group-badge {
+        display: inline-block; padding: 3px 10px; border-radius: 999px;
+        font-size: 0.76rem; font-weight: 700; background: var(--sky-tint); color: var(--sky);
     }
 
-    .flash {
-        padding: 11px 15px;
-        border-radius: 10px;
-        margin-bottom: 16px;
-        font-size: 14px;
-        font-weight: 600;
-        border-left: 3px solid transparent;
+    .sadm .type-badge {
+        display: inline-block; padding: 2px 9px; border-radius: 7px;
+        font-size: 0.72rem; font-weight: 700; background: var(--mist); color: var(--muted); border: 1px solid var(--line);
     }
 
-    .flash-success {
-        background: var(--leaf-tint);
-        color: var(--leaf-dark);
-        border-left-color: var(--leaf);
+    .sadm .status-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 11px; border-radius: 999px; font-size: 0.78rem; font-weight: 700;
+    }
+    .sadm .status-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .sadm .status-active { background: var(--leaf-tint); color: var(--leaf-dark); }
+    .sadm .status-inactive { background: var(--mist); color: var(--muted); }
+
+    .sadm .sort-chip {
+        display: inline-block; min-width: 24px; padding: 3px 8px; text-align: center;
+        border-radius: 7px; background: var(--sky-tint); color: var(--sky); font-weight: 700; font-size: 0.78rem;
     }
 
-    .flash-error {
-        background: var(--danger-tint);
-        color: var(--danger);
-        border-left-color: var(--danger);
+    .sadm .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .sadm form.inline { display: inline; }
+
+    .sadm .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 56px 20px; text-align: center; color: var(--muted); }
+    .sadm .empty-state svg { width: 40px; height: 40px; color: #c9d8cd; }
+    .sadm .empty-state h3 { margin: 0; font-size: 0.98rem; font-weight: 800; color: var(--ink); }
+    .sadm .empty-state p { margin: 0; font-size: 0.86rem; }
+
+    @media (max-width: 900px) {
+        .sadm td:nth-child(2), .sadm th:nth-child(2) { display: none; }
     }
 
-    .btn {
-        display: inline-block;
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: 1px solid transparent;
-        font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
-        text-decoration: none;
-        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-    }
-
-    .btn-primary {
-        background: var(--leaf);
-        color: #fff;
-    }
-
-    .btn-primary:hover {
-        background: var(--leaf-dark);
-    }
-
-    .btn-secondary {
-        background: #fff;
-        color: var(--sky);
-        border-color: var(--line);
-    }
-
-    .btn-secondary:hover {
-        background: var(--sky-tint);
-        border-color: var(--sky);
-    }
-
-    .btn-danger {
-        background: #fff;
-        color: var(--danger);
-        border-color: #f0cdc6;
-    }
-
-    .btn-danger:hover {
-        background: var(--danger-tint);
-    }
-
-    .btn-sm {
-        padding: 5px 10px;
-        font-size: 12px;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    th,
-    td {
-        text-align: left;
-        padding: 11px 9px;
-        border-bottom: 1px solid var(--line);
-        font-size: 13px;
-        vertical-align: middle;
-    }
-
-    th {
-        color: var(--muted);
-        font-weight: 700;
-        font-size: 11.5px;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-    }
-
-    tbody tr:hover {
-        background: var(--sky-tint);
-    }
-
-    .setting-label {
-        font-weight: 700;
-    }
-
-    .setting-key {
-        color: var(--muted);
-        font-size: 12px;
-        font-family: 'SFMono-Regular', Consolas, monospace;
-    }
-
-    .value-preview {
-        max-width: 220px;
-        color: var(--muted);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        display: block;
-    }
-
-    .group-badge {
-        display: inline-block;
-        padding: 3px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        background: var(--sky-tint);
-        color: var(--sky);
-    }
-
-    .type-badge {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 700;
-        background: var(--mist);
-        color: var(--muted);
-        border: 1px solid var(--line);
-    }
-
-    .status-pill {
-        display: inline-block;
-        padding: 3px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .status-active {
-        background: var(--leaf-tint);
-        color: var(--leaf-dark);
-    }
-
-    .status-inactive {
-        background: var(--mist);
-        color: var(--muted);
-    }
-
-    .row-actions {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-
-    form.inline {
-        display: inline;
-    }
-
-    .top-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 4px;
-    }
-
-    .muted {
-        color: var(--muted);
-        font-size: 12px;
-    }
-
-    .filter-bar {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 18px;
-    }
-
-    .filter-bar input[type=text],
-    .filter-bar select {
-        padding: 8px 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        font-size: 13px;
-        font-family: inherit;
-        color: var(--ink);
-        background: #fff;
-    }
-
-    .filter-bar input[type=text] {
-        flex: 1;
-        min-width: 200px;
-    }
-
-    .filter-bar input:focus,
-    .filter-bar select:focus {
-        outline: none;
-        border-color: var(--sky);
-        box-shadow: 0 0 0 3px var(--sky-tint);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 46px 20px;
-    }
-
-    .empty-state h3 {
-        margin: 0 0 6px;
-        font-size: 16px;
-        color: var(--ink);
-    }
-
-    .empty-state p {
-        color: var(--muted);
-        font-size: 13px;
-        margin: 0 0 18px;
+    @media (max-width: 720px) {
+        .sadm .card { overflow-x: auto; }
     }
 </style>
 
-<div class="admin-wrap">
-    <div class="top-bar">
+<div class="sadm">
+    <div class="toolbar">
         <div>
             <h1>Settings</h1>
-            <p class="page-subtitle">Manage website-wide configuration</p>
+            <span class="subtitle">Manage website-wide configuration</span>
         </div>
-        <a class="btn btn-primary" href="create.php">+ Add Setting</a>
+        <a class="btn btn-primary" href="create.php">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Add Setting
+        </a>
     </div>
 
     <?php if ($flash): ?>
         <div class="flash flash-<?= htmlspecialchars($flash['type'], ENT_QUOTES, 'UTF-8') ?>">
-            <?= htmlspecialchars($flash['message'], ENT_QUOTES, 'UTF-8') ?>
+            <?php if ($flash['type'] === 'success'): ?>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <?php else: ?>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+            <?php endif; ?>
+            <span><?= htmlspecialchars($flash['message'], ENT_QUOTES, 'UTF-8') ?></span>
         </div>
     <?php endif; ?>
 
     <div class="card">
         <form method="get" action="index.php" class="filter-bar">
-            <input type="text" name="search" placeholder="Search settings..."
-                value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>">
+            <label class="search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" name="search" placeholder="Search settings…"
+                    value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>">
+            </label>
 
             <select name="group" onchange="this.form.submit()">
                 <option value="all" <?= $group === 'all' ? 'selected' : '' ?>>All Groups</option>
@@ -357,71 +219,81 @@ include __DIR__ . '/../include/header.php';
 
         <?php if (!$hasAnySettings && !$isFiltered): ?>
             <div class="empty-state">
-                <h3>No settings found.</h3>
-                <p>Create your first site setting to start managing<br>your website configuration.</p>
-                <a class="btn btn-primary" href="create.php">+ Add Setting</a>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+                <h3>No settings found</h3>
+                <p>Create your first site setting to start managing your website configuration.</p>
+                <a class="btn btn-primary" href="create.php" style="margin-top:4px;">+ Add Setting</a>
             </div>
         <?php elseif (!$hasAnySettings): ?>
             <div class="empty-state">
-                <h3>No settings match your filters.</h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <h3>No settings match your filters</h3>
                 <p>Try a different search term, group, or status.</p>
-                <a class="btn btn-secondary" href="index.php">Reset filters</a>
+                <a class="btn btn-secondary" href="index.php" style="margin-top:4px;">Reset filters</a>
             </div>
         <?php else: ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Setting</th>
-                        <th>Key</th>
-                        <th>Group</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Order</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($settings as $setting):
-                        $isActive = $setting['status'] === 'Active';
-                        $rawValue = (string) ($setting['setting_value'] ?? '');
-                        if ($setting['setting_type'] === 'boolean') {
-                            $preview = $rawValue === '1' ? 'On' : 'Off';
-                        } elseif ($setting['setting_type'] === 'image') {
-                            $preview = $rawValue !== '' ? $rawValue : '—';
-                        } elseif (mb_strlen($rawValue) > 40) {
-                            $preview = mb_substr($rawValue, 0, 40) . '…';
-                        } else {
-                            $preview = $rawValue !== '' ? $rawValue : '—';
-                        }
-                    ?>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
                         <tr>
-                            <td>
-                                <span class="setting-label"><?= htmlspecialchars($setting['label'], ENT_QUOTES, 'UTF-8') ?></span><br>
-                                <span class="value-preview"><?= htmlspecialchars($preview, ENT_QUOTES, 'UTF-8') ?></span>
-                            </td>
-                            <td><span class="setting-key"><?= htmlspecialchars($setting['setting_key'], ENT_QUOTES, 'UTF-8') ?></span></td>
-                            <td><span class="group-badge"><?= htmlspecialchars($setting['setting_group'], ENT_QUOTES, 'UTF-8') ?></span></td>
-                            <td><span class="type-badge"><?= htmlspecialchars(SETTING_TYPES()[$setting['setting_type']] ?? $setting['setting_type'], ENT_QUOTES, 'UTF-8') ?></span></td>
-                            <td>
-                                <span class="status-pill <?= $isActive ? 'status-active' : 'status-inactive' ?>">
-                                    <?= $isActive ? 'Active' : 'Inactive' ?>
-                                </span>
-                            </td>
-                            <td><?= (int) $setting['sort_order'] ?></td>
-                            <td>
-                                <div class="row-actions">
-                                    <a class="btn btn-secondary btn-sm" href="edit.php?id=<?= (int) $setting['id'] ?>">Edit</a>
-                                    <form class="inline" method="post" action="delete.php" onsubmit="return confirm('Are you sure you want to delete this setting?');">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-                                        <input type="hidden" name="id" value="<?= (int) $setting['id'] ?>">
-                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
+                            <th>Setting</th>
+                            <th>Key</th>
+                            <th>Group</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Order</th>
+                            <th></th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($settings as $setting):
+                            $isActive = $setting['status'] === 'Active';
+                            $rawValue = (string) ($setting['setting_value'] ?? '');
+                            if ($setting['setting_type'] === 'boolean') {
+                                $preview = $rawValue === '1' ? 'On' : 'Off';
+                            } elseif ($setting['setting_type'] === 'image') {
+                                $preview = $rawValue !== '' ? $rawValue : '—';
+                            } elseif (mb_strlen($rawValue) > 40) {
+                                $preview = mb_substr($rawValue, 0, 40) . '…';
+                            } else {
+                                $preview = $rawValue !== '' ? $rawValue : '—';
+                            }
+                        ?>
+                            <tr>
+                                <td>
+                                    <span class="setting-label"><?= htmlspecialchars($setting['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="value-preview"><?= htmlspecialchars($preview, ENT_QUOTES, 'UTF-8') ?></span>
+                                </td>
+                                <td><span class="setting-key"><?= htmlspecialchars($setting['setting_key'], ENT_QUOTES, 'UTF-8') ?></span></td>
+                                <td><span class="group-badge"><?= htmlspecialchars($setting['setting_group'], ENT_QUOTES, 'UTF-8') ?></span></td>
+                                <td><span class="type-badge"><?= htmlspecialchars(SETTING_TYPES()[$setting['setting_type']] ?? $setting['setting_type'], ENT_QUOTES, 'UTF-8') ?></span></td>
+                                <td>
+                                    <span class="status-pill <?= $isActive ? 'status-active' : 'status-inactive' ?>">
+                                        <?= $isActive ? 'Active' : 'Inactive' ?>
+                                    </span>
+                                </td>
+                                <td><span class="sort-chip"><?= (int) $setting['sort_order'] ?></span></td>
+                                <td>
+                                    <div class="row-actions">
+                                        <a class="btn btn-secondary btn-sm" href="edit.php?id=<?= (int) $setting['id'] ?>" title="Edit">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                                        </a>
+                                        <form class="inline" method="post" action="delete.php" onsubmit="return confirm('Are you sure you want to delete this setting?');">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                            <input type="hidden" name="id" value="<?= (int) $setting['id'] ?>">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php endif; ?>
     </div>
 </div>
+
+<?php include __DIR__ . '/../include/footer.php'; ?>

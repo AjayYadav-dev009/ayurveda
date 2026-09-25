@@ -51,7 +51,7 @@ $activeNav = 'products';
     .padmin .btn {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 7px;
         padding: 9px 16px;
         font-size: 0.9rem;
         font-weight: 700;
@@ -59,6 +59,16 @@ $activeNav = 'products';
         border: 1px solid transparent;
         cursor: pointer;
         text-decoration: none;
+        transition: background-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .padmin .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .padmin .btn svg {
+        width: 15px;
+        height: 15px;
     }
 
     .padmin .btn-primary {
@@ -83,15 +93,18 @@ $activeNav = 'products';
     .padmin .card {
         background: #fff;
         border: 1px solid var(--line);
-        border-radius: 14px;
+        border-radius: 16px;
         padding: 22px 24px;
         margin-bottom: 18px;
+        box-shadow: 0 1px 2px rgba(23, 72, 61, 0.04);
     }
 
     .padmin .card h2 {
         font-size: 1.02rem;
         font-weight: 800;
         margin: 0 0 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
     }
 
     .padmin .empty-note {
@@ -172,10 +185,11 @@ $activeNav = 'products';
         width: 110px;
         height: 110px;
         object-fit: cover;
-        border-radius: 9px;
+        border-radius: 12px;
         border: 1px solid var(--line);
         display: inline-block;
         margin: 0 10px 10px 0;
+        box-shadow: 0 1px 2px rgba(23, 72, 61, 0.05);
     }
 
     .padmin .stock-count {
@@ -257,8 +271,8 @@ function stock_class($qty): string
             <span class="subtitle">Product #<?php echo (int) $product['id']; ?></span>
         </div>
         <div class="topbar-actions">
-            <a href="index.php" class="btn btn-secondary">&laquo; Back to products</a>
-            <a href="edit.php?id=<?php echo (int) $product['id']; ?>" class="btn btn-primary">Edit</a>
+            <a href="index.php" class="btn btn-secondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>Back to products</a>
+            <a href="edit.php?id=<?php echo (int) $product['id']; ?>" class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>Edit</a>
         </div>
     </div>
 
