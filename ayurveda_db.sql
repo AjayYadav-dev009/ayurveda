@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 24, 2026 at 04:55 AM
+-- Generation Time: Sep 25, 2026 at 01:33 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -100,8 +100,27 @@ CREATE TABLE `banners` (
 --
 
 INSERT INTO `banners` (`id`, `title`, `subtitle`, `image`, `button_text`, `button_url`, `position`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, 'Banner 1 for home Page', NULL, 'banner1-83e58dde85ff.jpg', NULL, 'http://localhost/ayurveda/products/products.php?category_slug=mens-wellness', 'homepage_hero', 1, 1, '2026-09-22 18:17:00', '2026-09-22 18:17:00'),
-(2, 'Home banner 2', NULL, 'banner2-fad9159028b6.jpg', NULL, 'http://localhost/ayurveda/products/products.php?category_slug=weight-loss', 'homepage_hero', 1, 2, '2026-09-22 18:17:32', '2026-09-22 18:17:32');
+(1, 'Banner 1 for home Page', NULL, 'banner5-e18e1eaa7faa.jpg', NULL, 'http://localhost/ayurveda/products/products.php?category_slug=mens-wellness', 'homepage_hero', 1, 1, '2026-09-22 18:17:00', '2026-09-25 11:23:34'),
+(2, 'Home banner 2', NULL, 'banner2-fe5258332939.jpg', NULL, 'http://localhost/ayurveda/products/products.php?category_slug=weight-loss', 'homepage_hero', 1, 2, '2026-09-22 18:17:32', '2026-09-25 11:11:10'),
+(3, 'Detux Banner 1', NULL, 'combo-44311f7e1dd1-723a9e2240b2.png', NULL, NULL, 'detux_hero', 1, 1, '2026-09-24 06:45:16', '2026-09-24 06:45:16'),
+(4, NULL, NULL, '6092ed21277cc3e0f78ea993e4efce92-fa50a1ecaf22.jpg', NULL, NULL, 'detox_consultation_cta', 1, 0, '2026-09-24 07:03:50', '2026-09-24 07:03:50'),
+(5, 'Personalised Ayurvedic Care, Rooted in You', NULL, 'consult-veda-370047a8a3dc.jpg', NULL, NULL, 'consult_veda_hero', 1, 1, '2026-09-24 08:49:24', '2026-09-24 08:51:10');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `blog_categories`
+--
+
+CREATE TABLE `blog_categories` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `slug` varchar(180) NOT NULL,
+  `status` enum('Active','Inactive') NOT NULL DEFAULT 'Active',
+  `sort_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -116,6 +135,8 @@ CREATE TABLE `blog_posts` (
   `excerpt` text DEFAULT NULL,
   `content` longtext DEFAULT NULL,
   `image` varchar(500) DEFAULT NULL,
+  `hero_image` varchar(500) DEFAULT NULL,
+  `category_id` bigint(20) UNSIGNED DEFAULT NULL,
   `status` enum('Draft','Active','Inactive') NOT NULL DEFAULT 'Draft',
   `published_at` datetime DEFAULT NULL,
   `meta_title` varchar(255) DEFAULT NULL,
@@ -123,6 +144,14 @@ CREATE TABLE `blog_posts` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `blog_posts`
+--
+
+INSERT INTO `blog_posts` (`id`, `title`, `slug`, `excerpt`, `content`, `image`, `hero_image`, `category_id`, `status`, `published_at`, `meta_title`, `meta_description`, `created_at`, `updated_at`) VALUES
+(1, 'Beyond the Trend: How to Actually Integrate Ayurvedic Products into Daily Life', 'beyond-the-trend-how-to-actually-integrate-ayurvedic-products-into-daily-life', 'Walking down modern wellness aisles, ancient Sanskrit names like Ashwagandha, Triphala, and Kumkumadi appear everywhere. Yet treating Ayurvedic formulations as mere drop-in supplements misses their true purpose.', '<p>In traditional Ayurveda, health is rooted in balance across your constitutional energies (<strong>Doshas</strong>—Vata, Pitta, and Kapha) and the strength of your digestive fire (<strong>Agni</strong>). Ayurvedic products are not quick fixes designed to mask symptoms; they are botanical and mineral tools formulated to support the body’s innate rhythm and restorative capacity.</p><h2>Foundational Ayurvedic Formulations Worth Knowing</h2><p>Instead of overcrowding your medicine cabinet, focusing on a few core, time-tested formulations provides the greatest systemic benefit.</p><h3>1. Ashwagandha (<i>Withania somnifera</i>) — The Adaptogenic Balancer</h3><ul><li><strong>Primary Role:</strong> Calming the nervous system, modulating cortisol, and nourishing depleted tissues (<i>Dhatus</i>).</li><li><strong>Best For:</strong> Stress relief, cognitive fatigue, and restless sleep patterns caused by excess Vata.</li><li><strong>How to Use:</strong> Typically taken as a warm decoction or powder (<i>churna</i>) blended with warm milk or plant milk and a pinch of nutmeg before bed.</li></ul><h3>2. Triphala — The Digestive Tonic</h3><ul><li><strong>Primary Role:</strong> Gentle bowel regulation, detoxification, and gut microbiome balance.</li><li><strong>What It Contains:</strong> An equal blend of three dried fruits: <i>Amalaki</i> (Indian Gooseberry), <i>Bibhitaki</i>, and <i>Haritaki</i>.</li><li><strong>Why It Works:</strong> Unlike harsh chemical laxatives, Triphala tones the intestinal muscles and supports nutrient absorption without creating dependency.</li></ul><h3>3. Kumkumadi Tailam — The Saffron Facial Elixir</h3><ul><li><strong>Primary Role:</strong> Evening out skin tone, improving radiance, and calming surface inflammation.</li><li><strong>What It Contains:</strong> A classical herbal oil infused with Kashmiri saffron, red sandalwood, vetiver, and lotus stamens cooked in sesame oil and goat\'s milk.</li><li><strong>How to Use:</strong> Press 2–3 drops onto clean, damp skin at night. It is particularly soothing for combination and Pitta-prone, reactive skin.</li></ul><h3>4. Brahmi (<i>Bacopa monnieri</i>) — The Mind Cleanser</h3><ul><li><strong>Primary Role:</strong> Supporting memory retention, emotional calm, and laser focus.</li><li><strong>Best For:</strong> High-stress work environments and mental burnout where the mind feels overheated and scattered.</li></ul><h2>Choosing Wisely: Modern Formulations vs. Your Dosha</h2><p>Not every Ayurvedic herb suits every body type. Here is how common formulations map across constitutional profiles:</p><figure class=\"table\"><table><thead><tr><th><strong>Formulation</strong></th><th><strong>Energetic Nature</strong></th><th><strong>Best Suited For</strong></th><th><strong>Key Benefit</strong></th></tr></thead><tbody><tr><td><strong>Ashwagandha</strong></td><td>Warming, grounding</td><td>Vata &amp; Kapha</td><td>Rebuilds stamina and calms anxious overdrive</td></tr><tr><td><strong>Shatavari</strong></td><td>Cooling, nourishing</td><td>Pitta &amp; Vata</td><td>Balances hormones and cools internal heat</td></tr><tr><td><strong>Triphala</strong></td><td>Neutral, balancing</td><td>All Doshas (Tridoshic)</td><td>Gentle systemic digestive detox and regularity</td></tr><tr><td><strong>Neem &amp; Turmeric</strong></td><td>Cooling, drying</td><td>Pitta &amp; Kapha</td><td>Clears skin blemishes and purifies sluggish blood</td></tr><tr><td><strong>Sesame-based Oils</strong></td><td>Warming, heavy</td><td>Vata</td><td>Grounding daily self-massage (<i>Abhyanga</i>)</td></tr></tbody></table></figure><h2>&nbsp;</h2>', 'images-c71678c7f8ad.jpg', 'imges1-db624aed62a1.jpg', NULL, 'Active', '2026-09-24 13:29:00', 'Beyond the Trend: How to Actually Integrate Ayurvedic Products into Daily Life', NULL, '2026-09-24 11:29:54', '2026-09-24 11:45:56'),
+(2, 'The Art of Dinacharya: Ayurvedic Daily Rituals for Energy and Balance', 'the-art-of-dinacharya-ayurvedic-daily-rituals-for-energy-and-balance', 'Most modern wellness advice focuses on what to eliminate—cutting carbs, removing screen time, or detoxing from stress. Classical Ayurveda takes the opposite approach: sustainable health starts with consistent, grounding rhythms known as Dinacharya (daily routine).\r\n\r\nAccording to Ayurvedic texts, aligning your daily habits with natural circadian transitions balances the doshas, stokes your digestive fire (Agni), and eliminates accumulated metabolic waste (Ama). Incorporating these five classic morning rituals takes less than twenty minutes, yet fundamentally transforms daily vitality.', '<h2>1. Ushapan: Awaken the Digestive Fire</h2><p>Before reaching for an espresso, start the day with <i>Ushapan</i>—drinking 1–2 glasses of warm or room-temperature water first thing after waking, preferably stored overnight in a pure copper vessel (<i>Tamra Jal</i>).</p><ul><li><strong>The Mechanism:</strong> Warm water gently stimulates bowel peristalsis and flushes out stagnant nighttime toxins. Copper naturally ionizes water, imparting mild antimicrobial and antioxidant properties.</li><li><strong>Practice Note:</strong> Keep the water warm rather than iced; cold water constricts digestive capillaries and dampens <i>Agni</i>.</li></ul><h2>2. Jivha Nirlekhana: Copper Tongue Scraping</h2><p>Brushing your teeth cleans enamel, but sleep allows systemic toxins (<i>Ama</i>) to collect as a white or yellowish film across the tongue.</p><ul><li><strong>The Mechanism:</strong> Scraping the tongue with a U-shaped copper or stainless-steel scraper removes bacteria, freshens breath, and clears the taste buds. Clean taste receptors send more accurate satiety and enzyme signals directly to the stomach.</li><li><strong>How to Do It:</strong> Gently draw the scraper from the back of the tongue forward 5 to 7 times before brushing.</li></ul><h2>3. Kavala &amp; Gandusha: Oil Pulling</h2><p>Swishing oil inside the mouth is an ancient ritual to strengthen oral tissues and tone the jawline.</p><ul><li><strong>The Oils:</strong> Cold-pressed sesame oil is classical and warming; virgin coconut oil is cooling and ideal for sensitive or bleeding gums (excess Pitta).</li><li><strong>How to Do It:</strong> Swish 1 tablespoon of oil continuously for 5–10 minutes without swallowing. Spit it directly into a trash can (to prevent clogged drains) and rinse thoroughly with warm water.</li></ul><h2>4. Abhyanga: Warm Herbal Self-Massage</h2><p>Often viewed as an occasional spa luxury, <i>Abhyanga</i> is traditionally a daily act of preventative medicine and nervous system regulation.</p><ul><li><strong>The Science:</strong> The skin is the home of Vata dosha, governed by the nervous system. Massaging warm, unrefined oil into the skin calms sensory overload, lubricates joints, and enhances lymphatic drainage.</li><li><strong>The Routine:</strong> Warm 2 tablespoons of oil (sesame for dry/cold types, coconut for warm/reactive skin). Massage in long strokes along the limbs and circular motions over the joints and abdomen. Leave on for 10 minutes before stepping into a warm shower.</li></ul><h2>5. Nasya: Nourishing the Senses</h2><p>In Ayurveda, the nose is considered the direct doorway to the brain and consciousness (<i>Prana</i>).</p><ul><li><strong>The Practice:</strong> Placing 1–2 drops of warm <i>Anu Tailam</i> (medicated herbal oil) or plain organic sesame oil into each nostril cleanses nasal passages, lubricates dry mucous membranes, and relieves tension headaches.</li><li><strong>When to Avoid:</strong> Skip during acute sinus infections, productive coughs, or right before bed.</li></ul><h2>Quick Morning Sequence at a Glance</h2><figure class=\"table\"><table><thead><tr><th><strong>Order</strong></th><th><strong>Ritual</strong></th><th><strong>Time Needed</strong></th><th><strong>Primary System Targeted</strong></th></tr></thead><tbody><tr><td><strong>1</strong></td><td>Copper Water (<i>Ushapan</i>)</td><td>1 min</td><td>GI Tract &amp; Elimination</td></tr><tr><td><strong>2</strong></td><td>Tongue Scraping (<i>Jivha Nirlekhana</i>)</td><td>1 min</td><td>Taste Buds &amp; Oral Biome</td></tr><tr><td><strong>3</strong></td><td>Oil Pulling (<i>Gandusha</i>)</td><td>5–10 mins</td><td>Gums, Teeth &amp; Throat</td></tr><tr><td><strong>4</strong></td><td>Warm Oil Massage (<i>Abhyanga</i>)</td><td>5–10 mins</td><td>Nervous System &amp; Lymph</td></tr><tr><td><strong>5</strong></td><td>Nasal Oil Drops (<i>Nasya</i>)</td><td>1 min</td><td>Sinuses, Mind &amp; Respiration</td></tr></tbody></table></figure>', '1-ddd9955646f6.jpg', 'images-1-62780d6d251a.jpg', NULL, 'Active', '2026-09-24 13:55:51', 'The Art of Dinacharya: Ayurvedic Daily Rituals for Energy and Balance', NULL, '2026-09-24 11:55:51', '2026-09-24 11:55:51');
 
 -- --------------------------------------------------------
 
@@ -180,6 +209,27 @@ INSERT INTO `categories` (`id`, `parent_id`, `name`, `slug`, `meta_title`, `meta
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `contact_messages`
+--
+
+CREATE TABLE `contact_messages` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `name` varchar(150) NOT NULL,
+  `email` varchar(191) NOT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `topic` varchar(150) DEFAULT NULL,
+  `message` text NOT NULL,
+  `status` enum('New','Read','Replied','Spam') NOT NULL DEFAULT 'New',
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `coupons`
 --
 
@@ -212,6 +262,31 @@ CREATE TABLE `coupon_usages` (
   `user_id` bigint(20) UNSIGNED NOT NULL,
   `order_id` bigint(20) UNSIGNED NOT NULL,
   `used_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `dosha_leads`
+--
+
+CREATE TABLE `dosha_leads` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `session_token` char(36) NOT NULL,
+  `full_name` varchar(150) NOT NULL,
+  `email` varchar(191) NOT NULL,
+  `date_of_birth` date NOT NULL,
+  `gender` enum('Female','Male','Other','Prefer not to say') NOT NULL,
+  `mobile` varchar(20) NOT NULL,
+  `location` varchar(150) NOT NULL,
+  `wellness_goal` varchar(150) DEFAULT NULL,
+  `status` enum('started','completed') NOT NULL DEFAULT 'started',
+  `dosha_result` varchar(50) DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -555,9 +630,11 @@ CREATE TABLE `promotional_videos` (
 --
 
 INSERT INTO `promotional_videos` (`id`, `title`, `description`, `video_type`, `video_url`, `video_file`, `thumbnail`, `orientation`, `button_text`, `button_url`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, 'Promotion 1', 'Promotion', 'youtube', 'https://www.youtube.com/watch?v=9hMC7NA0yMw&list=RD9hMC7NA0yMw&start_radio=1', NULL, NULL, NULL, '', '', 1, 1, '2026-09-23 17:46:07', '2026-09-23 17:46:07'),
-(2, 'Promotion 2', 'Promotion', 'youtube', 'https://www.youtube.com/watch?v=EiiOYwqk3A0&list=RD9hMC7NA0yMw&index=6', NULL, NULL, NULL, '', '', 1, 2, '2026-09-23 17:47:03', '2026-09-23 17:47:03'),
-(3, 'Promotion 3', 'Promotion', 'youtube', 'https://www.youtube.com/shorts/fPdneOqcKKY', NULL, NULL, NULL, '', '', 1, 3, '2026-09-23 17:48:13', '2026-09-23 17:48:13');
+(1, 'Promotion 1', 'Promotion', 'youtube', 'https://youtu.be/zt6i6vVgiO4', NULL, NULL, NULL, '', '', 1, 1, '2026-09-23 17:46:07', '2026-09-25 07:55:32'),
+(2, 'Promotion 2', 'Promotion', 'youtube', 'https://youtu.be/Fm6nXvupBcs', NULL, NULL, NULL, '', '', 1, 2, '2026-09-23 17:47:03', '2026-09-25 07:57:12'),
+(3, 'Promotion 3', 'Promotion', 'youtube', 'https://www.youtube.com/shorts/FB7AhG5QLyc?feature=share', NULL, NULL, NULL, '', '', 1, 3, '2026-09-23 17:48:13', '2026-09-25 07:57:40'),
+(4, '', '', 'youtube', 'https://www.youtube.com/shorts/dpDiiNLCCqs?feature=share', NULL, NULL, NULL, '', '', 1, 4, '2026-09-25 07:51:42', '2026-09-25 07:52:40'),
+(5, '', '', 'youtube', 'https://www.youtube.com/shorts/lXuYeNiyEmI?feature=share', NULL, NULL, NULL, '', '', 1, 5, '2026-09-25 07:53:41', '2026-09-25 07:53:41');
 
 -- --------------------------------------------------------
 
@@ -594,8 +671,28 @@ CREATE TABLE `settings` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `setting_key` varchar(150) NOT NULL,
   `setting_value` text DEFAULT NULL,
+  `setting_type` varchar(20) NOT NULL DEFAULT 'text',
+  `setting_group` varchar(100) NOT NULL DEFAULT 'General',
+  `label` varchar(150) NOT NULL DEFAULT '',
+  `description` text DEFAULT NULL,
+  `status` enum('Active','Inactive') NOT NULL DEFAULT 'Active',
+  `sort_order` int(11) NOT NULL DEFAULT 0,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `settings`
+--
+
+INSERT INTO `settings` (`id`, `setting_key`, `setting_value`, `setting_type`, `setting_group`, `label`, `description`, `status`, `sort_order`, `updated_at`) VALUES
+(1, 'contact_phone', '+91 98765 43210', 'phone', 'Contact', 'Phone Number', NULL, 'Active', 1, '2026-09-25 08:37:50'),
+(2, 'contact_phone_note', '(Mon – Sat, 9 AM – 6 PM)', 'text', 'Contact', 'Phone Note', NULL, 'Active', 2, '2026-09-25 08:37:50'),
+(3, 'contact_email', 'hello@ayurveda.com', 'email', 'Contact', 'Email Address', NULL, 'Active', 3, '2026-09-25 08:37:50'),
+(4, 'contact_email_note', 'We\'ll respond within 24 hours.', 'text', 'Contact', 'Email Note', NULL, 'Active', 4, '2026-09-25 08:37:50'),
+(5, 'contact_address', '123, Wellness Street, Green Park\nNew Delhi – 110016, India', 'textarea', 'Contact', 'Address', NULL, 'Active', 5, '2026-09-25 08:37:50'),
+(6, 'contact_topics', 'Complete Gut Detox Programme\nBook a Consultation\nAyurvedic Products\nOrder or Delivery Support\nSomething Else', 'textarea', 'Contact', 'Consultation Topics', NULL, 'Active', 6, '2026-09-25 08:37:50'),
+(7, 'contact_notify_email', '', 'email', 'Contact', 'Notify Email', NULL, 'Active', 7, '2026-09-25 08:37:50'),
+(8, 'site_logo', 'setting_e25629e0ef6c1576.png', 'image', 'General', 'Site Logo', '', 'Active', 8, '2026-09-25 11:30:34');
 
 -- --------------------------------------------------------
 
@@ -719,12 +816,21 @@ ALTER TABLE `banners`
   ADD KEY `idx_banners_position` (`position`,`status`);
 
 --
+-- Indexes for table `blog_categories`
+--
+ALTER TABLE `blog_categories`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_blog_category_slug` (`slug`),
+  ADD KEY `idx_blog_category_status` (`status`);
+
+--
 -- Indexes for table `blog_posts`
 --
 ALTER TABLE `blog_posts`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uq_blog_slug` (`slug`),
-  ADD KEY `idx_blog_status` (`status`,`published_at`);
+  ADD KEY `idx_blog_status` (`status`,`published_at`),
+  ADD KEY `idx_blog_posts_category` (`category_id`);
 
 --
 -- Indexes for table `cart`
@@ -745,6 +851,15 @@ ALTER TABLE `categories`
   ADD KEY `idx_category_status` (`status`);
 
 --
+-- Indexes for table `contact_messages`
+--
+ALTER TABLE `contact_messages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_status_created` (`status`,`created_at`),
+  ADD KEY `idx_ip_created` (`ip_address`,`created_at`),
+  ADD KEY `idx_email_created` (`email`,`created_at`);
+
+--
 -- Indexes for table `coupons`
 --
 ALTER TABLE `coupons`
@@ -761,6 +876,15 @@ ALTER TABLE `coupon_usages`
   ADD KEY `idx_coupon_usage_user` (`user_id`),
   ADD KEY `idx_coupon_usage_coupon` (`coupon_id`),
   ADD KEY `fk_coupon_usage_order` (`order_id`);
+
+--
+-- Indexes for table `dosha_leads`
+--
+ALTER TABLE `dosha_leads`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `session_token` (`session_token`),
+  ADD KEY `fk_dosha_leads_user` (`user_id`),
+  ADD KEY `email` (`email`);
 
 --
 -- Indexes for table `orders`
@@ -923,13 +1047,19 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `banners`
 --
 ALTER TABLE `banners`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `blog_categories`
+--
+ALTER TABLE `blog_categories`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `blog_posts`
 --
 ALTER TABLE `blog_posts`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `cart`
@@ -944,6 +1074,12 @@ ALTER TABLE `categories`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `contact_messages`
+--
+ALTER TABLE `contact_messages`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `coupons`
 --
 ALTER TABLE `coupons`
@@ -953,6 +1089,12 @@ ALTER TABLE `coupons`
 -- AUTO_INCREMENT for table `coupon_usages`
 --
 ALTER TABLE `coupon_usages`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `dosha_leads`
+--
+ALTER TABLE `dosha_leads`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
@@ -1013,7 +1155,7 @@ ALTER TABLE `product_variants`
 -- AUTO_INCREMENT for table `promotional_videos`
 --
 ALTER TABLE `promotional_videos`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `reviews`
@@ -1025,7 +1167,7 @@ ALTER TABLE `reviews`
 -- AUTO_INCREMENT for table `settings`
 --
 ALTER TABLE `settings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `team_members`
@@ -1062,6 +1204,12 @@ ALTER TABLE `addresses`
   ADD CONSTRAINT `fk_addresses_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `blog_posts`
+--
+ALTER TABLE `blog_posts`
+  ADD CONSTRAINT `fk_blog_posts_category` FOREIGN KEY (`category_id`) REFERENCES `blog_categories` (`id`) ON DELETE SET NULL;
+
+--
 -- Constraints for table `cart`
 --
 ALTER TABLE `cart`
@@ -1082,6 +1230,12 @@ ALTER TABLE `coupon_usages`
   ADD CONSTRAINT `fk_coupon_usage_coupon` FOREIGN KEY (`coupon_id`) REFERENCES `coupons` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_coupon_usage_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_coupon_usage_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `dosha_leads`
+--
+ALTER TABLE `dosha_leads`
+  ADD CONSTRAINT `fk_dosha_leads_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `orders`

@@ -2,12 +2,6 @@
 
 require_once __DIR__ . '/../config/config.php';
 
-// header.php reads $_SESSION['customer_id'] below (for the cart badge and
-// account link) but can't assume the page that included it already started
-// the session — some pages (e.g. index.php) don't. config.php's session.*
-// ini_set() calls above have already run by this point (or were already
-// applied earlier in the request, since require_once only runs a file's
-// body once), so it's safe to start the session here if it isn't already.
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -53,6 +47,24 @@ if (isCustomerLogin()) {
     }
 }
 
+$siteSettings = [];
+try {
+    $settingsResult = mysqli_query($conn, "SELECT setting_key, setting_value FROM settings");
+    if ($settingsResult) {
+        while ($settingRow = mysqli_fetch_assoc($settingsResult)) {
+            $siteSettings[$settingRow['setting_key']] = $settingRow['setting_value'];
+        }
+    }
+} catch (Exception $e) {
+    $siteSettings = [];
+}
+
+$siteName = ($siteSettings['site_name'] ?? '') !== ''
+    ? $siteSettings['site_name']
+    : (defined('SITE_NAME') ? SITE_NAME : 'Store');
+$siteTagline = $siteSettings['site_tagline'] ?? '';
+$siteLogo = $siteSettings['site_logo'] ?? '';
+
 ?>
 
 <!DOCTYPE html>
@@ -61,7 +73,7 @@ if (isCustomerLogin()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Page</title>
+    <title><?= htmlspecialchars($siteName) ?></title>
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/global.css">
     <script src="<?= BASE_URL ?>assets/js/global.js" defer></script>
     <style>
@@ -159,16 +171,16 @@ if (isCustomerLogin()) {
 
         .logo {
             display: flex;
-            flex-direction: column;
             align-items: center;
             text-align: center;
             line-height: 1.1;
         }
 
         .logo__icon {
-            width: 38px;
-            height: 38px;
+            width: 60px;
+            height: 60px;
             margin-bottom: 2px;
+            object-fit: contain;
         }
 
         .logo__name {
@@ -756,20 +768,27 @@ if (isCustomerLogin()) {
             </button>
 
             <a href="<?= BASE_URL ?>index.php" class="logo">
-                <svg class="logo__icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <defs>
-                        <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stop-color="#d9ac4f" />
-                            <stop offset="100%" stop-color="#9c7328" />
-                        </linearGradient>
-                    </defs>
-                    <path d="M32 6c-6 8-10 16-10 24 0 6 4 10 10 10s10-4 10-10c0-8-4-16-10-24z" fill="url(#leafGrad)" />
-                    <path d="M12 24c8 0 14 6 16 14-8 2-16-2-20-8-1.5-2.4-1-4.6 4-6z" fill="url(#leafGrad)" />
-                    <path d="M52 24c-8 0-14 6-16 14 8 2 16-2 20-8 1.5-2.4 1-4.6-4-6z" fill="url(#leafGrad)" />
-                    <circle cx="32" cy="38" r="5" fill="#fdfbf3" stroke="#9c7328" stroke-width="1.5" />
-                </svg>
-                <span class="logo__name"><?= htmlspecialchars(SITE_NAME) ?></span>
-                <span class="logo__tagline">&ndash; ayurveda &ndash;</span>
+                <?php if ($siteLogo !== ''): ?>
+                    <img class="logo__icon" src="<?= htmlspecialchars(BASE_URL . ltrim($siteLogo, '/')) ?>" alt="<?= htmlspecialchars($siteName) ?> logo">
+                <?php else: ?>
+                    <!-- No logo set in settings yet — falls back to the default mark. -->
+                    <svg class="logo__icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stop-color="#d9ac4f" />
+                                <stop offset="100%" stop-color="#9c7328" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M32 6c-6 8-10 16-10 24 0 6 4 10 10 10s10-4 10-10c0-8-4-16-10-24z" fill="url(#leafGrad)" />
+                        <path d="M12 24c8 0 14 6 16 14-8 2-16-2-20-8-1.5-2.4-1-4.6 4-6z" fill="url(#leafGrad)" />
+                        <path d="M52 24c-8 0-14 6-16 14 8 2 16-2 20-8 1.5-2.4 1-4.6-4-6z" fill="url(#leafGrad)" />
+                        <circle cx="32" cy="38" r="5" fill="#fdfbf3" stroke="#9c7328" stroke-width="1.5" />
+                    </svg>
+                <?php endif; ?>
+                <span class="logo__name"><?= htmlspecialchars($siteName) ?></span>
+                <?php if ($siteTagline !== ''): ?>
+                    <span class="logo__tagline">&ndash; <?= htmlspecialchars($siteTagline) ?> &ndash;</span>
+                <?php endif; ?>
             </a>
 
             <nav class="main-nav" id="site-nav" aria-label="Main navigation">
@@ -854,7 +873,7 @@ if (isCustomerLogin()) {
     </header>
 
     <script>
-        (function () {
+        (function() {
             // Mobile menu: hamburger opens the drawer, "Shop All" chevron
             // expands the category list. Desktop keeps the hover mega menu.
             var nav = document.getElementById('site-nav');
@@ -880,25 +899,29 @@ if (isCustomerLogin()) {
                 }
             }
 
-            toggle.addEventListener('click', function () {
+            toggle.addEventListener('click', function() {
                 setOpen(!nav.classList.contains('is-open'), true);
             });
 
             if (closeBtn) {
-                closeBtn.addEventListener('click', function () { setOpen(false, true); });
+                closeBtn.addEventListener('click', function() {
+                    setOpen(false, true);
+                });
             }
 
-            overlay.addEventListener('click', function () { setOpen(false, false); });
+            overlay.addEventListener('click', function() {
+                setOpen(false, false);
+            });
 
-            document.addEventListener('keydown', function (event) {
+            document.addEventListener('keydown', function(event) {
                 if (event.key === 'Escape' && nav.classList.contains('is-open')) {
                     setOpen(false, true);
                 }
             });
 
             // Category list expand / collapse
-            nav.querySelectorAll('[data-nav-dropdown-toggle]').forEach(function (btn) {
-                btn.addEventListener('click', function () {
+            nav.querySelectorAll('[data-nav-dropdown-toggle]').forEach(function(btn) {
+                btn.addEventListener('click', function() {
                     var item = btn.closest('.nav-dropdown');
                     var isOpen = item.classList.toggle('is-open');
                     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -909,7 +932,7 @@ if (isCustomerLogin()) {
             function onBreakpoint(event) {
                 if (!event.matches) {
                     setOpen(false, false);
-                    nav.querySelectorAll('.nav-dropdown.is-open').forEach(function (item) {
+                    nav.querySelectorAll('.nav-dropdown.is-open').forEach(function(item) {
                         item.classList.remove('is-open');
                     });
                 }

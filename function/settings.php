@@ -1,4 +1,5 @@
 <?php
+
 /**
  * function/settings.php
  *
@@ -161,7 +162,7 @@ if (!function_exists('settingFormFromPost')) {
             'sort_order'     => (int) $str('sort_order', '0'),
             'value_text'     => $str('value_text'),
             'value_textarea' => isset($post['value_textarea']) && is_scalar($post['value_textarea'])
-                                    ? (string) $post['value_textarea'] : '',
+                ? (string) $post['value_textarea'] : '',
             'value_boolean'  => !empty($post['value_boolean']),
         ];
 
@@ -379,17 +380,41 @@ if (!function_exists('settingsUploadDir')) {
 
 if (!function_exists('getSettingImageUrl')) {
     /**
-     * Build a browsable URL for a stored settings image filename.
-     * Uses BASE_URL from config/config.php when defined, so the link works
-     * from both admin pages and the storefront.
+     * Build a browsable URL from a stored relative settings image path.
+     *
+     * Expected database value:
+     * uploads/settings/setting_xxxxxxxx.png
      */
-    function getSettingImageUrl($filename)
+    function getSettingImageUrl($storedPath)
     {
-        if (empty($filename)) {
+        $storedPath = trim((string) $storedPath);
+
+        if ($storedPath === '') {
             return null;
         }
+
+        // Normalize Windows-style slashes.
+        $storedPath = str_replace('\\', '/', $storedPath);
+
+        // Backward compatibility:
+        // If an older database row contains only the filename,
+        // automatically prepend the settings upload directory.
+        if (strpos($storedPath, '/') === false) {
+            $storedPath = 'uploads/settings/' . basename($storedPath);
+        }
+
+        // Prevent path traversal.
+        if (strpos($storedPath, '..') !== false) {
+            return null;
+        }
+
         $base = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
-        return $base . '/uploads/settings/' . rawurlencode($filename);
+
+        // Encode each path segment separately so "/" remains a path separator.
+        $segments = explode('/', trim($storedPath, '/'));
+        $segments = array_map('rawurlencode', $segments);
+
+        return $base . '/' . implode('/', $segments);
     }
 }
 
@@ -445,14 +470,16 @@ if (!function_exists('uploadSettingImage')) {
             throw new InvalidArgumentException('Unsupported image type. Use JPG, PNG, WEBP, or GIF.');
         }
 
-        $filename    = 'setting_' . bin2hex(random_bytes(8)) . '.' . $allowed[$mime];
+        $filename = 'setting_' . bin2hex(random_bytes(8)) . '.' . $allowed[$mime];
+
         $destination = settingsUploadDir() . '/' . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
             throw new RuntimeException('Unable to save the uploaded image.');
         }
 
-        return $filename;
+        // Store a web-relative path in the database.
+        return 'uploads/settings/' . $filename;
     }
 }
 
@@ -579,9 +606,11 @@ if (!function_exists('updateSetting')) {
         $stmt->close();
 
         // Clean up the old image file if it was replaced or no longer used.
-        if ($existing['setting_type'] === 'image'
+        if (
+            $existing['setting_type'] === 'image'
             && (string) $existing['setting_value'] !== ''
-            && (string) $existing['setting_value'] !== $value) {
+            && (string) $existing['setting_value'] !== $value
+        ) {
             deleteSettingImageFile($existing['setting_value']);
         }
 
