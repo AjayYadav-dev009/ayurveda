@@ -57,12 +57,6 @@ $sbcSprig = '<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/200
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&display=swap" rel="stylesheet">
 
 <style>
-    /* ==========================================================================
-       Shop By Category — curated collection cards. Namespaced "sbc".
-       4 large cards per row on desktop, 3 on tablet, 2 on mobile; incomplete
-       last rows stay centered. Each card: photo on top, a rounded "sheet"
-       overlapping the photo with icon, name, description and a CTA row.
-       ========================================================================== */
 
     .sbc {
         --sbc-cols: 4;
@@ -75,7 +69,7 @@ $sbcSprig = '<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/200
 
         position: relative;
         overflow: hidden;
-        padding: 40px 0 72px;
+        padding: 40px 0;
         background: var(--color-bg);
     }
 
@@ -285,7 +279,6 @@ $sbcSprig = '<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/200
         justify-content: space-between;
         gap: 10px;
         margin-top: auto;
-        padding-top: 24px;
     }
 
     .sbc__cta {
@@ -482,17 +475,11 @@ $sbcSprig = '<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/200
                             <div class="sbc__body">
                                 <span class="sbc__icon" aria-hidden="true"><?= $iconSvg ?></span>
                                 <h3 class="sbc__name"><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></h3>
-                                <?php if ($description !== ''): ?>
-                                    <p class="sbc__desc"><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></p>
-                                <?php endif; ?>
 
                                 <div class="sbc__foot">
                                     <span class="sbc__cta">
                                         <span>Explore<span class="sbc__cta-long"> Collection</span></span>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                                    </span>
-                                    <span class="sbc__go" aria-hidden="true">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                                     </span>
                                 </div>
                             </div>

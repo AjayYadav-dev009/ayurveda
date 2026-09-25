@@ -149,7 +149,7 @@ $pvRenderCard = function (array $video, $variant, $badge) use ($pvEsc) {
 
             position: relative;
             overflow: hidden;
-            padding: 88px 0 72px;
+            padding: 40px 0;
             background: #fafcfa;
             color: var(--pv-text);
         }
@@ -187,7 +187,7 @@ $pvRenderCard = function (array $video, $variant, $badge) use ($pvEsc) {
 
         .promotional-videos__header {
             max-width: 640px;
-            margin: 0 auto 52px;
+            margin: 0 auto 24px;
             text-align: center;
         }
 
@@ -248,6 +248,8 @@ $pvRenderCard = function (array $video, $variant, $badge) use ($pvEsc) {
             grid-template-columns: var(--pv-cols);
             gap: var(--pv-gap);
             align-items: start;
+            max-width: 1050px;
+            margin-inline: auto;
             animation: pv-fade 0.45s ease both;
         }
 
@@ -261,7 +263,7 @@ $pvRenderCard = function (array $video, $variant, $badge) use ($pvEsc) {
 
         .promotional-videos__page--solo {
             --pv-cols: minmax(0, 1fr);
-            max-width: 880px;
+            max-width: 750px;
             margin-inline: auto;
         }
 
@@ -472,7 +474,7 @@ $pvRenderCard = function (array $video, $variant, $badge) use ($pvEsc) {
             align-items: center;
             justify-content: center;
             gap: 18px;
-            margin-top: 34px;
+            margin-top: 20px;
         }
 
         .promotional-videos__nav-button {
@@ -545,7 +547,7 @@ $pvRenderCard = function (array $video, $variant, $badge) use ($pvEsc) {
         .promotional-videos__trust {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            margin-top: 64px;
+            margin-top: 24px;
             padding-top: 40px;
             border-top: 1px solid var(--pv-border);
         }
