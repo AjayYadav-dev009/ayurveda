@@ -632,9 +632,9 @@ $transformationCount = count($transformations);
                                             <?php endif; ?>
                                         </div>
 
-                                        <?php if ($safeDescription !== ''): ?>
-                                            <p class="trf__desc"><?= $safeDescription ?></p>
-                                        <?php endif; ?>
+                                        <?php //if ($safeDescription !== ''): ?>
+                                            <!-- <p class="trf__desc"><?= $safeDescription ?></p> -->
+                                        <?php //endif; ?>
 
                                         <?php if ($safeProductName !== '' || $safeDuration !== ''): ?>
                                             <div class="trf__meta">

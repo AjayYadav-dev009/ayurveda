@@ -739,7 +739,7 @@ $location = getContactLocation($conn, $details['address']['lines']);
 
                 <div class="contact-hp" aria-hidden="true">
                     <label>Leave this field empty
-                        <input type="text" name="website" tabindex="-1" autocomplete="off" value="">
+                        <input type="text" name="hp_check" tabindex="-1" autocomplete="off" value="">
                     </label>
                 </div>
 

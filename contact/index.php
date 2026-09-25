@@ -44,9 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'topic'   => trim((string) ($_POST['topic'] ?? '')),
             'message' => (string) ($_POST['message'] ?? ''),
         ]);
-    } elseif (!empty($_POST['website'])) {
-        // Hidden "website" field: real visitors never see or fill it, bots do.
-        // Pretend it worked, save nothing.
+    } elseif (!empty($_POST['hp_check'])) {
         $_SESSION['contact_flash'] = 1;
         redirect($contactPageUrl . '#contact-form');
     } else {

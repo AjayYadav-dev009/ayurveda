@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 25, 2026 at 01:33 PM
+-- Generation Time: Sep 25, 2026 at 02:48 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -169,13 +169,6 @@ CREATE TABLE `cart` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `cart`
---
-
-INSERT INTO `cart` (`id`, `user_id`, `product_id`, `variant_id`, `quantity`, `created_at`, `updated_at`) VALUES
-(6, 1, 8, NULL, 1, '2026-09-23 15:21:40', '2026-09-23 15:21:40');
-
 -- --------------------------------------------------------
 
 --
@@ -226,6 +219,13 @@ CREATE TABLE `contact_messages` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `contact_messages`
+--
+
+INSERT INTO `contact_messages` (`id`, `user_id`, `name`, `email`, `phone`, `topic`, `message`, `status`, `ip_address`, `user_agent`, `created_at`, `updated_at`) VALUES
+(1, NULL, 'jatin kdpl', 'kdpljatin@gmail.com', '09211339966', 'Complete Gut Detox Programme', 'Hello Buddy', 'New', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', '2026-09-25 12:23:41', '2026-09-25 12:23:41');
 
 -- --------------------------------------------------------
 
@@ -685,14 +685,15 @@ CREATE TABLE `settings` (
 --
 
 INSERT INTO `settings` (`id`, `setting_key`, `setting_value`, `setting_type`, `setting_group`, `label`, `description`, `status`, `sort_order`, `updated_at`) VALUES
-(1, 'contact_phone', '+91 98765 43210', 'phone', 'Contact', 'Phone Number', NULL, 'Active', 1, '2026-09-25 08:37:50'),
+(1, 'contact_phone', '123456789123', 'phone', 'Contact', 'Phone Number', '', 'Active', 1, '2026-09-25 12:16:58'),
 (2, 'contact_phone_note', '(Mon – Sat, 9 AM – 6 PM)', 'text', 'Contact', 'Phone Note', NULL, 'Active', 2, '2026-09-25 08:37:50'),
 (3, 'contact_email', 'hello@ayurveda.com', 'email', 'Contact', 'Email Address', NULL, 'Active', 3, '2026-09-25 08:37:50'),
 (4, 'contact_email_note', 'We\'ll respond within 24 hours.', 'text', 'Contact', 'Email Note', NULL, 'Active', 4, '2026-09-25 08:37:50'),
-(5, 'contact_address', '123, Wellness Street, Green Park\nNew Delhi – 110016, India', 'textarea', 'Contact', 'Address', NULL, 'Active', 5, '2026-09-25 08:37:50'),
+(5, 'contact_address', 'Dwarka Mor, Near Dwarka Mor Metro Station.', 'textarea', 'Contact', 'Address', '', 'Active', 5, '2026-09-25 12:18:05'),
 (6, 'contact_topics', 'Complete Gut Detox Programme\nBook a Consultation\nAyurvedic Products\nOrder or Delivery Support\nSomething Else', 'textarea', 'Contact', 'Consultation Topics', NULL, 'Active', 6, '2026-09-25 08:37:50'),
 (7, 'contact_notify_email', '', 'email', 'Contact', 'Notify Email', NULL, 'Active', 7, '2026-09-25 08:37:50'),
-(8, 'site_logo', 'setting_e25629e0ef6c1576.png', 'image', 'General', 'Site Logo', '', 'Active', 8, '2026-09-25 11:30:34');
+(9, 'site_logo', 'uploads/settings/setting_7f9b0bfa4a6a7b10.png', 'image', 'General', 'Site Logo', '', 'Active', 8, '2026-09-25 11:59:52'),
+(10, 'site_name', 'Vedorishi', 'text', 'General', 'Site Name', 'Site Nme', 'Active', 1, '2026-09-25 12:02:09');
 
 -- --------------------------------------------------------
 
@@ -1077,7 +1078,7 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `contact_messages`
 --
 ALTER TABLE `contact_messages`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `coupons`
@@ -1167,7 +1168,7 @@ ALTER TABLE `reviews`
 -- AUTO_INCREMENT for table `settings`
 --
 ALTER TABLE `settings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `team_members`
