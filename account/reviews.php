@@ -88,25 +88,64 @@ require __DIR__ . '/account-sidebar.php';
     }
 
     .reviews-section h2 {
-        margin: 0 0 14px;
-        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0 0 16px;
+        font-size: 15px;
         font-weight: 800;
-        color: var(--color-text);
+        color: var(--acc-side);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
     }
 
-    .reviews-empty {
+    .reviews-section h2 svg {
+        width: 17px;
+        height: 17px;
+    }
+
+    .reviews-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 10px;
+        padding: 36px 20px;
+        background: var(--acc-white);
+        border: 1px dashed var(--acc-border);
+        border-radius: var(--acc-radius-lg);
+    }
+
+    .reviews-empty-state__icon {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: rgba(23, 72, 61, 0.08);
+        color: var(--acc-side);
+    }
+
+    .reviews-empty-state__icon svg {
+        width: 21px;
+        height: 21px;
+    }
+
+    .reviews-empty-state p {
+        margin: 0;
         font-size: 14px;
-        color: var(--color-text-light);
+        color: var(--acc-text-light);
     }
 
     /* --- Reviewable products --- */
 
     .reviewable-card {
-        background: var(--color-white);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md);
+        background: var(--acc-white);
+        border: 1px solid var(--acc-border);
+        border-radius: var(--acc-radius-md);
         padding: 16px 20px;
         margin-bottom: 12px;
+        box-shadow: var(--acc-shadow);
     }
 
     .reviewable-card__head {
@@ -119,31 +158,40 @@ require __DIR__ . '/account-sidebar.php';
     .reviewable-card__title {
         font-size: 14.5px;
         font-weight: 700;
-        color: var(--color-text);
+        color: var(--acc-text);
         text-decoration: none;
     }
 
     .reviewable-card__title:hover {
-        color: var(--color-primary-dark);
+        color: var(--acc-side);
         text-decoration: underline;
     }
 
     .reviewable-card__toggle {
         flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         padding: 8px 16px;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--color-primary);
-        background: var(--color-white);
-        color: var(--color-primary);
+        border-radius: 999px;
+        border: 1px solid var(--acc-side);
+        background: var(--acc-white);
+        color: var(--acc-side);
         font-size: 13px;
         font-weight: 700;
         cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .reviewable-card__toggle svg {
+        width: 13px;
+        height: 13px;
     }
 
     .reviewable-card[open] .reviewable-card__toggle,
     .reviewable-card__toggle:hover {
-        background: var(--color-primary);
-        color: var(--color-white);
+        background: var(--acc-side);
+        color: #fff;
     }
 
     .reviewable-card__head summary {
@@ -163,7 +211,7 @@ require __DIR__ . '/account-sidebar.php';
     .reviewable-card__form {
         margin-top: 16px;
         padding-top: 16px;
-        border-top: 1px solid var(--color-border);
+        border-top: 1px solid var(--acc-border);
     }
 
     .form-error {
@@ -173,17 +221,18 @@ require __DIR__ . '/account-sidebar.php';
         color: #8a1c14;
         background: #fbeceb;
         border: 1px solid #f2c6c2;
-        border-radius: var(--radius-sm);
+        border-radius: var(--acc-radius-sm);
     }
 
     .form-success {
         margin: 0 0 20px;
         padding: 12px 14px;
         font-size: 13px;
-        color: var(--color-primary-dark);
-        background: var(--color-primary-light);
-        border: 1px solid var(--color-primary);
-        border-radius: var(--radius-sm);
+        font-weight: 600;
+        color: var(--acc-side);
+        background: rgba(47, 158, 110, 0.1);
+        border: 1px solid rgba(47, 158, 110, 0.25);
+        border-radius: var(--acc-radius-sm);
         line-height: 1.5;
     }
 
@@ -191,8 +240,8 @@ require __DIR__ . '/account-sidebar.php';
         display: block;
         margin-bottom: 8px;
         font-size: 13px;
-        font-weight: 600;
-        color: var(--color-text);
+        font-weight: 700;
+        color: var(--acc-text);
     }
 
     /* Pure-CSS interactive star rating: markup order 5,4,3,2,1 (reversed),
@@ -219,7 +268,7 @@ require __DIR__ . '/account-sidebar.php';
     .rv-star-input label {
         font-size: 28px;
         line-height: 1;
-        color: var(--color-border);
+        color: var(--acc-border);
         cursor: pointer;
         transition: color 0.1s ease;
     }
@@ -227,7 +276,7 @@ require __DIR__ . '/account-sidebar.php';
     .rv-star-input label:hover,
     .rv-star-input label:hover~label,
     .rv-star-input input:checked~label {
-        color: var(--color-accent);
+        color: var(--acc-gold-dark);
     }
 
     .reviewable-card__form textarea {
@@ -236,10 +285,10 @@ require __DIR__ . '/account-sidebar.php';
         padding: 12px 14px;
         font-size: 14px;
         font-family: inherit;
-        color: var(--color-text);
-        background: var(--color-bg);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
+        color: var(--acc-text);
+        background: var(--acc-bg);
+        border: 1px solid var(--acc-border);
+        border-radius: var(--acc-radius-sm);
         box-sizing: border-box;
         resize: vertical;
         margin-bottom: 16px;
@@ -247,33 +296,34 @@ require __DIR__ . '/account-sidebar.php';
 
     .reviewable-card__form textarea:focus {
         outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px var(--color-primary-light);
+        border-color: var(--acc-side);
+        box-shadow: 0 0 0 3px rgba(23, 72, 61, 0.12);
     }
 
     .reviewable-card__form button[type="submit"] {
         padding: 11px 24px;
         border: none;
-        border-radius: var(--radius-md);
-        background: var(--color-primary);
-        color: var(--color-white);
+        border-radius: var(--acc-radius-md);
+        background: var(--acc-side);
+        color: #fff;
         font-size: 14px;
         font-weight: 700;
         cursor: pointer;
     }
 
     .reviewable-card__form button[type="submit"]:hover {
-        background: var(--color-primary-dark);
+        background: var(--acc-side-deep);
     }
 
     /* --- Review history --- */
 
     .my-review-card {
-        background: var(--color-white);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md);
+        background: var(--acc-white);
+        border: 1px solid var(--acc-border);
+        border-radius: var(--acc-radius-md);
         padding: 16px 20px;
         margin-bottom: 12px;
+        box-shadow: var(--acc-shadow);
     }
 
     .my-review-card__head {
@@ -288,24 +338,24 @@ require __DIR__ . '/account-sidebar.php';
     .my-review-card__title {
         font-size: 14.5px;
         font-weight: 700;
-        color: var(--color-text);
+        color: var(--acc-text);
         text-decoration: none;
     }
 
     .my-review-card__title:hover {
-        color: var(--color-primary-dark);
+        color: var(--acc-side);
         text-decoration: underline;
     }
 
     .rv-stars {
-        color: var(--color-border);
+        color: var(--acc-border);
         letter-spacing: 1px;
         font-size: 14px;
         white-space: nowrap;
     }
 
     .rv-stars .filled {
-        color: var(--color-accent);
+        color: var(--acc-gold-dark);
     }
 
     .my-review-card__meta {
@@ -313,14 +363,14 @@ require __DIR__ . '/account-sidebar.php';
         align-items: center;
         gap: 10px;
         font-size: 12px;
-        color: var(--color-text-light);
+        color: var(--acc-text-light);
     }
 
     .my-review-card__text {
         margin: 6px 0 0;
         font-size: 14px;
         line-height: 1.6;
-        color: var(--color-text);
+        color: var(--acc-text);
         white-space: pre-line;
     }
 
@@ -340,8 +390,8 @@ require __DIR__ . '/account-sidebar.php';
     }
 
     .rv-badge--active {
-        background: var(--color-primary-light);
-        color: var(--color-primary-dark);
+        background: rgba(47, 158, 110, 0.14);
+        color: #1c6a48;
     }
 
     .rv-badge--rejected {
@@ -350,7 +400,10 @@ require __DIR__ . '/account-sidebar.php';
     }
 
     .rv-verified {
-        color: var(--color-primary-dark);
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        color: var(--acc-side);
         font-weight: 700;
     }
 </style>
@@ -362,16 +415,27 @@ require __DIR__ . '/account-sidebar.php';
 <?php endif; ?>
 
 <div class="reviews-section">
-    <h2>Products You Can Review</h2>
+    <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+        Products You Can Review
+    </h2>
 
     <?php if (empty($reviewableProducts)): ?>
-        <p class="reviews-empty">Products you've purchased and received will show up here so you can review them.</p>
+        <div class="reviews-empty-state">
+            <span class="reviews-empty-state__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z"/></svg>
+            </span>
+            <p>Products you've purchased and received will show up here so you can review them.</p>
+        </div>
     <?php else: ?>
         <?php foreach ($reviewableProducts as $rp): ?>
             <details class="reviewable-card" <?php echo $reviewErrorProductId === $rp['id'] ? 'open' : ''; ?>>
                 <summary class="reviewable-card__head">
                     <a class="reviewable-card__title" href="<?php echo htmlspecialchars(BASE_URL . 'products/product_details.php?slug=' . $rp['slug']); ?>" onclick="event.stopPropagation();"><?php echo htmlspecialchars($rp['title']); ?></a>
-                    <span class="reviewable-card__toggle">Write a Review</span>
+                    <span class="reviewable-card__toggle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z"/></svg>
+                        Write a Review
+                    </span>
                 </summary>
 
                 <div class="reviewable-card__form">
@@ -404,10 +468,18 @@ require __DIR__ . '/account-sidebar.php';
 </div>
 
 <div class="reviews-section">
-    <h2>Your Reviews</h2>
+    <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z"/></svg>
+        Your Reviews
+    </h2>
 
     <?php if (empty($myReviews)): ?>
-        <p class="reviews-empty">You haven't written any reviews yet.</p>
+        <div class="reviews-empty-state">
+            <span class="reviews-empty-state__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z"/></svg>
+            </span>
+            <p>You haven't written any reviews yet.</p>
+        </div>
     <?php else: ?>
         <?php foreach ($myReviews as $review): ?>
             <div class="my-review-card">

@@ -823,7 +823,7 @@ if (isCustomerLogin()) {
                 </div>
                 <a href="<?= BASE_URL ?>detux/index.php">Gut Detox</a>
                 <a href="<?= BASE_URL ?>consult-veda/index.php">Consult A Vaidya</a>
-                <a href="<?= BASE_URL ?>dosha/index.php">Dosha Test</a>
+                <a href="<?= BASE_URL ?>dosha/dosha-test-cta.php">Dosha Test</a>
                 <a href="<?= BASE_URL ?>blog/blog.php">Blog</a>
                 <a href="<?= BASE_URL ?>about/">About</a>
                 <a href="<?= BASE_URL ?>contact/">Contact</a>

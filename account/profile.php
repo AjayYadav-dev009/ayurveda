@@ -72,40 +72,98 @@ require __DIR__ . '/account-sidebar.php';
 ?>
 
 <style>
+    .profile-card {
+        max-width: 560px;
+        background: var(--acc-white);
+        border: 1px solid var(--acc-border);
+        border-radius: var(--acc-radius-lg);
+        box-shadow: var(--acc-shadow);
+        overflow: hidden;
+    }
+
+    .profile-card__header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 22px 26px;
+        color: #fff;
+        background: linear-gradient(120deg, var(--acc-side) 0%, var(--acc-side-deep) 100%);
+    }
+
+    .profile-card__avatar {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--acc-gold);
+        color: var(--acc-side);
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .profile-card__header-name {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .profile-card__header-sub {
+        margin: 2px 0 0;
+        font-size: 12.5px;
+        color: rgba(244, 239, 226, 0.7);
+    }
+
     .profile-form {
-        max-width: 480px;
+        padding: 26px;
+    }
+
+    .profile-form__group {
+        margin-bottom: 18px;
     }
 
     .profile-form label {
         display: block;
-        margin-top: 16px;
         margin-bottom: 6px;
         font-size: 13px;
-        font-weight: 600;
-        color: var(--color-text);
+        font-weight: 700;
+        color: var(--acc-text);
     }
 
-    .profile-form label:first-of-type {
-        margin-top: 0;
+    .profile-form__input-wrap {
+        position: relative;
+    }
+
+    .profile-form__input-wrap svg {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        color: var(--acc-text-light);
+        pointer-events: none;
     }
 
     .profile-form input {
         width: 100%;
-        padding: 11px 14px;
+        padding: 11px 14px 11px 40px;
         font-size: 14px;
         font-family: inherit;
-        color: var(--color-text);
-        background: var(--color-bg);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
+        color: var(--acc-text);
+        background: var(--acc-bg);
+        border: 1px solid var(--acc-border);
+        border-radius: var(--acc-radius-sm);
         box-sizing: border-box;
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .profile-form input:focus {
         outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px var(--color-primary-light);
+        border-color: var(--acc-side);
+        box-shadow: 0 0 0 3px rgba(23, 72, 61, 0.12);
     }
 
     .field-error {
@@ -121,36 +179,42 @@ require __DIR__ . '/account-sidebar.php';
         color: #8a1c14;
         background: #fbeceb;
         border: 1px solid #f2c6c2;
-        border-radius: var(--radius-sm);
+        border-radius: var(--acc-radius-sm);
     }
 
     .form-success {
         margin: 0 0 20px;
         padding: 12px 14px;
         font-size: 13px;
-        color: var(--color-primary-dark);
-        background: var(--color-primary-light);
-        border: 1px solid var(--color-primary);
-        border-radius: var(--radius-sm);
+        font-weight: 600;
+        color: var(--acc-side);
+        background: rgba(47, 158, 110, 0.1);
+        border: 1px solid rgba(47, 158, 110, 0.25);
+        border-radius: var(--acc-radius-sm);
         line-height: 1.5;
     }
 
+    .profile-form__actions {
+        margin-top: 8px;
+        padding-top: 18px;
+        border-top: 1px solid var(--acc-border);
+    }
+
     .profile-form button[type="submit"] {
-        margin-top: 24px;
-        padding: 12px 24px;
+        padding: 12px 26px;
         font-size: 14px;
         font-weight: 700;
         font-family: inherit;
-        color: var(--color-white);
-        background: var(--color-primary);
+        color: #fff;
+        background: var(--acc-side);
         border: none;
-        border-radius: var(--radius-md);
+        border-radius: var(--acc-radius-md);
         cursor: pointer;
         transition: background 0.15s ease;
     }
 
     .profile-form button[type="submit"]:hover {
-        background: var(--color-primary-dark);
+        background: var(--acc-side-deep);
     }
 </style>
 
@@ -164,24 +228,51 @@ require __DIR__ . '/account-sidebar.php';
     <p class="form-error"><?= htmlspecialchars($errors['general']) ?></p>
 <?php endif; ?>
 
-<form class="profile-form" method="post" action="">
-    <label for="name">Full name</label>
-    <input type="text" id="name" name="name" value="<?= htmlspecialchars($form['name']) ?>" required>
-    <?php if (!empty($errors['name'])): ?>
-        <p class="field-error"><?= htmlspecialchars($errors['name']) ?></p>
-    <?php endif; ?>
+<div class="profile-card">
+    <div class="profile-card__header">
+        <div class="profile-card__avatar"><?= htmlspecialchars($sidebarInitial) ?></div>
+        <div>
+            <p class="profile-card__header-name"><?= htmlspecialchars($user['name']) ?></p>
+            <p class="profile-card__header-sub"><?= htmlspecialchars($user['email']) ?></p>
+        </div>
+    </div>
 
-    <label for="email">Email</label>
-    <input type="email" id="email" name="email" value="<?= htmlspecialchars($form['email']) ?>" required>
-    <?php if (!empty($errors['email'])): ?>
-        <p class="field-error"><?= htmlspecialchars($errors['email']) ?></p>
-    <?php endif; ?>
+    <form class="profile-form" method="post" action="">
+        <div class="profile-form__group">
+            <label for="name">Full name</label>
+            <div class="profile-form__input-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                <input type="text" id="name" name="name" value="<?= htmlspecialchars($form['name']) ?>" required>
+            </div>
+            <?php if (!empty($errors['name'])): ?>
+                <p class="field-error"><?= htmlspecialchars($errors['name']) ?></p>
+            <?php endif; ?>
+        </div>
 
-    <label for="phone">Phone</label>
-    <input type="tel" id="phone" name="phone" value="<?= htmlspecialchars($form['phone']) ?>">
+        <div class="profile-form__group">
+            <label for="email">Email</label>
+            <div class="profile-form__input-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                <input type="email" id="email" name="email" value="<?= htmlspecialchars($form['email']) ?>" required>
+            </div>
+            <?php if (!empty($errors['email'])): ?>
+                <p class="field-error"><?= htmlspecialchars($errors['email']) ?></p>
+            <?php endif; ?>
+        </div>
 
-    <button type="submit">Save Changes</button>
-</form>
+        <div class="profile-form__group">
+            <label for="phone">Phone</label>
+            <div class="profile-form__input-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .6 2.9a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.4c.9.3 1.9.5 2.9.6a2 2 0 0 1 1.7 2Z"/></svg>
+                <input type="tel" id="phone" name="phone" value="<?= htmlspecialchars($form['phone']) ?>">
+            </div>
+        </div>
+
+        <div class="profile-form__actions">
+            <button type="submit">Save Changes</button>
+        </div>
+    </form>
+</div>
 
 </main>
 </div>
