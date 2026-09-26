@@ -76,10 +76,10 @@ foreach ($heroBanners as $banner) {
 $heroBannerCount = count($heroSlides);
 ?>
 
-<?php if (!defined('GLOBAL_SLIDER_CSS_LOADED')): ?>
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/slider.css">
-    <?php define('GLOBAL_SLIDER_CSS_LOADED', true); ?>
-<?php endif; ?>
+<?php //if (!defined('GLOBAL_SLIDER_CSS_LOADED')): ?>
+    <!-- <link rel="stylesheet" href="<?php //echo BASE_URL; ?>assets/css/slider.css"> -->
+    <?php //define('GLOBAL_SLIDER_CSS_LOADED', true); ?>
+<?php //endif; ?>
 
 <style>
     /* ==========================================================================
