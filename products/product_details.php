@@ -8,6 +8,7 @@ require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/review.php';
 require_once __DIR__ . '/../function/csrf.php';
 require_once __DIR__ . '/../function/helper.php';
+require_once __DIR__ . '/../function/wishlist.php';
 
 $slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
 
@@ -205,6 +206,20 @@ if ($isCustomerLoggedIn) {
     }
 }
 $reviewCsrfToken = generateCSRFToken();
+
+// Wishlist state for the heart toggle below Add to Cart. Reuses
+// $reviewCsrfToken as the token for the wishlist AJAX call too — it's
+// the same per-session CSRF token already generated above, not a
+// per-form nonce, so there's nothing wrong with using it for a second
+// form/request on this same page.
+$isInWishlistAlready = false;
+if ($isCustomerLoggedIn) {
+    try {
+        $isInWishlistAlready = isInWishlist($conn, $_SESSION['customer_id'], $product['id']);
+    } catch (Exception $e) {
+        error_log('Failed to load wishlist state: ' . $e->getMessage());
+    }
+}
 ?>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
@@ -540,6 +555,50 @@ $reviewCsrfToken = generateCSRFToken();
         cursor: not-allowed;
     }
 
+    .pd-wishlist-btn {
+        flex: 0 0 auto;
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-white);
+        color: var(--color-text-light);
+        cursor: pointer;
+        transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    }
+
+    .pd-wishlist-btn svg {
+        width: 22px;
+        height: 22px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        transition: fill 0.2s ease;
+    }
+
+    .pd-wishlist-btn:hover {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+    }
+
+    .pd-wishlist-btn.is-active {
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+        background: var(--color-primary-light);
+    }
+
+    .pd-wishlist-btn.is-active svg {
+        fill: currentColor;
+    }
+
+    .pd-wishlist-btn.is-loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
     .pd-meta {
         padding-top: 20px;
         border-top: 1px solid var(--color-border);
@@ -774,6 +833,17 @@ $reviewCsrfToken = generateCSRFToken();
                         id="js-add-to-cart"
                         <?php echo $isOutOfStock ? 'disabled' : ''; ?>>
                         <?php echo $isOutOfStock ? 'Out of Stock' : 'Add to Cart'; ?>
+                    </button>
+                    <button
+                        type="button"
+                        class="pd-wishlist-btn<?php echo $isInWishlistAlready ? ' is-active' : ''; ?>"
+                        id="js-wishlist-btn"
+                        data-product-id="<?php echo (int) $product['id']; ?>"
+                        aria-pressed="<?php echo $isInWishlistAlready ? 'true' : 'false'; ?>"
+                        aria-label="<?php echo $isInWishlistAlready ? 'Remove from wishlist' : 'Add to wishlist'; ?>">
+                        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21s-7.5-4.8-10.2-9.3C.3 8.9 1.4 5 5 4.1c2.2-.5 4.3.5 5.5 2.4l1.5 2.3 1.5-2.3C14.7 4.6 16.8 3.6 19 4.1c3.6.9 4.7 4.8 3.2 7.6C19.5 16.2 12 21 12 21z"></path>
+                        </svg>
                     </button>
                 </div>
             </form>
@@ -1488,6 +1558,58 @@ $reviewCsrfToken = generateCSRFToken();
         // cart.php (same endpoint the cart page's own Update/Remove/Clear
         // forms already use). No JS needed here beyond what already keeps
         // js-selected-variant-id and the quantity input in sync above.
+
+        // --- Wishlist toggle ---
+        var wishlistBtn = document.getElementById('js-wishlist-btn');
+        var wishlistIsLoggedIn = <?php echo $isCustomerLoggedIn ? 'true' : 'false'; ?>;
+        var wishlistCsrfToken = <?php echo json_encode($reviewCsrfToken); ?>;
+        var wishlistToggleUrl = <?php echo json_encode(BASE_URL . 'account/wishlist-toggle.php'); ?>;
+        var wishlistLoginUrl = <?php echo json_encode(BASE_URL . 'account/login.php'); ?>;
+
+        if (wishlistBtn) {
+            wishlistBtn.addEventListener('click', function() {
+                if (wishlistBtn.classList.contains('is-loading')) return;
+
+                if (!wishlistIsLoggedIn) {
+                    window.location.href = wishlistLoginUrl + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    return;
+                }
+
+                wishlistBtn.classList.add('is-loading');
+
+                var fd = new FormData();
+                fd.append('product_id', wishlistBtn.getAttribute('data-product-id'));
+                fd.append('csrf_token', wishlistCsrfToken);
+
+                fetch(wishlistToggleUrl, {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin'
+                    })
+                    .then(function(res) {
+                        return res.json();
+                    })
+                    .then(function(data) {
+                        wishlistBtn.classList.remove('is-loading');
+
+                        if (data.ok) {
+                            wishlistBtn.classList.toggle('is-active', data.in_wishlist);
+                            wishlistBtn.setAttribute('aria-pressed', data.in_wishlist ? 'true' : 'false');
+                            wishlistBtn.setAttribute('aria-label', data.in_wishlist ? 'Remove from wishlist' : 'Add to wishlist');
+                            document.dispatchEvent(new CustomEvent('wishlist:updated', {
+                                detail: {
+                                    count: data.count
+                                }
+                            }));
+                        } else if (data.error === 'login_required') {
+                            window.location.href = wishlistLoginUrl + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                        }
+                    })
+                    .catch(function() {
+                        wishlistBtn.classList.remove('is-loading');
+                    });
+            });
+        }
     })();
 </script>
 

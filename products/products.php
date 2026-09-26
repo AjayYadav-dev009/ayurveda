@@ -4,6 +4,10 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../function/product.php';
 require_once __DIR__ . '/../function/category.php';
 require_once __DIR__ . '/../function/product-image.php';
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../function/customer.php';
+require_once __DIR__ . '/../function/csrf.php';
+require_once __DIR__ . '/../function/wishlist.php';
 
 $categorySlug = isset($_GET['category_slug']) ? trim($_GET['category_slug']) : '';
 
@@ -55,6 +59,21 @@ try {
     $categorySidebarItems = [];
 }
 $hasSidebar = !empty($categorySidebarItems);
+
+// Wishlist state for the heart toggle on each card. Fetched in bulk
+// (one query for every wishlisted product_id) rather than calling
+// isInWishlist() once per card in the grid loop below.
+$isCustomerLoggedIn = isCustomerLogin($conn);
+$wishlistProductIds = [];
+if ($isCustomerLoggedIn) {
+    try {
+        $wishlistProductIds = getWishlistProductIds($conn, $_SESSION['customer_id']);
+    } catch (Exception $e) {
+        error_log('Failed to load wishlist state: ' . $e->getMessage());
+        $wishlistProductIds = [];
+    }
+}
+$wishlistCsrfToken = generateCSRFToken();
 ?>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
@@ -225,6 +244,52 @@ $hasSidebar = !empty($categorySidebarItems);
         height: 100%;
         object-fit: cover;
         transition: transform 0.4s ease;
+    }
+
+    .product-wishlist-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 3;
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        border-radius: 50%;
+        background: var(--color-white);
+        box-shadow: var(--shadow-soft);
+        color: var(--color-text-light);
+        cursor: pointer;
+        transition: color 0.2s ease, transform 0.15s ease;
+    }
+
+    .product-wishlist-btn:hover {
+        color: var(--color-accent);
+        transform: scale(1.08);
+    }
+
+    .product-wishlist-btn svg {
+        width: 17px;
+        height: 17px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        transition: fill 0.2s ease;
+    }
+
+    .product-wishlist-btn.is-active {
+        color: var(--color-accent);
+    }
+
+    .product-wishlist-btn.is-active svg {
+        fill: currentColor;
+    }
+
+    .product-wishlist-btn.is-loading {
+        opacity: 0.6;
+        pointer-events: none;
     }
 
     .product-card.is-out-of-stock .product-image {
@@ -460,6 +525,18 @@ $hasSidebar = !empty($categorySidebarItems);
                                 <?php if ($isOutOfStock): ?>
                                     <span class="product-badge product-badge--out-of-stock">Out of Stock</span>
                                 <?php endif; ?>
+
+                                <?php $isWishlisted = in_array((int) $product['id'], $wishlistProductIds, true); ?>
+                                <button
+                                    type="button"
+                                    class="product-wishlist-btn<?php echo $isWishlisted ? ' is-active' : ''; ?>"
+                                    data-product-id="<?php echo (int) $product['id']; ?>"
+                                    aria-pressed="<?php echo $isWishlisted ? 'true' : 'false'; ?>"
+                                    aria-label="<?php echo $isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'; ?>">
+                                    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 21s-7.5-4.8-10.2-9.3C.3 8.9 1.4 5 5 4.1c2.2-.5 4.3.5 5.5 2.4l1.5 2.3 1.5-2.3C14.7 4.6 16.8 3.6 19 4.1c3.6.9 4.7 4.8 3.2 7.6C19.5 16.2 12 21 12 21z"></path>
+                                    </svg>
+                                </button>
                             </div>
 
                             <div class="product-content">
@@ -502,5 +579,64 @@ $hasSidebar = !empty($categorySidebarItems);
     </div>
 
 </section>
+
+<script>
+    (function() {
+        var isLoggedIn = <?php echo $isCustomerLoggedIn ? 'true' : 'false'; ?>;
+        var csrfToken = <?php echo json_encode($wishlistCsrfToken); ?>;
+        var toggleUrl = <?php echo json_encode(BASE_URL . 'account/wishlist-toggle.php'); ?>;
+        var loginUrl = <?php echo json_encode(BASE_URL . 'account/login.php'); ?>;
+
+        document.querySelectorAll('.product-wishlist-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                // The button sits inside the product-card <a> — stop the
+                // click from also triggering navigation to the product page.
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (btn.classList.contains('is-loading')) return;
+
+                if (!isLoggedIn) {
+                    window.location.href = loginUrl + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                    return;
+                }
+
+                btn.classList.add('is-loading');
+
+                var fd = new FormData();
+                fd.append('product_id', btn.getAttribute('data-product-id'));
+                fd.append('csrf_token', csrfToken);
+
+                fetch(toggleUrl, {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin'
+                    })
+                    .then(function(res) {
+                        return res.json();
+                    })
+                    .then(function(data) {
+                        btn.classList.remove('is-loading');
+
+                        if (data.ok) {
+                            btn.classList.toggle('is-active', data.in_wishlist);
+                            btn.setAttribute('aria-pressed', data.in_wishlist ? 'true' : 'false');
+                            btn.setAttribute('aria-label', data.in_wishlist ? 'Remove from wishlist' : 'Add to wishlist');
+                            document.dispatchEvent(new CustomEvent('wishlist:updated', {
+                                detail: {
+                                    count: data.count
+                                }
+                            }));
+                        } else if (data.error === 'login_required') {
+                            window.location.href = loginUrl + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                        }
+                    })
+                    .catch(function() {
+                        btn.classList.remove('is-loading');
+                    });
+            });
+        });
+    })();
+</script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

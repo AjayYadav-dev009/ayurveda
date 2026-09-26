@@ -120,6 +120,29 @@ if (!function_exists('getWishlistCount')) {
     }
 }
 
+if (!function_exists('getWishlistProductIds')) {
+    /**
+     * Bulk lookup for listing/grid pages: every product_id this customer
+     * has wishlisted, as a flat array of ints. Lets a page render N
+     * product cards with one query instead of calling isInWishlist()
+     * once per card.
+     */
+    function getWishlistProductIds(mysqli $conn, $userId): array
+    {
+        $userId = (int) $userId;
+
+        $stmt = $conn->prepare('SELECT product_id FROM wishlist WHERE user_id = ?');
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        return array_map(static function ($row) {
+            return (int) $row['product_id'];
+        }, $rows);
+    }
+}
+
 if (!function_exists('isInWishlist')) {
     function isInWishlist(mysqli $conn, $userId, $productId): bool
     {

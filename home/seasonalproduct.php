@@ -12,6 +12,32 @@ try {
 }
 
 $seasonalCount = count($seasonalProducts);
+
+// Wishlist state for the heart toggle on each card. Fetched in bulk
+// (one query for every wishlisted product_id) rather than calling
+// isInWishlist() once per card in the loop below.
+if (!function_exists('isCustomerLogin')) {
+    require_once __DIR__ . '/../includes/session.php';
+    require_once __DIR__ . '/../function/customer.php';
+}
+if (!function_exists('generateCSRFToken')) {
+    require_once __DIR__ . '/../function/csrf.php';
+}
+if (!function_exists('getWishlistProductIds')) {
+    require_once __DIR__ . '/../function/wishlist.php';
+}
+
+$isCustomerLoggedIn = isCustomerLogin($conn);
+$wishlistProductIds = [];
+if ($isCustomerLoggedIn) {
+    try {
+        $wishlistProductIds = getWishlistProductIds($conn, $_SESSION['customer_id']);
+    } catch (Exception $e) {
+        error_log('Failed to load wishlist state: ' . $e->getMessage());
+        $wishlistProductIds = [];
+    }
+}
+$wishlistCsrfToken = generateCSRFToken();
 ?>
 
 <style>
@@ -137,6 +163,58 @@ $seasonalCount = count($seasonalProducts);
         height: 20%;
         color: var(--color-accent);
         opacity: 0.7;
+    }
+
+    .ssp__image-link {
+        position: absolute;
+        inset: 0;
+        display: block;
+    }
+
+    .ssp__wishlist-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 3;
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        border-radius: 50%;
+        background: var(--color-white);
+        box-shadow: var(--shadow-soft);
+        color: var(--color-text-light);
+        cursor: pointer;
+        transition: color 0.2s ease, transform 0.15s ease;
+    }
+
+    .ssp__wishlist-btn:hover {
+        color: var(--color-accent);
+        transform: scale(1.08);
+    }
+
+    .ssp__wishlist-btn svg {
+        width: 17px;
+        height: 17px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        transition: fill 0.2s ease;
+    }
+
+    .ssp__wishlist-btn.is-active {
+        color: var(--color-accent);
+    }
+
+    .ssp__wishlist-btn.is-active svg {
+        fill: currentColor;
+    }
+
+    .ssp__wishlist-btn.is-loading {
+        opacity: 0.6;
+        pointer-events: none;
     }
 
     .ssp__badge {
@@ -340,29 +418,43 @@ $seasonalCount = count($seasonalProducts);
                 ?>
                     <div class="ssp__item">
                         <div class="ssp__card">
-                            <a href="<?= htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8') ?>" class="ssp__image-wrap" tabindex="-1" aria-hidden="true">
-                                <span class="ssp__image-fallback">
+                            <div class="ssp__image-wrap">
+                                <a href="<?= htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8') ?>" class="ssp__image-link" tabindex="-1" aria-hidden="true">
+                                    <span class="ssp__image-fallback">
                                     <svg viewBox="0 0 64 64" fill="currentColor">
                                         <path d="M32 6c-6 8-10 16-10 24 0 6 4 10 10 10s10-4 10-10c0-8-4-16-10-24z" />
                                         <path d="M12 24c8 0 14 6 16 14-8 2-16-2-20-8-1.5-2.4-1-4.6 4-6z" />
                                         <path d="M52 24c-8 0-14 6-16 14 8 2 16-2 20-8 1.5-2.4 1-4.6-4-6z" />
                                     </svg>
-                                </span>
-                                <?php if (!empty($product['primary_image'])): ?>
-                                    <img
-                                        src="<?= htmlspecialchars(getProductImageUrl($product['primary_image']), ENT_QUOTES, 'UTF-8') ?>"
-                                        alt="<?= htmlspecialchars($product['title'], ENT_QUOTES, 'UTF-8') ?>"
-                                        loading="lazy"
-                                        draggable="false"
-                                        onerror="this.style.display='none';">
-                                <?php endif; ?>
+                                    </span>
+                                    <?php if (!empty($product['primary_image'])): ?>
+                                        <img
+                                            src="<?= htmlspecialchars(getProductImageUrl($product['primary_image']), ENT_QUOTES, 'UTF-8') ?>"
+                                            alt="<?= htmlspecialchars($product['title'], ENT_QUOTES, 'UTF-8') ?>"
+                                            loading="lazy"
+                                            draggable="false"
+                                            onerror="this.style.display='none';">
+                                    <?php endif; ?>
 
-                                <?php if ($isOutOfStock): ?>
-                                    <span class="ssp__badge ssp__badge--soldout">Sold Out</span>
-                                <?php elseif ($hasSale): ?>
-                                    <span class="ssp__badge ssp__badge--sale">On Sale</span>
-                                <?php endif; ?>
-                            </a>
+                                    <?php if ($isOutOfStock): ?>
+                                        <span class="ssp__badge ssp__badge--soldout">Sold Out</span>
+                                    <?php elseif ($hasSale): ?>
+                                        <span class="ssp__badge ssp__badge--sale">On Sale</span>
+                                    <?php endif; ?>
+                                </a>
+
+                                <?php $isWishlisted = in_array((int) $product['id'], $wishlistProductIds, true); ?>
+                                <button
+                                    type="button"
+                                    class="ssp__wishlist-btn<?= $isWishlisted ? ' is-active' : '' ?>"
+                                    data-product-id="<?= (int) $product['id'] ?>"
+                                    aria-pressed="<?= $isWishlisted ? 'true' : 'false' ?>"
+                                    aria-label="<?= $isWishlisted ? 'Remove from wishlist' : 'Add to wishlist' ?>">
+                                    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 21s-7.5-4.8-10.2-9.3C.3 8.9 1.4 5 5 4.1c2.2-.5 4.3.5 5.5 2.4l1.5 2.3 1.5-2.3C14.7 4.6 16.8 3.6 19 4.1c3.6.9 4.7 4.8 3.2 7.6C19.5 16.2 12 21 12 21z"></path>
+                                    </svg>
+                                </button>
+                            </div>
 
                             <div class="ssp__body">
                                 <a href="<?= htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8') ?>" class="ssp__title-link">
@@ -438,6 +530,62 @@ $seasonalCount = count($seasonalProducts);
                 if (count === 0) {
                     return;
                 }
+
+                // --- Wishlist toggle ---
+                var wishlistIsLoggedIn = <?php echo $isCustomerLoggedIn ? 'true' : 'false'; ?>;
+                var wishlistCsrfToken = <?php echo json_encode($wishlistCsrfToken); ?>;
+                var wishlistToggleUrl = <?php echo json_encode(BASE_URL . 'account/wishlist-toggle.php'); ?>;
+                var wishlistLoginUrl = <?php echo json_encode(BASE_URL . 'account/login.php'); ?>;
+
+                root.querySelectorAll('.ssp__wishlist-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function (event) {
+                        // The button sits next to the aria-hidden image link -
+                        // stop the click from also triggering that link/drag layer.
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        if (btn.classList.contains('is-loading')) return;
+
+                        if (!wishlistIsLoggedIn) {
+                            window.location.href = wishlistLoginUrl + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                            return;
+                        }
+
+                        btn.classList.add('is-loading');
+
+                        var fd = new FormData();
+                        fd.append('product_id', btn.getAttribute('data-product-id'));
+                        fd.append('csrf_token', wishlistCsrfToken);
+
+                        fetch(wishlistToggleUrl, {
+                                method: 'POST',
+                                body: fd,
+                                credentials: 'same-origin'
+                            })
+                            .then(function (res) {
+                                return res.json();
+                            })
+                            .then(function (data) {
+                                btn.classList.remove('is-loading');
+
+                                if (data.ok) {
+                                    btn.classList.toggle('is-active', data.in_wishlist);
+                                    btn.setAttribute('aria-pressed', data.in_wishlist ? 'true' : 'false');
+                                    btn.setAttribute('aria-label', data.in_wishlist ? 'Remove from wishlist' : 'Add to wishlist');
+                                    document.dispatchEvent(new CustomEvent('wishlist:updated', {
+                                        detail: {
+                                            count: data.count
+                                        }
+                                    }));
+                                } else if (data.error === 'login_required') {
+                                    window.location.href = wishlistLoginUrl + '?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                                }
+                            })
+                            .catch(function () {
+                                btn.classList.remove('is-loading');
+                            });
+                    });
+                });
 
                 var isDown = false;
                 var dragged = false;

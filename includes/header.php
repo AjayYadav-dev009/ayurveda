@@ -36,14 +36,21 @@ foreach ($browsableCategories as $category) {
 
 require_once __DIR__ . '/../function/customer.php';
 require_once __DIR__ . '/../function/cart.php';
+require_once __DIR__ . '/../function/wishlist.php';
 
 $headerCartCount = 0;
+$headerWishlistCount = 0;
 if (isCustomerLogin()) {
     try {
         $headerCartTotals = getCartTotals($conn, $_SESSION['customer_id']);
         $headerCartCount = (int) $headerCartTotals['item_count'];
     } catch (Exception $e) {
         $headerCartCount = 0;
+    }
+    try {
+        $headerWishlistCount = getWishlistCount($conn, $_SESSION['customer_id']);
+    } catch (Exception $e) {
+        $headerWishlistCount = 0;
     }
 }
 
@@ -267,6 +274,26 @@ $siteFavicon = $siteSettings['site_favicon'] ?? '';
         }
 
         .icon-cart__badge {
+            position: absolute;
+            top: -7px;
+            right: -9px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: var(--color-primary);
+            color: var(--color-white);
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 16px;
+            text-align: center;
+        }
+
+        .icon-wishlist {
+            position: relative;
+        }
+
+        .icon-wishlist__badge {
             position: absolute;
             top: -7px;
             right: -9px;
@@ -865,6 +892,14 @@ $siteFavicon = $siteSettings['site_favicon'] ?? '';
                         <path fill="#17483D" d="M224 248a120 120 0 1 0 0-240 120 120 0 1 0 0 240zm-29.7 56C95.8 304 16 383.8 16 482.3 16 498.7 29.3 512 45.7 512l356.6 0c16.4 0 29.7-13.3 29.7-29.7 0-98.5-79.8-178.3-178.3-178.3l-59.4 0z" />
                     </svg>
                 </a>
+                <a href="<?= BASE_URL ?>account/wishlist.php" class="icon-wishlist" id="js-header-wishlist" title="Wishlist">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                        <path fill="#17483D" d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186.1 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z" />
+                    </svg>
+                    <?php if ($headerWishlistCount > 0): ?>
+                        <span class="icon-wishlist__badge" id="js-header-wishlist-badge"><?= $headerWishlistCount > 99 ? '99+' : $headerWishlistCount ?></span>
+                    <?php endif; ?>
+                </a>
                 <a href="<?= BASE_URL ?>cart/index.php" class="icon-cart" title="Cart">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
                         <path fill="#17483D" d="M24-16C10.7-16 0-5.3 0 8S10.7 32 24 32l45.3 0c3.9 0 7.2 2.8 7.9 6.6l52.1 286.3c6.2 34.2 36 59.1 70.8 59.1L456 384c13.3 0 24-10.7 24-24s-10.7-24-24-24l-255.9 0c-11.6 0-21.5-8.3-23.6-19.7l-5.1-28.3 303.6 0c30.8 0 57.2-21.9 62.9-52.2L568.9 69.9C572.6 50.2 557.5 32 537.4 32l-412.7 0-.4-2c-4.8-26.6-28-46-55.1-46L24-16zM208 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm224 0a48 48 0 1 0 0-96 48 48 0 1 0 0 96z" />
@@ -949,5 +984,28 @@ $siteFavicon = $siteSettings['site_favicon'] ?? '';
             } else if (mobile.addListener) {
                 mobile.addListener(onBreakpoint);
             }
+
+            // Wishlist badge: product pages dispatch this event on
+            // document after a successful toggle, so the header count
+            // stays in sync without a full page reload.
+            document.addEventListener('wishlist:updated', function(event) {
+                var link = document.getElementById('js-header-wishlist');
+                if (!link) return;
+
+                var count = event.detail && typeof event.detail.count === 'number' ? event.detail.count : 0;
+                var badge = document.getElementById('js-header-wishlist-badge');
+
+                if (count > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'icon-wishlist__badge';
+                        badge.id = 'js-header-wishlist-badge';
+                        link.appendChild(badge);
+                    }
+                    badge.textContent = count > 99 ? '99+' : String(count);
+                } else if (badge) {
+                    badge.remove();
+                }
+            });
         })();
     </script>

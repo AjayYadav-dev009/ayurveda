@@ -5,6 +5,251 @@ $activeNav = 'products';
 <?php include __DIR__ . '/../../function/product.php'; ?>
 <?php include __DIR__ . '/../../function/helper.php'; ?>
 <?php include __DIR__ . '/../../includes/auth.php'; ?>
+
+<?php
+$errors = [];
+
+$categoriesResult = mysqli_query($conn, "SELECT id, name FROM categories ORDER BY name ASC");
+$categories = [];
+while ($row = mysqli_fetch_assoc($categoriesResult)) {
+    $categories[] = $row;
+}
+
+$commonCountries = ['India', 'Nepal', 'Sri Lanka', 'United States', 'United Kingdom', 'Other'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $slug = null;
+    try {
+        $slug = createSlug($_POST['title'] ?? '');
+    } catch (InvalidArgumentException $e) {
+        $errors[] = $e->getMessage();
+    }
+
+    $metaTitle = null;
+    if (trim($_POST['meta_title'] ?? '') !== '') {
+        try {
+            $metaTitle = createMetaTitle($_POST['meta_title']);
+        } catch (InvalidArgumentException $e) {
+            $errors[] = $e->getMessage();
+        }
+    }
+
+    $metaDescription = null;
+    if (trim($_POST['meta_description'] ?? '') !== '') {
+        try {
+            $metaDescription = createMetaDescription($_POST['meta_description']);
+        } catch (InvalidArgumentException $e) {
+            $errors[] = $e->getMessage();
+        }
+    }
+
+    $categoryIds = array_map('intval', $_POST['category_ids'] ?? []);
+    $hasVariants = isset($_POST['has_variants']);
+
+    $countryOfOrigin = $_POST['country_of_origin'] ?? 'India';
+    if ($countryOfOrigin === 'Other') {
+        $countryOfOrigin = trim($_POST['country_of_origin_other'] ?? '') !== '' ? $_POST['country_of_origin_other'] : 'India';
+    }
+
+    $variants = [];
+    foreach ($_POST['variants'] ?? [] as $v) {
+        if (trim($v['variant_name'] ?? '') !== '' && trim($v['sku'] ?? '') !== '') {
+            $variants[] = [
+                'variant_name' => $v['variant_name'],
+                'sku' => $v['sku'],
+                'price' => $v['price'] ?? 0,
+                'sale_price' => $v['sale_price'] ?? '',
+                'stock' => $v['stock'] ?? 0,
+                'weight_grams' => $v['weight_grams'] ?? '',
+                'is_default' => isset($v['is_default']),
+                'status' => $v['status'] ?? 'Active',
+                'sort_order' => $v['sort_order'] ?? 0,
+            ];
+        }
+    }
+
+    if (empty($errors)) {
+        $data = [
+            'title' => $_POST['title'] ?? '',
+            'slug' => $slug,
+            'short_description' => $_POST['short_description'] ?? null,
+            'description' => $_POST['description'] ?? null,
+            'base_price' => $_POST['base_price'] ?? null,
+            'base_sale_price' => $_POST['base_sale_price'] ?? '',
+            'has_variants' => $hasVariants,
+            // Only used for simple (no-variant) products — addProduct()
+            // forces this to 0 internally when has_variants is true.
+            'stock' => $_POST['stock'] ?? 0,
+            'featured' => isset($_POST['featured']),
+            'bestseller' => isset($_POST['bestseller']),
+            'trending' => isset($_POST['trending']),
+            'status' => $_POST['status'] ?? 'Draft',
+            'meta_title' => $metaTitle,
+            'meta_description' => $metaDescription,
+            'details' => [
+                'ingredients' => $_POST['ingredients'] ?? null,
+                'benefits' => $_POST['benefits'] ?? null,
+                'directions' => $_POST['directions'] ?? null,
+                'dosage' => $_POST['dosage'] ?? null,
+                'precautions' => $_POST['precautions'] ?? null,
+                'manufacturer' => $_POST['manufacturer'] ?? null,
+                'country_of_origin' => $countryOfOrigin,
+                'shelf_life' => $_POST['shelf_life'] ?? null,
+            ],
+            'category_ids' => $categoryIds,
+            'primary_category_id' => isset($_POST['primary_category_id']) && $_POST['primary_category_id'] !== '' ? (int) $_POST['primary_category_id'] : null,
+            'variants' => $variants,
+        ];
+
+        try {
+            $newProductId = addProduct($conn, $data);
+
+            $imageErrors = [];
+            $files = [];
+            foreach (['name', 'type', 'tmp_name', 'error', 'size'] as $attr) {
+                foreach ($_FILES['images'][$attr] ?? [] as $i => $group) {
+                    $files[$i][$attr] = $group['file'] ?? null;
+                }
+            }
+
+            foreach ($files as $i => $file) {
+                if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+                $meta = $_POST['images'][$i] ?? [];
+                try {
+                    $relativePath = uploadProductImage($file, $newProductId);
+                    addProductImage(
+                        $conn,
+                        $newProductId,
+                        $relativePath,
+                        trim($meta['alt_text'] ?? '') !== '' ? $meta['alt_text'] : null,
+                        isset($meta['is_primary']),
+                        (int) ($meta['sort_order'] ?? 0)
+                    );
+                } catch (Exception $e) {
+                    $imageErrors[] = 'Image ' . ($i + 1) . ': ' . $e->getMessage();
+                }
+            }
+
+            if (!empty($imageErrors)) {
+                redirect('edit.php?id=' . $newProductId . '&image_errors=' . urlencode(implode(' | ', $imageErrors)));
+            }
+
+            redirect('index.php?added=1');
+        } catch (InvalidArgumentException $e) {
+            $errors[] = $e->getMessage();
+        } catch (Exception $e) {
+            $errors[] = 'Something went wrong while saving the product: ' . $e->getMessage();
+        }
+    }
+}
+
+$postedHasVariants = isset($_POST['has_variants']);
+$initialVariants = $_SERVER['REQUEST_METHOD'] === 'POST' ? array_values($_POST['variants'] ?? []) : [];
+$initialImages = $_SERVER['REQUEST_METHOD'] === 'POST' ? array_values($_POST['images'] ?? []) : [];
+
+function render_variant_row(int $i, array $v = []): void
+{
+    $name = $v['variant_name'] ?? '';
+    $sku = $v['sku'] ?? '';
+    $price = $v['price'] ?? '';
+    $salePrice = $v['sale_price'] ?? '';
+    $stock = $v['stock'] ?? '0';
+    $weight = $v['weight_grams'] ?? '';
+    $sort = $v['sort_order'] ?? '0';
+    $status = $v['status'] ?? 'Active';
+    $isDefault = isset($v['is_default']);
+?>
+    <div class="repeater-item" data-variant-row>
+        <div class="repeater-head">
+            <span class="repeater-title"><span class="pill">New</span> Variant</span>
+            <button type="button" class="repeater-remove" data-remove-row>Remove</button>
+        </div>
+        <div class="field-grid cols-3">
+            <div class="field">
+                <label>Name<span class="req">*</span></label>
+                <input type="text" name="variants[<?php echo $i; ?>][variant_name]" value="<?php echo htmlspecialchars($name); ?>" placeholder="e.g. 100 g">
+            </div>
+            <div class="field">
+                <label>SKU<span class="req">*</span></label>
+                <input type="text" name="variants[<?php echo $i; ?>][sku]" value="<?php echo htmlspecialchars($sku); ?>">
+            </div>
+            <div class="field">
+                <label>Status</label>
+                <select name="variants[<?php echo $i; ?>][status]">
+                    <?php foreach (PRODUCT_VARIANT_STATUSES as $vStatus) : ?>
+                        <option value="<?php echo htmlspecialchars($vStatus); ?>" <?php echo $status === $vStatus ? 'selected' : ''; ?>><?php echo htmlspecialchars($vStatus); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="field">
+                <label>Price (₹)<span class="req">*</span></label>
+                <input type="number" step="0.01" min="0" name="variants[<?php echo $i; ?>][price]" value="<?php echo htmlspecialchars($price); ?>">
+            </div>
+            <div class="field">
+                <label>Sale price (₹) <span class="opt">optional</span></label>
+                <input type="number" step="0.01" min="0" name="variants[<?php echo $i; ?>][sale_price]" value="<?php echo htmlspecialchars($salePrice); ?>">
+            </div>
+            <div class="field">
+                <label>Stock<span class="req">*</span></label>
+                <input type="number" min="0" name="variants[<?php echo $i; ?>][stock]" value="<?php echo htmlspecialchars($stock); ?>">
+            </div>
+            <div class="field">
+                <label>Weight (grams)</label>
+                <input type="number" min="0" name="variants[<?php echo $i; ?>][weight_grams]" value="<?php echo htmlspecialchars($weight); ?>">
+            </div>
+            <div class="field">
+                <label>Sort order</label>
+                <input type="number" name="variants[<?php echo $i; ?>][sort_order]" value="<?php echo htmlspecialchars($sort); ?>">
+            </div>
+            <div class="field" style="justify-content:center;">
+                <label class="checkbox-row" style="margin-top:20px;">
+                    <input type="checkbox" class="default-variant-checkbox" name="variants[<?php echo $i; ?>][is_default]" value="1" <?php echo $isDefault ? 'checked' : ''; ?>>
+                    Default variant
+                </label>
+            </div>
+        </div>
+    </div>
+<?php
+}
+
+function render_image_row(int $i, array $img = []): void
+{
+    $alt = $img['alt_text'] ?? '';
+    $sort = $img['sort_order'] ?? '0';
+    $isPrimary = isset($img['is_primary']);
+?>
+    <div class="repeater-item" data-image-row>
+        <div class="repeater-head">
+            <span class="repeater-title">Image</span>
+            <button type="button" class="repeater-remove" data-remove-row>Remove</button>
+        </div>
+        <div class="field-grid">
+            <div class="field span-2">
+                <label>Image file</label>
+                <input type="file" name="images[<?php echo $i; ?>][file]" accept="image/jpeg,image/png,image/webp,image/gif">
+            </div>
+            <div class="field">
+                <label>Alt text</label>
+                <input type="text" name="images[<?php echo $i; ?>][alt_text]" value="<?php echo htmlspecialchars($alt); ?>" placeholder="Describe the image">
+            </div>
+            <div class="field">
+                <label>Sort order</label>
+                <input type="number" name="images[<?php echo $i; ?>][sort_order]" value="<?php echo htmlspecialchars($sort); ?>">
+            </div>
+            <div class="field" style="justify-content:center;">
+                <label class="checkbox-row" style="margin-top:20px;">
+                    <input type="checkbox" class="primary-image-checkbox" name="images[<?php echo $i; ?>][is_primary]" value="1" <?php echo $isPrimary ? 'checked' : ''; ?>>
+                    Primary image
+                </label>
+            </div>
+        </div>
+    </div>
+<?php
+}
+?>
+
 <?php include __DIR__ . '/../include/header.php'; ?>
 
 <style>
@@ -421,250 +666,6 @@ $activeNav = 'products';
         }
     }
 </style>
-
-<?php
-$errors = [];
-
-$categoriesResult = mysqli_query($conn, "SELECT id, name FROM categories ORDER BY name ASC");
-$categories = [];
-while ($row = mysqli_fetch_assoc($categoriesResult)) {
-    $categories[] = $row;
-}
-
-$commonCountries = ['India', 'Nepal', 'Sri Lanka', 'United States', 'United Kingdom', 'Other'];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $slug = null;
-    try {
-        $slug = createSlug($_POST['title'] ?? '');
-    } catch (InvalidArgumentException $e) {
-        $errors[] = $e->getMessage();
-    }
-
-    $metaTitle = null;
-    if (trim($_POST['meta_title'] ?? '') !== '') {
-        try {
-            $metaTitle = createMetaTitle($_POST['meta_title']);
-        } catch (InvalidArgumentException $e) {
-            $errors[] = $e->getMessage();
-        }
-    }
-
-    $metaDescription = null;
-    if (trim($_POST['meta_description'] ?? '') !== '') {
-        try {
-            $metaDescription = createMetaDescription($_POST['meta_description']);
-        } catch (InvalidArgumentException $e) {
-            $errors[] = $e->getMessage();
-        }
-    }
-
-    $categoryIds = array_map('intval', $_POST['category_ids'] ?? []);
-    $hasVariants = isset($_POST['has_variants']);
-
-    $countryOfOrigin = $_POST['country_of_origin'] ?? 'India';
-    if ($countryOfOrigin === 'Other') {
-        $countryOfOrigin = trim($_POST['country_of_origin_other'] ?? '') !== '' ? $_POST['country_of_origin_other'] : 'India';
-    }
-
-    $variants = [];
-    foreach ($_POST['variants'] ?? [] as $v) {
-        if (trim($v['variant_name'] ?? '') !== '' && trim($v['sku'] ?? '') !== '') {
-            $variants[] = [
-                'variant_name' => $v['variant_name'],
-                'sku' => $v['sku'],
-                'price' => $v['price'] ?? 0,
-                'sale_price' => $v['sale_price'] ?? '',
-                'stock' => $v['stock'] ?? 0,
-                'weight_grams' => $v['weight_grams'] ?? '',
-                'is_default' => isset($v['is_default']),
-                'status' => $v['status'] ?? 'Active',
-                'sort_order' => $v['sort_order'] ?? 0,
-            ];
-        }
-    }
-
-    if (empty($errors)) {
-        $data = [
-            'title' => $_POST['title'] ?? '',
-            'slug' => $slug,
-            'short_description' => $_POST['short_description'] ?? null,
-            'description' => $_POST['description'] ?? null,
-            'base_price' => $_POST['base_price'] ?? null,
-            'base_sale_price' => $_POST['base_sale_price'] ?? '',
-            'has_variants' => $hasVariants,
-            // Only used for simple (no-variant) products — addProduct()
-            // forces this to 0 internally when has_variants is true.
-            'stock' => $_POST['stock'] ?? 0,
-            'featured' => isset($_POST['featured']),
-            'bestseller' => isset($_POST['bestseller']),
-            'trending' => isset($_POST['trending']),
-            'status' => $_POST['status'] ?? 'Draft',
-            'meta_title' => $metaTitle,
-            'meta_description' => $metaDescription,
-            'details' => [
-                'ingredients' => $_POST['ingredients'] ?? null,
-                'benefits' => $_POST['benefits'] ?? null,
-                'directions' => $_POST['directions'] ?? null,
-                'dosage' => $_POST['dosage'] ?? null,
-                'precautions' => $_POST['precautions'] ?? null,
-                'manufacturer' => $_POST['manufacturer'] ?? null,
-                'country_of_origin' => $countryOfOrigin,
-                'shelf_life' => $_POST['shelf_life'] ?? null,
-            ],
-            'category_ids' => $categoryIds,
-            'primary_category_id' => isset($_POST['primary_category_id']) && $_POST['primary_category_id'] !== '' ? (int) $_POST['primary_category_id'] : null,
-            'variants' => $variants,
-        ];
-
-        try {
-            $newProductId = addProduct($conn, $data);
-
-            $imageErrors = [];
-            $files = [];
-            foreach (['name', 'type', 'tmp_name', 'error', 'size'] as $attr) {
-                foreach ($_FILES['images'][$attr] ?? [] as $i => $group) {
-                    $files[$i][$attr] = $group['file'] ?? null;
-                }
-            }
-
-            foreach ($files as $i => $file) {
-                if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-                    continue;
-                }
-                $meta = $_POST['images'][$i] ?? [];
-                try {
-                    $relativePath = uploadProductImage($file, $newProductId);
-                    addProductImage(
-                        $conn,
-                        $newProductId,
-                        $relativePath,
-                        trim($meta['alt_text'] ?? '') !== '' ? $meta['alt_text'] : null,
-                        isset($meta['is_primary']),
-                        (int) ($meta['sort_order'] ?? 0)
-                    );
-                } catch (Exception $e) {
-                    $imageErrors[] = 'Image ' . ($i + 1) . ': ' . $e->getMessage();
-                }
-            }
-
-            if (!empty($imageErrors)) {
-                redirect('edit.php?id=' . $newProductId . '&image_errors=' . urlencode(implode(' | ', $imageErrors)));
-            }
-
-            redirect('index.php?added=1');
-        } catch (InvalidArgumentException $e) {
-            $errors[] = $e->getMessage();
-        } catch (Exception $e) {
-            $errors[] = 'Something went wrong while saving the product: ' . $e->getMessage();
-        }
-    }
-}
-
-$postedHasVariants = isset($_POST['has_variants']);
-$initialVariants = $_SERVER['REQUEST_METHOD'] === 'POST' ? array_values($_POST['variants'] ?? []) : [];
-$initialImages = $_SERVER['REQUEST_METHOD'] === 'POST' ? array_values($_POST['images'] ?? []) : [];
-
-function render_variant_row(int $i, array $v = []): void
-{
-    $name = $v['variant_name'] ?? '';
-    $sku = $v['sku'] ?? '';
-    $price = $v['price'] ?? '';
-    $salePrice = $v['sale_price'] ?? '';
-    $stock = $v['stock'] ?? '0';
-    $weight = $v['weight_grams'] ?? '';
-    $sort = $v['sort_order'] ?? '0';
-    $status = $v['status'] ?? 'Active';
-    $isDefault = isset($v['is_default']);
-?>
-    <div class="repeater-item" data-variant-row>
-        <div class="repeater-head">
-            <span class="repeater-title"><span class="pill">New</span> Variant</span>
-            <button type="button" class="repeater-remove" data-remove-row>Remove</button>
-        </div>
-        <div class="field-grid cols-3">
-            <div class="field">
-                <label>Name<span class="req">*</span></label>
-                <input type="text" name="variants[<?php echo $i; ?>][variant_name]" value="<?php echo htmlspecialchars($name); ?>" placeholder="e.g. 100 g">
-            </div>
-            <div class="field">
-                <label>SKU<span class="req">*</span></label>
-                <input type="text" name="variants[<?php echo $i; ?>][sku]" value="<?php echo htmlspecialchars($sku); ?>">
-            </div>
-            <div class="field">
-                <label>Status</label>
-                <select name="variants[<?php echo $i; ?>][status]">
-                    <?php foreach (PRODUCT_VARIANT_STATUSES as $vStatus) : ?>
-                        <option value="<?php echo htmlspecialchars($vStatus); ?>" <?php echo $status === $vStatus ? 'selected' : ''; ?>><?php echo htmlspecialchars($vStatus); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="field">
-                <label>Price (₹)<span class="req">*</span></label>
-                <input type="number" step="0.01" min="0" name="variants[<?php echo $i; ?>][price]" value="<?php echo htmlspecialchars($price); ?>">
-            </div>
-            <div class="field">
-                <label>Sale price (₹) <span class="opt">optional</span></label>
-                <input type="number" step="0.01" min="0" name="variants[<?php echo $i; ?>][sale_price]" value="<?php echo htmlspecialchars($salePrice); ?>">
-            </div>
-            <div class="field">
-                <label>Stock<span class="req">*</span></label>
-                <input type="number" min="0" name="variants[<?php echo $i; ?>][stock]" value="<?php echo htmlspecialchars($stock); ?>">
-            </div>
-            <div class="field">
-                <label>Weight (grams)</label>
-                <input type="number" min="0" name="variants[<?php echo $i; ?>][weight_grams]" value="<?php echo htmlspecialchars($weight); ?>">
-            </div>
-            <div class="field">
-                <label>Sort order</label>
-                <input type="number" name="variants[<?php echo $i; ?>][sort_order]" value="<?php echo htmlspecialchars($sort); ?>">
-            </div>
-            <div class="field" style="justify-content:center;">
-                <label class="checkbox-row" style="margin-top:20px;">
-                    <input type="checkbox" class="default-variant-checkbox" name="variants[<?php echo $i; ?>][is_default]" value="1" <?php echo $isDefault ? 'checked' : ''; ?>>
-                    Default variant
-                </label>
-            </div>
-        </div>
-    </div>
-<?php
-}
-
-function render_image_row(int $i, array $img = []): void
-{
-    $alt = $img['alt_text'] ?? '';
-    $sort = $img['sort_order'] ?? '0';
-    $isPrimary = isset($img['is_primary']);
-?>
-    <div class="repeater-item" data-image-row>
-        <div class="repeater-head">
-            <span class="repeater-title">Image</span>
-            <button type="button" class="repeater-remove" data-remove-row>Remove</button>
-        </div>
-        <div class="field-grid">
-            <div class="field span-2">
-                <label>Image file</label>
-                <input type="file" name="images[<?php echo $i; ?>][file]" accept="image/jpeg,image/png,image/webp,image/gif">
-            </div>
-            <div class="field">
-                <label>Alt text</label>
-                <input type="text" name="images[<?php echo $i; ?>][alt_text]" value="<?php echo htmlspecialchars($alt); ?>" placeholder="Describe the image">
-            </div>
-            <div class="field">
-                <label>Sort order</label>
-                <input type="number" name="images[<?php echo $i; ?>][sort_order]" value="<?php echo htmlspecialchars($sort); ?>">
-            </div>
-            <div class="field" style="justify-content:center;">
-                <label class="checkbox-row" style="margin-top:20px;">
-                    <input type="checkbox" class="primary-image-checkbox" name="images[<?php echo $i; ?>][is_primary]" value="1" <?php echo $isPrimary ? 'checked' : ''; ?>>
-                    Primary image
-                </label>
-            </div>
-        </div>
-    </div>
-<?php
-}
-?>
 
 <div class="padmin">
 
