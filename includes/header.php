@@ -64,6 +64,7 @@ $siteName = ($siteSettings['site_name'] ?? '') !== ''
     : (defined('SITE_NAME') ? SITE_NAME : 'Store');
 $siteTagline = $siteSettings['site_tagline'] ?? '';
 $siteLogo = $siteSettings['site_logo'] ?? '';
+$siteFavicon = $siteSettings['site_favicon'] ?? '';
 
 ?>
 
@@ -74,6 +75,11 @@ $siteLogo = $siteSettings['site_logo'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($siteName) ?></title>
+    <?php if ($siteFavicon !== ''): ?>
+        <link rel="icon" href="<?= htmlspecialchars(BASE_URL . ltrim($siteFavicon, '/')) ?>">
+    <?php else: ?>
+        <link rel="icon" href="<?= BASE_URL ?>assets/img/favicon.ico">
+    <?php endif; ?>
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/global.css">
     <script src="<?= BASE_URL ?>assets/js/global.js" defer></script>
     <style>
