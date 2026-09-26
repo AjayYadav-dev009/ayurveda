@@ -19,22 +19,28 @@ $dashStats = [
     ['key' => 'users',      'label' => 'Customers',     'table' => 'users'],
     ['key' => 'team',       'label' => 'Team members',  'table' => 'team_members'],
     ['key' => 'blog',       'label' => 'Blog posts',    'table' => 'blogs'],
+    ['key' => 'contact-messages', 'label' => 'New Messages',      'table' => 'contact_messages', 'where' => "status = 'New'"],
+    ['key' => 'dosha-leads',      'label' => 'Pending Dosha Leads', 'table' => 'dosha_leads', 'where' => "status = 'started'"],
 ];
 
 if (!function_exists('dashCount')) {
-    /** Returns the row count of $table, or null if it can't be read. */
-    function dashCount($conn, $table)
+    /** Returns the row count of $table (optionally filtered by a hardcoded $where clause), or null if it can't be read. */
+    function dashCount($conn, $table, $where = null)
     {
         if (!$conn || !preg_match('/^[A-Za-z0-9_]+$/', $table)) {
             return null;
         }
+        $sql = 'SELECT COUNT(*) FROM `' . $table . '`';
+        if ($where !== null) {
+            $sql .= ' WHERE ' . $where;
+        }
         try {
             if ($conn instanceof PDO) {
-                $stmt = $conn->query('SELECT COUNT(*) FROM `' . $table . '`');
+                $stmt = $conn->query($sql);
                 return $stmt ? (int) $stmt->fetchColumn() : null;
             }
             if ($conn instanceof mysqli) {
-                $result = $conn->query('SELECT COUNT(*) FROM `' . $table . '`');
+                $result = $conn->query($sql);
                 if (!$result) {
                     return null;
                 }
@@ -51,7 +57,7 @@ if (!function_exists('dashCount')) {
 $dbConn = isset($conn) ? $conn : null;
 $statCards = [];
 foreach ($dashStats as $stat) {
-    $count = dashCount($dbConn, $stat['table']);
+    $count = dashCount($dbConn, $stat['table'], $stat['where'] ?? null);
     if ($count !== null && isset($adminNavIndex[$stat['key']])) {
         $statCards[] = $stat + ['count' => $count, 'href' => $adminNavIndex[$stat['key']]['href']];
     }
@@ -61,7 +67,7 @@ $hour = (int) date('G');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
 $firstName = trim(explode(' ', $adminName)[0] ?? '') ?: 'Admin';
 
-$quickKeys = ['products', 'orders', 'banners', 'reviews', 'promo', 'transformations', 'team', 'blog', 'categories', 'settings'];
+$quickKeys = ['products', 'orders', 'contact-messages', 'dosha-leads', 'banners', 'reviews', 'promo', 'transformations', 'team', 'blog', 'categories', 'settings'];
 $tints = [
     ['#e3efe8', '#17483d'],
     ['#f7efdc', '#8a6a2b'],

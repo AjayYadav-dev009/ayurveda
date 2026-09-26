@@ -681,8 +681,8 @@ include __DIR__ . '/../includes/header.php';
             <form id="doshaForm" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= doshaE($doshaCsrfToken) ?>">
                 <div class="dosha-hp" aria-hidden="true">
-                    <label for="doshaWebsite">Leave this field empty</label>
-                    <input type="text" id="doshaWebsite" name="website" tabindex="-1" autocomplete="off">
+                    <label for="doshaHpCheck">Leave this field empty</label>
+                    <input type="text" id="doshaHpCheck" name="hp_check" tabindex="-1" autocomplete="off">
                 </div>
 
                 <div class="dosha-modal__grid">

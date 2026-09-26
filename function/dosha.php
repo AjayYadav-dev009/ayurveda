@@ -86,7 +86,11 @@ if (!function_exists('validateDoshaForm')) {
         $goal     = $str('wellness_goal');
 
         // Honeypot: a real visitor never fills this hidden field in.
-        if ($str('website') !== '') {
+        // Named away from "website"/"url"/etc. because browser/password-manager
+        // autofill can silently fill fields with those common names even
+        // though the field is visually hidden, causing real submissions to
+        // be mistaken for bots and rejected.
+        if ($str('hp_check') !== '') {
             $errors['form'] = 'Submission rejected.';
         }
 
@@ -281,5 +285,175 @@ if (!function_exists('getDoshaLeadByToken')) {
         $stmt->execute();
 
         return $stmt->get_result()->fetch_assoc() ?: null;
+    }
+}
+
+
+/* -----------------------------------------------------------------------
+ * Admin: listing, viewing, status changes and deletion for the dosha
+ * leads inbox (admin/dosha/index.php, view.php, update-status.php, delete.php)
+ * -------------------------------------------------------------------- */
+
+if (!function_exists('DOSHA_LEAD_STATUSES')) {
+    /** Allowed values of dosha_leads.status, in display order. */
+    function DOSHA_LEAD_STATUSES()
+    {
+        return ['started', 'completed'];
+    }
+}
+
+if (!function_exists('getDoshaLeads')) {
+    /**
+     * Admin listing, newest first, with optional filters.
+     *
+     * @param array $filters {
+     *     @var string $search Matches full_name / email / mobile / location (LIKE, case-insensitive).
+     *     @var string $status One of DOSHA_LEAD_STATUSES(); ignored if not a valid value.
+     *     @var string $date   Calendar day in Y-m-d format; matches DATE(created_at).
+     * }
+     * @return array[] Rows from dosha_leads.
+     * @throws RuntimeException if the query cannot be prepared.
+     */
+    function getDoshaLeads($conn, array $filters = [])
+    {
+        $where  = [];
+        $types  = '';
+        $params = [];
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $like = '%' . strtr($search, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']) . '%';
+            $where[] = '(full_name LIKE ? OR email LIKE ? OR mobile LIKE ? OR location LIKE ?)';
+            $types  .= 'ssss';
+            array_push($params, $like, $like, $like, $like);
+        }
+
+        $status = trim((string) ($filters['status'] ?? ''));
+        if ($status !== '' && in_array($status, DOSHA_LEAD_STATUSES(), true)) {
+            $where[]  = 'status = ?';
+            $types   .= 's';
+            $params[] = $status;
+        }
+
+        $date = trim((string) ($filters['date'] ?? ''));
+        if ($date !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date)) {
+            $where[]  = 'DATE(created_at) = ?';
+            $types   .= 's';
+            $params[] = $date;
+        }
+
+        $sql = 'SELECT * FROM dosha_leads';
+        if (!empty($where)) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+        $sql .= ' ORDER BY created_at DESC';
+
+        $stmt = $conn->prepare($sql);
+        if ($stmt === false) {
+            throw new RuntimeException('Database query failed: ' . $conn->error);
+        }
+        if ($types !== '') {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        return $rows;
+    }
+}
+
+if (!function_exists('getDoshaLeadCounts')) {
+    /** @return array{total:int,started:int,completed:int} */
+    function getDoshaLeadCounts($conn)
+    {
+        $counts = ['total' => 0, 'started' => 0, 'completed' => 0];
+
+        $result = $conn->query('SELECT status, COUNT(*) AS total FROM dosha_leads GROUP BY status');
+        if ($result === false) {
+            throw new RuntimeException('Database query failed: ' . $conn->error);
+        }
+
+        while ($row = $result->fetch_assoc()) {
+            if (isset($counts[$row['status']])) {
+                $counts[$row['status']] = (int) $row['total'];
+            }
+            $counts['total'] += (int) $row['total'];
+        }
+
+        return $counts;
+    }
+}
+
+if (!function_exists('getDoshaLeadById')) {
+    /** Numeric-id lookup for the admin panel (see getDoshaLeadByToken() for the public token lookup). */
+    function getDoshaLeadById($conn, $id)
+    {
+        $id = (int) $id;
+
+        $stmt = $conn->prepare('SELECT * FROM dosha_leads WHERE id = ? LIMIT 1');
+        if ($stmt === false) {
+            throw new RuntimeException('Database query failed: ' . $conn->error);
+        }
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        return $row ?: null;
+    }
+}
+
+if (!function_exists('updateDoshaLeadStatus')) {
+    /**
+     * @throws InvalidArgumentException if $status is not a recognised value.
+     * @throws RuntimeException if the update fails.
+     */
+    function updateDoshaLeadStatus($conn, $id, $status)
+    {
+        if (!in_array($status, DOSHA_LEAD_STATUSES(), true)) {
+            throw new InvalidArgumentException('Invalid dosha lead status.');
+        }
+
+        $id = (int) $id;
+
+        $stmt = $conn->prepare('UPDATE dosha_leads SET status = ? WHERE id = ?');
+        if ($stmt === false) {
+            throw new RuntimeException('Database query failed: ' . $conn->error);
+        }
+        $stmt->bind_param('si', $status, $id);
+
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            throw new RuntimeException('Could not update lead status: ' . $error);
+        }
+        $stmt->close();
+
+        return true;
+    }
+}
+
+if (!function_exists('deleteDoshaLead')) {
+    /** @throws RuntimeException if the delete fails. */
+    function deleteDoshaLead($conn, $id)
+    {
+        $id = (int) $id;
+
+        $stmt = $conn->prepare('DELETE FROM dosha_leads WHERE id = ?');
+        if ($stmt === false) {
+            throw new RuntimeException('Database query failed: ' . $conn->error);
+        }
+        $stmt->bind_param('i', $id);
+
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            throw new RuntimeException('Could not delete lead: ' . $error);
+        }
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+
+        return $affected > 0;
     }
 }

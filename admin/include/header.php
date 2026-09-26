@@ -57,6 +57,8 @@ $adminIcons = [
     'promo'           => '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5Z"/>',
     'transformations' => '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/>',
     'settings'        => '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+    'contact-messages'=> '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    'dosha-leads'     => '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
 ];
 
 $adminNav = [
@@ -72,6 +74,8 @@ $adminNav = [
     ],
     'People & Content' => [
         ['key' => 'users', 'label' => 'Users', 'href' => 'users/index.php', 'desc' => 'View registered customers'],
+        ['key' => 'contact-messages', 'label' => 'Contact Messages', 'href' => 'contact/index.php', 'desc' => 'Messages submitted through the Contact page'],
+        ['key' => 'dosha-leads', 'label' => 'Dosha Test Leads', 'href' => 'dosha/index.php', 'desc' => 'Leads captured by the Dosha Test modal'],
         ['key' => 'blog', 'label' => 'Blog Management', 'href' => 'blog/', 'desc' => 'Write and manage blog posts'],
         ['key' => 'team', 'label' => 'Team Management', 'href' => 'team-management.php', 'desc' => 'Ayurvedic experts shown on the homepage'],
     ],
