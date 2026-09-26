@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 25, 2026 at 02:48 PM
+-- Generation Time: Sep 26, 2026 at 09:34 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -225,7 +225,7 @@ CREATE TABLE `contact_messages` (
 --
 
 INSERT INTO `contact_messages` (`id`, `user_id`, `name`, `email`, `phone`, `topic`, `message`, `status`, `ip_address`, `user_agent`, `created_at`, `updated_at`) VALUES
-(1, NULL, 'jatin kdpl', 'kdpljatin@gmail.com', '09211339966', 'Complete Gut Detox Programme', 'Hello Buddy', 'New', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', '2026-09-25 12:23:41', '2026-09-25 12:23:41');
+(1, NULL, 'jatin kdpl', 'kdpljatin@gmail.com', '09211339966', 'Complete Gut Detox Programme', 'Hello Buddy', 'New', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36', '2026-09-25 12:23:41', '2026-09-26 05:17:36');
 
 -- --------------------------------------------------------
 
@@ -732,6 +732,7 @@ INSERT INTO `team_members` (`id`, `name`, `designation`, `bio`, `image`, `status
 CREATE TABLE `transformations` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `customer_name` varchar(150) NOT NULL,
+  `slug` varchar(191) NOT NULL DEFAULT '',
   `before_image` varchar(500) NOT NULL,
   `after_image` varchar(500) NOT NULL,
   `description` text DEFAULT NULL,
@@ -748,10 +749,10 @@ CREATE TABLE `transformations` (
 -- Dumping data for table `transformations`
 --
 
-INSERT INTO `transformations` (`id`, `customer_name`, `before_image`, `after_image`, `description`, `product_id`, `duration`, `is_verified`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
-(1, 'Rasmika Tiwari', 'uploads/transformations/before-51fac8d218a2e7c4.jpg', 'uploads/transformations/after-3d370a747cfdf27b.jpg', 'Rasmika Tiwari chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of her wellness journey. With consistency and a dedicated approach to her lifestyle, she worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 1, '2026-09-23 17:34:45', '2026-09-23 17:39:37'),
-(2, 'Arjun Pandey', 'uploads/transformations/before-2e5915d1ccb5e1c4.jpg', 'uploads/transformations/after-16b42a920afd14be.jpg', 'Arjun Pandey chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of his wellness journey. With consistency and a dedicated approach to his lifestyle, he worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 2, '2026-09-23 17:35:55', '2026-09-23 17:40:09'),
-(3, 'Anshika', 'uploads/transformations/before-75a43446372146ac.jpg', 'uploads/transformations/after-38ab5b9a11a29f4c.jpg', 'Anshika chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of her wellness journey. With consistency and a dedicated approach to her lifestyle, she worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 3, '2026-09-23 17:37:39', '2026-09-23 17:40:21');
+INSERT INTO `transformations` (`id`, `customer_name`, `slug`, `before_image`, `after_image`, `description`, `product_id`, `duration`, `is_verified`, `status`, `sort_order`, `created_at`, `updated_at`) VALUES
+(1, 'Rasmika Tiwari', 'rasmika-tiwari', 'uploads/transformations/before-51fac8d218a2e7c4.jpg', 'uploads/transformations/after-3d370a747cfdf27b.jpg', 'Rasmika Tiwari chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of her wellness journey. With consistency and a dedicated approach to her lifestyle, she worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 1, '2026-09-23 17:34:45', '2026-09-26 07:06:39'),
+(2, 'Arjun Pandey', 'arjun-pandey', 'uploads/transformations/before-2e5915d1ccb5e1c4.jpg', 'uploads/transformations/after-16b42a920afd14be.jpg', 'Arjun Pandey chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of his wellness journey. With consistency and a dedicated approach to his lifestyle, he worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 2, '2026-09-23 17:35:55', '2026-09-26 07:06:39'),
+(3, 'Anshika', 'anshika', 'uploads/transformations/before-75a43446372146ac.jpg', 'uploads/transformations/after-38ab5b9a11a29f4c.jpg', 'Anshika chose Vedorishi Ayurveda’s The Weight Loss Full Kit, featuring Lean Plus Capsules and Lean Plus Syrup, as part of her wellness journey. With consistency and a dedicated approach to her lifestyle, she worked toward feeling healthier, more active, and more confident.', 9, '12 Weeks', 1, 'Active', 3, '2026-09-23 17:37:39', '2026-09-26 07:06:39');
 
 -- --------------------------------------------------------
 
@@ -1009,6 +1010,7 @@ ALTER TABLE `team_members`
 --
 ALTER TABLE `transformations`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `transformations_slug_unique` (`slug`),
   ADD KEY `product_id` (`product_id`);
 
 --
@@ -1072,7 +1074,7 @@ ALTER TABLE `cart`
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `contact_messages`
@@ -1132,19 +1134,19 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `product_details`
 --
 ALTER TABLE `product_details`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `product_images`
 --
 ALTER TABLE `product_images`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `product_variants`
@@ -1192,7 +1194,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `wishlist`
 --
 ALTER TABLE `wishlist`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
