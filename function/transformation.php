@@ -27,6 +27,72 @@ const TRANSFORMATION_UPLOAD_DIR = __DIR__ . '/../uploads/transformations/';
 const TRANSFORMATION_UPLOAD_PATH = 'uploads/transformations/';
 
 /* =============================================================================
+ * Slugs
+ * ============================================================================= */
+
+/**
+ * ASCII-slugifies a customer name ("Rasmika Tiwari" -> "rasmika-tiwari").
+ * Falls back to 'customer' if the name has no usable characters.
+ */
+function slugifyTransformationName($name)
+{
+    $slug = strtolower(trim((string) $name));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+    $slug = trim($slug, '-');
+    return $slug !== '' ? $slug : 'customer';
+}
+
+function transformationSlugExists($conn, $slug, $excludeId = null)
+{
+    if ($excludeId !== null) {
+        $stmt = $conn->prepare('SELECT id FROM transformations WHERE slug = ? AND id != ? LIMIT 1');
+        $stmt->bind_param('si', $slug, $excludeId);
+    } else {
+        $stmt = $conn->prepare('SELECT id FROM transformations WHERE slug = ? LIMIT 1');
+        $stmt->bind_param('s', $slug);
+    }
+    $stmt->execute();
+    $exists = (bool) $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $exists;
+}
+
+/**
+ * Builds a unique slug from the customer name, appending -2, -3, ... on
+ * collision. $excludeId lets an update check uniqueness against every row
+ * except itself.
+ */
+function generateUniqueTransformationSlug($conn, $customerName, $excludeId = null)
+{
+    $base = slugifyTransformationName($customerName);
+    $slug = $base;
+    $i = 2;
+    while (transformationSlugExists($conn, $slug, $excludeId)) {
+        $slug = $base . '-' . $i;
+        $i++;
+    }
+    return $slug;
+}
+
+/**
+ * One-off backfill for rows that still have an empty slug (e.g. if the
+ * REGEXP_REPLACE migration step was skipped on an older MySQL/MariaDB).
+ * Safe to call more than once - it only touches rows where slug = ''.
+ */
+function backfillTransformationSlugs($conn)
+{
+    $result = $conn->query("SELECT id, customer_name FROM transformations WHERE slug = '' OR slug IS NULL");
+    $rows = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    foreach ($rows as $row) {
+        $slug = generateUniqueTransformationSlug($conn, $row['customer_name'], $row['id']);
+        $stmt = $conn->prepare('UPDATE transformations SET slug = ? WHERE id = ?');
+        $stmt->bind_param('si', $slug, $row['id']);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+/* =============================================================================
  * Uploads
  * ============================================================================= */
 
@@ -83,14 +149,17 @@ function addTransformation($conn, $customerName, $beforeImage, $afterImage, $des
         throw new InvalidArgumentException('Please enter the customer name.');
     }
 
+    $slug = generateUniqueTransformationSlug($conn, $customerName);
+
     $stmt = $conn->prepare(
         'INSERT INTO transformations
-            (customer_name, before_image, after_image, description, product_id, duration, is_verified, status, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            (customer_name, slug, before_image, after_image, description, product_id, duration, is_verified, status, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->bind_param(
-        'sssssiisi',
+        'ssssssiisi',
         $customerName,
+        $slug,
         $beforeImage,
         $afterImage,
         $description,
@@ -119,15 +188,21 @@ function updateTransformation($conn, $id, $customerName, $beforeImage, $afterIma
         throw new InvalidArgumentException('Please enter the customer name.');
     }
 
+    // The slug stays stable across edits (renaming the customer shouldn't
+    // break a link someone already shared). It's only (re)generated here if
+    // the row somehow doesn't have one yet.
+    $slug = !empty($existing['slug']) ? $existing['slug'] : generateUniqueTransformationSlug($conn, $customerName, $id);
+
     $stmt = $conn->prepare(
         'UPDATE transformations
-         SET customer_name = ?, before_image = ?, after_image = ?, description = ?,
+         SET customer_name = ?, slug = ?, before_image = ?, after_image = ?, description = ?,
              product_id = ?, duration = ?, is_verified = ?, status = ?, sort_order = ?
          WHERE id = ?'
     );
     $stmt->bind_param(
-        'sssssiisii',
+        'ssssssiisii',
         $customerName,
+        $slug,
         $beforeImage,
         $afterImage,
         $description,
@@ -210,6 +285,37 @@ function getTransformationById($conn, $id)
 }
 
 /**
+ * For the public details page: one transformation by its slug, with product
+ * info joined in, but only if it's Active (a draft/inactive row 404s on the
+ * front end the same way a missing id would).
+ */
+function getTransformationBySlug($conn, $slug)
+{
+    $stmt = $conn->prepare(
+        'SELECT t.*, p.title AS product_name, p.slug AS product_slug
+         FROM transformations t
+         LEFT JOIN products p ON p.id = t.product_id
+         WHERE t.slug = ? AND t.status = ?
+         LIMIT 1'
+    );
+    $status = TRANSFORMATION_STATUS_ACTIVE;
+    $stmt->bind_param('ss', $slug, $status);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$row) {
+        return null;
+    }
+
+    $row['product_url'] = !empty($row['product_slug']) ? '/product/' . $row['product_slug'] : '';
+    $row['is_verified'] = (bool) $row['is_verified'];
+    unset($row['product_slug']);
+
+    return $row;
+}
+
+/**
  * For the admin form's product dropdown: id + title only, active products.
  */
 function getProductsForSelect($conn)
@@ -230,7 +336,7 @@ function getProductsForSelect($conn)
 function getFeaturedTransformations($conn, $limit = 12)
 {
     $stmt = $conn->prepare(
-        'SELECT t.id, t.customer_name, t.before_image, t.after_image, t.description,
+        'SELECT t.id, t.customer_name, t.slug, t.before_image, t.after_image, t.description,
                 t.duration, t.is_verified, p.title AS product_name, p.slug AS product_slug
          FROM transformations t
          LEFT JOIN products p ON p.id = t.product_id
@@ -249,6 +355,7 @@ function getFeaturedTransformations($conn, $limit = 12)
     // which the section already treats as "not a link").
     foreach ($rows as &$row) {
         $row['product_url'] = !empty($row['product_slug']) ? '/product/' . $row['product_slug'] : '';
+        $row['detail_url'] = !empty($row['slug']) ? BASE_URL . 'transformation-details.php?slug=' . urlencode($row['slug']) : '';
         $row['is_verified'] = (bool) $row['is_verified'];
         unset($row['product_slug']);
     }

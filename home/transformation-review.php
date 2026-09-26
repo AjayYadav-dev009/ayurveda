@@ -159,7 +159,6 @@ $transformationCount = count($transformations);
         scroll-snap-type: x mandatory;
         scroll-behavior: smooth;
         touch-action: pan-x;
-        cursor: grab;
         -webkit-overflow-scrolling: touch;
         padding: 18px 0 34px;
 
@@ -175,12 +174,6 @@ $transformationCount = count($transformations);
         outline: 2px solid var(--trf-accent);
         outline-offset: 4px;
         border-radius: var(--radius-md);
-    }
-
-    .trf__viewport.is-dragging {
-        cursor: grabbing;
-        scroll-snap-type: none;
-        scroll-behavior: auto;
     }
 
     .trf__track {
@@ -786,49 +779,6 @@ $transformationCount = count($transformations);
                     var target = cards[index];
                     if (target) centerCard(target, true);
                 });
-            });
-
-            // ---- Mouse drag (touch/swipe is native — overflow-x + touch-action
-            // handle that without any JS at all) ----
-            var isDown = false;
-            var dragged = false;
-            var startX = 0;
-            var startScroll = 0;
-
-            viewport.addEventListener('mousedown', function(event) {
-                isDown = true;
-                dragged = false;
-                viewport.classList.add('is-dragging');
-                startX = event.pageX;
-                startScroll = viewport.scrollLeft;
-            });
-
-            window.addEventListener('mousemove', function(event) {
-                if (!isDown) return;
-                var delta = event.pageX - startX;
-                if (Math.abs(delta) > 4) dragged = true;
-                viewport.scrollLeft = startScroll - delta;
-            });
-
-            function endDrag() {
-                if (!isDown) return;
-                isDown = false;
-                viewport.classList.remove('is-dragging');
-                window.setTimeout(updateActiveCard, 60);
-            }
-
-            window.addEventListener('mouseup', endDrag);
-            viewport.addEventListener('mouseleave', function() {
-                if (isDown) endDrag();
-            });
-
-            // Dragging a card shouldn't trigger a click-through on links inside
-            // it (e.g. the product link) right after releasing.
-            track.addEventListener('click', function(event) {
-                if (dragged) {
-                    event.preventDefault();
-                    dragged = false;
-                }
             });
 
             // ---- Scroll -> keep active-card state in sync, live while
