@@ -66,9 +66,15 @@ define('SITE_NAME', 'Vedorishi');
 
 if (APP_ENV === 'production') {
 
+    $isHttps = (
+        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+        || (($_SERVER['SERVER_PORT'] ?? '') == 443)
+    );
+
     define(
         'BASE_URL',
-        'http://vedorishi.ayurveda.daurproductions.com/'
+        ($isHttps ? 'https://' : 'http://') . 'vedorishi.ayurveda.daurproductions.com/'
     );
 
 } else {
