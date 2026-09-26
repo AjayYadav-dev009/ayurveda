@@ -173,6 +173,8 @@ $siteFavicon = $siteSettings['site_favicon'] ?? '';
 
         /* Main header */
         .main-header {
+            position: relative;
+            z-index: 900;
             background: var(--color-white);
             display: flex;
             align-items: center;
@@ -180,6 +182,37 @@ $siteFavicon = $siteSettings['site_favicon'] ?? '';
             gap: 24px;
             padding: 12px 32px;
             border-bottom: 1px solid var(--color-border);
+        }
+
+        .main-header.is-pinned {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .scroll-progress {
+            position: relative;
+            height: 3px;
+            width: 100%;
+            background: var(--color-border);
+            z-index: 899;
+        }
+
+        .scroll-progress__fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent, var(--color-primary)));
+            transform-origin: left;
+            transition: width 0.1s linear;
+        }
+
+        .main-header.is-pinned+.scroll-progress {
+            position: fixed;
+            top: var(--header-height, 0px);
+            left: 0;
         }
 
         .logo {
@@ -910,10 +943,63 @@ $siteFavicon = $siteSettings['site_favicon'] ?? '';
                 </a>
             </div>
         </div>
+        <div class="scroll-progress">
+            <div class="scroll-progress__fill" data-scroll-progress-fill></div>
+        </div>
         <div class="nav-overlay" data-nav-overlay></div>
     </header>
 
     <script>
+        (function() {
+            // Pin the main nav bar to the top of the viewport once the
+            // page has scrolled past the announcement/ticker bar, instead
+            // of letting it scroll away with the rest of the header.
+            var mainHeader = document.querySelector('.main-header');
+            var announcementBar = document.querySelector('.announcement-bar');
+            var progressFill = document.querySelector('[data-scroll-progress-fill]');
+
+            if (mainHeader) {
+                var pinPoint = announcementBar ? announcementBar.offsetHeight : 0;
+
+                var setPinned = function(pinned) {
+                    if (pinned === mainHeader.classList.contains('is-pinned')) {
+                        return;
+                    }
+                    mainHeader.classList.toggle('is-pinned', pinned);
+                    document.body.style.paddingTop = pinned ? mainHeader.offsetHeight + 'px' : '';
+                    document.documentElement.style.setProperty(
+                        '--header-height',
+                        pinned ? mainHeader.offsetHeight + 'px' : '0px'
+                    );
+                };
+
+                var onScroll = function() {
+                    setPinned(window.scrollY > pinPoint);
+
+                    if (progressFill) {
+                        var scrollTop = window.scrollY;
+                        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                        var pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                        progressFill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+                    }
+                };
+
+                window.addEventListener('scroll', onScroll, {
+                    passive: true
+                });
+                window.addEventListener('resize', function() {
+                    pinPoint = announcementBar ? announcementBar.offsetHeight : 0;
+                    if (mainHeader.classList.contains('is-pinned')) {
+                        document.body.style.paddingTop = mainHeader.offsetHeight + 'px';
+                        document.documentElement.style.setProperty('--header-height', mainHeader.offsetHeight + 'px');
+                    }
+                    onScroll();
+                });
+
+                onScroll();
+            }
+        })();
+
         (function() {
             // Mobile menu: hamburger opens the drawer, "Shop All" chevron
             // expands the category list. Desktop keeps the hover mega menu.

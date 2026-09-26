@@ -11,9 +11,9 @@ if (count($footerCategories) > 8) {
 }
 
 $footerEnquireLinks = [
-    'About Us' => 'about.php',
+    'About Us' => 'about/index.php',
     'Gynam' => 'gynam.php',
-    'Contact Us' => 'contact.php',
+    'Contact Us' => 'contact/index.php',
     'FAQ' => 'faq.php',
     'Terms of Service' => 'terms.php',
     'Track Order' => 'track-order.php',
@@ -30,14 +30,14 @@ $footerPolicyLinks = [
 ];
 
 $footerPartnerLinks = [
-    'Blog' => 'blog.php',
+    'Blog' => 'blog/blog.php',
 ];
 
 $footerQuickLinks = [
-    'Shop By Product' => 'products.php',
+    'Shop By Product' => 'products/products.php',
     'All Ingredients' => 'ingredients.php',
-    'Consult A Vaidya' => 'consult.php',
-    'Dosha Test' => 'dosha-test.php',
+    'Consult A Vaidya' => 'consult-veda/index.php',
+    'Dosha Test' => 'dosha/dosha-test-cta.php',
 ];
 
 $footerSocialLinks = [
@@ -170,7 +170,7 @@ $footerSocialLinks = [
                 <?php if (!empty($footerCategories)): ?>
                     <ul class="ftr__links">
                         <?php foreach ($footerCategories as $category): ?>
-                            <li><a href="<?= htmlspecialchars(BASE_URL . 'categories-product.php?category_slug=' . urlencode($category['slug']), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?></a></li>
+                            <li><a href="<?= htmlspecialchars(BASE_URL . 'products/products.php?category_slug=' . urlencode($category['slug']), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?></a></li>
                         <?php endforeach; ?>
                     </ul>
                 <?php endif; ?>

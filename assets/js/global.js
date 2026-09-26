@@ -240,6 +240,31 @@ document.addEventListener('DOMContentLoaded', function () {
             root.addEventListener('touchend', startAutoplay, { passive: true });
         }
 
+        // Background tabs still fire throttled setInterval ticks, but CSS
+        // transitions don't actually run while hidden — so `transitionend`
+        // (which normally snaps currentIndex back into range after a loop
+        // wrap) never fires during that time. Left unchecked, currentIndex
+        // drifts past the cloned track's bounds and the slider comes back
+        // to an empty patch of track. Stop the clock while hidden, and
+        // resync defensively (via modulo, not the incremental +/- count
+        // the transitionend handler uses) before resuming.
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                stopAutoplay();
+                return;
+            }
+
+            if (isBuilt) {
+                var realIndex = (((currentIndex - visible) % count) + count) % count;
+                currentIndex = visible + realIndex;
+                setPosition(false);
+                updateDots();
+                updateCenterHighlight();
+            }
+
+            startAutoplay();
+        });
+
         var resizeTimer = null;
         window.addEventListener('resize', function () {
             window.clearTimeout(resizeTimer);
