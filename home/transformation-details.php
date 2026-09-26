@@ -3,59 +3,64 @@
 /**
  * Public "Transformation Details" page.
  *
- * Reached as /transformation/{slug} via a rewrite rule (see the .htaccess
- * snippet in the accompanying notes) which maps to:
- *   transformation-details.php?slug={slug}
- * It also works directly as transformation-details.php?slug=... without
- * any rewrite, so this page functions either way.
+ * Lives at home/transformation-details.php, so it's reached as:
+ *   BASE_URL . 'home/transformation-details.php?slug=...'
+ * (the CTA arrow on each transformation-review.php card already builds
+ * that link via getFeaturedTransformations()'s detail_url).
  *
- * Adjust the three require paths below if this file doesn't sit at the
- * project root alongside includes/ and function/.
+ * Bootstrap order mirrors products/product_details.php: config + database
+ * first (that's what actually defines $conn and BASE_URL, not header.php),
+ * then all data resolution/redirects, THEN header.php - and everything
+ * used in the markup below is read from $viewTransformation, snapshotted
+ * before that include, because header.php's mega-menu does
+ * `foreach ($products as $product) { ... }` and would otherwise be able to
+ * clobber a same-named variable the same way it does on product_details.php.
  */
 
-require_once __DIR__ . '/function/transformation.php';
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../function/transformation.php';
 
-$slug = trim((string) ($_GET['slug'] ?? ''));
-$transformation = $slug !== '' ? getTransformationBySlug($conn, $slug) : null;
+$slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
 
-// Unknown/inactive slug: send a real 404 rather than a blank page.
-if (!$transformation) {
-    http_response_code(404);
+if ($slug === '') {
+    header('Location: ' . BASE_URL);
+    exit;
 }
 
-require_once __DIR__ . '/includes/header.php';
+$transformation = getTransformationBySlug($conn, $slug);
 
-if (!$transformation): ?>
+if (!$transformation) {
+    header('Location: ' . BASE_URL);
+    exit;
+}
 
-    <section class="trfd-empty">
-        <div class="container">
-            <h1>Transformation not found</h1>
-            <p>This story may have been removed or the link is incorrect.</p>
-            <a class="trfd-empty__link" href="/">Back to home</a>
-        </div>
-    </section>
+// Snapshot into its own variable, and resolve every display value from it,
+// before header.php ever runs.
+$viewTransformation = $transformation;
 
-<?php else:
-    $beforeUrl = htmlspecialchars(BASE_URL . ltrim((string) ($transformation['before_image'] ?? ''), '/'), ENT_QUOTES, 'UTF-8');
-    $afterUrl  = htmlspecialchars(BASE_URL . ltrim((string) ($transformation['after_image'] ?? ''), '/'), ENT_QUOTES, 'UTF-8');
+$beforeUrl = htmlspecialchars((string) getTransformationImageUrl($viewTransformation['before_image'] ?? null), ENT_QUOTES, 'UTF-8');
+$afterUrl  = htmlspecialchars((string) getTransformationImageUrl($viewTransformation['after_image'] ?? null), ENT_QUOTES, 'UTF-8');
 
-    $name = trim((string) ($transformation['customer_name'] ?? ''));
-    $safeName = htmlspecialchars($name !== '' ? $name : 'Customer', ENT_QUOTES, 'UTF-8');
+$name = trim((string) ($viewTransformation['customer_name'] ?? ''));
+$safeName = htmlspecialchars($name !== '' ? $name : 'Customer', ENT_QUOTES, 'UTF-8');
 
-    $description = trim((string) ($transformation['description'] ?? ''));
-    $safeDescription = nl2br(htmlspecialchars($description, ENT_QUOTES, 'UTF-8'));
+$description = trim((string) ($viewTransformation['description'] ?? ''));
+$safeDescription = nl2br(htmlspecialchars($description, ENT_QUOTES, 'UTF-8'));
 
-    $productName = trim((string) ($transformation['product_name'] ?? ''));
-    $safeProductName = htmlspecialchars($productName, ENT_QUOTES, 'UTF-8');
-    $productUrl = trim((string) ($transformation['product_url'] ?? ''));
-    $safeProductUrl = $productUrl !== '' ? htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8') : '';
+$productName = trim((string) ($viewTransformation['product_name'] ?? ''));
+$safeProductName = htmlspecialchars($productName, ENT_QUOTES, 'UTF-8');
+$productUrl = trim((string) ($viewTransformation['product_url'] ?? ''));
+$safeProductUrl = $productUrl !== '' ? htmlspecialchars($productUrl, ENT_QUOTES, 'UTF-8') : '';
 
-    $duration = trim((string) ($transformation['duration'] ?? ''));
-    $safeDuration = htmlspecialchars($duration, ENT_QUOTES, 'UTF-8');
+$duration = trim((string) ($viewTransformation['duration'] ?? ''));
+$safeDuration = htmlspecialchars($duration, ENT_QUOTES, 'UTF-8');
 
-    $isVerified = !empty($transformation['is_verified']);
+$isVerified = !empty($viewTransformation['is_verified']);
 
-    $pageTitle = $safeName . ($safeProductName !== '' ? ' with ' . $safeProductName : '') . ' - Transformation Story';
+$pageTitle = $safeName . ($safeProductName !== '' ? ' with ' . $safeProductName : '') . ' - Transformation Story';
+
+include __DIR__ . '/../includes/header.php';
 ?>
 
     <style>
@@ -233,23 +238,11 @@ if (!$transformation): ?>
             color: var(--color-text-light);
             opacity: 0.8;
         }
-
-        /* ---- Not found state ---- */
-
-        .trfd-empty {
-            padding: 100px 0;
-            text-align: center;
-        }
-
-        .trfd-empty__link {
-            color: var(--color-primary, #245c4f);
-            font-weight: 600;
-        }
     </style>
 
     <section class="trfd">
         <div class="container">
-            <a class="trfd__back" href="/">
+            <a class="trfd__back" href="<?= htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8') ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M19 12H5M11 18l-6-6 6-6" />
                 </svg>
@@ -319,6 +312,5 @@ if (!$transformation): ?>
         </div>
     </section>
 
-<?php endif;
-
-require_once __DIR__ . '/includes/footer.php';
+<?php
+include __DIR__ . '/../includes/footer.php';

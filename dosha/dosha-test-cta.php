@@ -592,7 +592,7 @@ include __DIR__ . '/../includes/header.php';
             <i></i>
         </div>
         <p class="dosha-cta__eyebrow">Discover Your Dosha</p>
-        <h2 class="dosha-cta__title" id="doshaCtaHeading">Take the Ayurvedic<br>Dosha Test</h2>
+        <h2 class="dosha-cta__title" id="doshaCtaHeading">Take the Ayurvedic<br>Free Test</h2>
         <p class="dosha-cta__text">Understand your unique mind-body constitution and unlock a healthier, more balanced you.</p>
 
         <button type="button" class="dosha-cta__btn" id="doshaOpenBtn" aria-haspopup="dialog" aria-controls="doshaModal">
@@ -600,7 +600,7 @@ include __DIR__ . '/../includes/header.php';
                 <path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15z" />
                 <path d="M5 19c4-5 7-8 11-10" />
             </svg>
-            <span>Take the Dosha Test</span>
+            <span>Take the Free Test</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
@@ -632,9 +632,9 @@ include __DIR__ . '/../includes/header.php';
                 <path d="M12 13c-3 0-5-2-5-5 3 0 5 2 5 5Z" />
                 <path d="M12 13c3 0 5-2 5-5-3 0-5 2-5 5Z" />
             </svg>
-            <p class="dosha-modal__eyebrow">Ayurveda Dosha Test</p>
+            <p class="dosha-modal__eyebrow">Ayurveda Free Test</p>
             <h2 class="dosha-modal__heading" id="doshaModalHeading">Know Your Unique Dosha</h2>
-            <p class="dosha-modal__intro-text">Discover your body-mind balance with our simple Ayurvedic dosha test and get personalized wellness insights.</p>
+            <p class="dosha-modal__intro-text">Discover your body-mind balance with our simple Ayurvedic Free test and get personalized wellness insights.</p>
 
             <ul class="dosha-modal__benefits">
                 <li class="dosha-modal__benefit">
@@ -761,7 +761,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
 
                 <button type="submit" class="dosha-modal__submit" id="doshaSubmitBtn">
-                    <span>Start My Dosha Test</span>
+                    <span>Start My Free Test</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 </button>
 

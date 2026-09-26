@@ -217,6 +217,8 @@ $transformationCount = count($transformations);
         height: 280px;
         border-radius: 14px;
         overflow: hidden;
+        text-decoration: none;
+        color: inherit;
     }
 
     .trf__photo {
@@ -601,7 +603,7 @@ $transformationCount = count($transformations);
                         ?>
                             <div class="trf__card" data-trf-card role="group" aria-roledescription="slide" aria-label="Transformation story: <?= $safeName ?>">
                                 <div class="trf__surface">
-                                    <div class="trf__poster">
+                                    <a class="trf__poster" href="<?= $safeDetailUrl ?>" aria-label="View <?= $safeName ?>'s transformation">
                                         <div class="trf__photo">
                                             <img src="<?= $beforeUrl ?>" alt="<?= $safeName ?> before" loading="lazy" />
                                             <span class="trf__badge trf__badge--before"><?= $safeBeforeLabel ?></span>
@@ -610,7 +612,7 @@ $transformationCount = count($transformations);
                                             <img src="<?= $afterUrl ?>" alt="<?= $safeName ?> after" loading="lazy" />
                                             <span class="trf__badge trf__badge--after"><?= $safeAfterLabel ?></span>
                                         </div>
-                                    </div>
+                                    </a>
 
                                     <div class="trf__body">
                                         <div class="trf__nameRow">

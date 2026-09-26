@@ -308,7 +308,7 @@ function getTransformationBySlug($conn, $slug)
         return null;
     }
 
-    $row['product_url'] = !empty($row['product_slug']) ? '/product/' . $row['product_slug'] : '';
+    $row['product_url'] = !empty($row['product_slug']) ? BASE_URL . 'products/product_details.php?slug=' . urlencode($row['product_slug']) : '';
     $row['is_verified'] = (bool) $row['is_verified'];
     unset($row['product_slug']);
 
@@ -354,8 +354,8 @@ function getFeaturedTransformations($conn, $limit = 12)
     // building product_url from the slug (blank when there's no product,
     // which the section already treats as "not a link").
     foreach ($rows as &$row) {
-        $row['product_url'] = !empty($row['product_slug']) ? '/product/' . $row['product_slug'] : '';
-        $row['detail_url'] = !empty($row['slug']) ? BASE_URL . 'transformation-details.php?slug=' . urlencode($row['slug']) : '';
+        $row['product_url'] = !empty($row['product_slug']) ? BASE_URL . 'products/product_details.php?slug=' . urlencode($row['product_slug']) : '';
+        $row['detail_url'] = !empty($row['slug']) ? BASE_URL . 'home/transformation-details.php?slug=' . urlencode($row['slug']) : '';
         $row['is_verified'] = (bool) $row['is_verified'];
         unset($row['product_slug']);
     }
