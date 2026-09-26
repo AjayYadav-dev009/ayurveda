@@ -5,6 +5,9 @@ require_once __DIR__ . '/../function/promotional-video.php';
 require_once __DIR__ . '/../function/csrf.php';
 require_once __DIR__ . '/../function/helper.php';
 
+$pageTitle = 'Admin Promotional Video';
+$activeNav = 'Promotional Video';
+
 $selfFile = basename(__FILE__);
 
 function promoVideoFlash($type, $message)
