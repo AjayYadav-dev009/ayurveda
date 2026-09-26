@@ -11,7 +11,7 @@
  * The only dynamic piece is the CTA link, which points at a quiz page via
  * BASE_URL — update the URL below once that page exists.
  */
-$doshaQuizUrl = (defined('BASE_URL') ? BASE_URL : '/') . 'dosha-quiz.php';
+$doshaQuizUrl = (defined('BASE_URL') ? BASE_URL : '/') . 'dosha/dosha-test-cta.php';
 
 $dqSprig = '<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path d="M10 190C60 150 110 100 175 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
