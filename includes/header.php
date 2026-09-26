@@ -942,11 +942,11 @@ $siteFavicon = $siteSettings['site_favicon'] ?? '';
                     <?php endif; ?>
                 </a>
             </div>
+            <div class="nav-overlay" data-nav-overlay></div>
         </div>
         <div class="scroll-progress">
             <div class="scroll-progress__fill" data-scroll-progress-fill></div>
         </div>
-        <div class="nav-overlay" data-nav-overlay></div>
     </header>
 
     <script>
