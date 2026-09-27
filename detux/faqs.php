@@ -46,7 +46,7 @@ $faqItems = [
 $faqCtaHeading = 'Still have questions?';
 $faqCtaText    = "Our Ayurvedic team is happy to talk you through the programme before you commit — no obligation, just clarity on whether this reset is right for you.";
 $faqCtaButtonLabel = 'Talk to an Expert';
-$faqCtaButtonUrl   = '#consultation';
+$faqCtaButtonUrl   = rtrim(BASE_URL, '/') . '/contact/';
 ?>
 
 <style>

@@ -14,7 +14,7 @@ $ctaEyebrow     = 'Get Expert Advice';
 $ctaHeading     = 'Not Sure Where To Start?';
 $ctaText        = 'Book a consultation with an Ayurvedic expert and understand whether this care is right for you.';
 $ctaButtonLabel = 'Book a Consultation';
-$ctaButtonHref  = '#book-now';
+$ctaButtonHref  = rtrim(BASE_URL, '/') . '/contact/';
 
 // Photo on the right (the Vaidya). Full URL, or a path under BASE_URL such
 // as 'assets/images/cta-vaidya.jpg'. Leave '' to show the banner without it.

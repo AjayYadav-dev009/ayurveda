@@ -33,7 +33,7 @@ $ctaHighlight     = "Maharishi Ayurveda's Gut Health Expert";
 $ctaTextBefore    = 'Book a consultation with ';
 $ctaTextAfter     = '. Get recommendations based on your Dosha and which course of action is right for you.';
 $ctaButtonLabel   = 'Book Your Consultation Now';
-$ctaButtonUrl     = '#consultation';
+$ctaButtonUrl     = rtrim(BASE_URL, '/') . '/contact/';
 
 // Supporting points shown under the paragraph. Set to [] to hide the row.
 $ctaFeatures = [

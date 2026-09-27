@@ -508,6 +508,7 @@ $ratingFill = max(0, min(100, ($rating / 5) * 100));
         font-size: 16px;
         font-weight: 500;
         cursor: pointer;
+        text-decoration: none;
         transition: background-color 0.25s ease, transform 0.25s ease, color 0.25s ease;
     }
 
@@ -950,13 +951,13 @@ $ratingFill = max(0, min(100, ($rating / 5) * 100));
                         <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                 </button>
-                <button type="button" class="detox-btn detox-btn--secondary">
+                <a href="<?= detoxE(rtrim(BASE_URL, '/')) ?>/contact/" class="detox-btn detox-btn--secondary">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <rect x="3" y="4.5" width="18" height="16.5" rx="2" />
                         <path d="M8 2.5v4M16 2.5v4M3 10h18" />
                     </svg>
                     Book a Consultation
-                </button>
+                </a>
             </div>
 
             <a href="<?= detoxE(rtrim(BASE_URL, '/')) ?>/login.php" class="detox-login-link">

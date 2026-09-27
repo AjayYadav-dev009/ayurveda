@@ -17,7 +17,7 @@ $journeyHeading = 'Simple Steps to Better Health';
 
 // Button under the steps. Set the label to '' to hide it.
 $journeyCtaLabel = 'Book Your Slot Now';
-$journeyCtaUrl   = '#book-slot';
+$journeyCtaUrl   = rtrim(BASE_URL, '/') . '/contact/';
 
 $healingSteps = [
     ['label' => 'Book Consultation', 'text' => 'Share your concerns and health history.',            'icon' => 'calendar'],

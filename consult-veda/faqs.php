@@ -34,7 +34,7 @@ $faqItems = [
 $faqCtaHeading = 'Still have questions?';
 $faqCtaText    = "Not sure if online consultation is right for you? Book a slot with one of our Ayurvedic experts and get your questions answered.";
 $faqCtaButtonLabel = 'Book a Consultation';
-$faqCtaButtonUrl   = '#book-now';
+$faqCtaButtonUrl   = rtrim(BASE_URL, '/') . '/contact/';
 ?>
 
 <style>
