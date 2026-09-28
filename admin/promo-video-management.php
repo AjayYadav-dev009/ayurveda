@@ -5,9 +5,6 @@ require_once __DIR__ . '/../function/promotional-video.php';
 require_once __DIR__ . '/../function/csrf.php';
 require_once __DIR__ . '/../function/helper.php';
 
-$pageTitle = 'Admin Promotional Video';
-$activeNav = 'Promotional Video';
-
 $selfFile = basename(__FILE__);
 
 function promoVideoFlash($type, $message)
@@ -173,6 +170,9 @@ unset($_SESSION['promo_video_flash']);
 
 $csrfToken = generateCSRFToken();
 $showForm = in_array($viewAction, ['new', 'edit'], true);
+
+$pageTitle = 'Admin Promotional Video';
+$activeNav = 'promo';
 
 include __DIR__ . '/include/header.php';
 

@@ -19,6 +19,9 @@ $dashStats = [
     ['key' => 'users',      'label' => 'Customers',     'table' => 'users'],
     ['key' => 'team',       'label' => 'Team members',  'table' => 'team_members'],
     ['key' => 'blog',       'label' => 'Blog posts',    'table' => 'blogs'],
+    // 'table' can be a list: the first name that exists in your database is used.
+    ['key' => 'contact-messages', 'label' => 'Contact messages', 'table' => ['contact_messages', 'contact_message', 'contacts', 'contact_us']],
+    ['key' => 'dosha-leads',      'label' => 'Dosha test leads', 'table' => ['dosha_leads', 'dosha_test_leads', 'dosha_lead', 'dosha_tests']],
 ];
 
 if (!function_exists('dashCount')) {
@@ -51,7 +54,13 @@ if (!function_exists('dashCount')) {
 $dbConn = isset($conn) ? $conn : null;
 $statCards = [];
 foreach ($dashStats as $stat) {
-    $count = dashCount($dbConn, $stat['table']);
+    $count = null;
+    foreach ((array) $stat['table'] as $tableName) {
+        $count = dashCount($dbConn, $tableName);
+        if ($count !== null) {
+            break;
+        }
+    }
     if ($count !== null && isset($adminNavIndex[$stat['key']])) {
         $statCards[] = $stat + ['count' => $count, 'href' => $adminNavIndex[$stat['key']]['href']];
     }
@@ -61,7 +70,7 @@ $hour = (int) date('G');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
 $firstName = trim(explode(' ', $adminName)[0] ?? '') ?: 'Admin';
 
-$quickKeys = ['products', 'orders', 'banners', 'reviews', 'promo', 'transformations', 'team', 'blog', 'categories', 'settings'];
+$quickKeys = ['products', 'orders', 'contact-messages', 'dosha-leads', 'banners', 'reviews', 'promo', 'transformations', 'team', 'blog', 'categories', 'settings'];
 $tints = [
     ['#e3efe8', '#17483d'],
     ['#f7efdc', '#8a6a2b'],

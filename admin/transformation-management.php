@@ -174,6 +174,9 @@ unset($_SESSION['transformation_flash']);
 $csrfToken = generateCSRFToken();
 $showForm = in_array($viewAction, ['new', 'edit'], true);
 
+$pageTitle = 'Transformation Management';
+$activeNav = 'transformations';
+
 include __DIR__ . '/include/header.php';
 
 ?>

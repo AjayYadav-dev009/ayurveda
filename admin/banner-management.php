@@ -160,6 +160,9 @@ unset($_SESSION['banner_flash']);
 $csrfToken = generateCSRFToken();
 $showForm = in_array($viewAction, ['new', 'edit'], true);
 
+$pageTitle = 'Banner Management';
+$activeNav = 'banners';
+
 include __DIR__ . '/include/header.php';
 
 ?>

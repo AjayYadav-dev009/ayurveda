@@ -20,8 +20,10 @@ if (!isset($adminBase)) {
         if (stripos($scriptFile, $adminDir . '/') === 0) {
             // e.g. "/settings/index.php" — the script's path inside /admin
             $rel = substr($scriptFile, strlen($adminDir));
-            if (strlen($scriptName) >= strlen($rel)
-                && strcasecmp(substr($scriptName, -strlen($rel)), $rel) === 0) {
+            if (
+                strlen($scriptName) >= strlen($rel)
+                && strcasecmp(substr($scriptName, -strlen($rel)), $rel) === 0
+            ) {
                 $adminBase = substr($scriptName, 0, strlen($scriptName) - strlen($rel));
             }
         }
@@ -57,7 +59,7 @@ $adminIcons = [
     'promo'           => '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5Z"/>',
     'transformations' => '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/>',
     'settings'        => '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
-    'contact-messages'=> '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    'contact-messages' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
     'dosha-leads'     => '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
 ];
 
@@ -116,7 +118,9 @@ $logoutUrl = $adminUrl('logout.php'); // change if your logout script lives else
     <link rel="stylesheet" href="/assets/css/admin.css">
     <script>
         // Restore the collapsed-sidebar preference before first paint (no flash).
-        try { if (localStorage.getItem('adm-sb') === '1') document.documentElement.classList.add('sb-collapsed'); } catch (e) {}
+        try {
+            if (localStorage.getItem('adm-sb') === '1') document.documentElement.classList.add('sb-collapsed');
+        } catch (e) {}
     </script>
     <style>
         :root {
@@ -647,7 +651,10 @@ $logoutUrl = $adminUrl('logout.php'); // change if your logout script lives else
         <aside class="sidebar" id="adminSidebar" aria-label="Admin navigation">
             <a class="sidebar__brand" href="<?= $adminUrl('index.php') ?>">
                 <span class="sidebar__brand-mark">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 4 13V7a1 1 0 0 1 1-1h1a7 7 0 0 1 7 7v7Z"/><path d="M11 20v-7a7 7 0 0 1 7-7h1a1 1 0 0 1 1 1v1a7 7 0 0 1-7 7"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M11 20A7 7 0 0 1 4 13V7a1 1 0 0 1 1-1h1a7 7 0 0 1 7 7v7Z" />
+                        <path d="M11 20v-7a7 7 0 0 1 7-7h1a1 1 0 0 1 1 1v1a7 7 0 0 1-7 7" />
+                    </svg>
                 </span>
                 <span class="sidebar__brand-text">
                     <span class="sidebar__brand-name">Ayurveda Admin</span>
@@ -662,15 +669,33 @@ $logoutUrl = $adminUrl('logout.php'); // change if your logout script lives else
                         $isActive = $activeNav === $item['key'];
                     ?>
                         <a href="<?= $adminUrl($item['href']) ?>"
-                           class="nav__link<?= $isActive ? ' active' : '' ?>"
-                           title="<?= htmlspecialchars($item['label']) ?>"
-                           <?= $isActive ? 'aria-current="page"' : '' ?>>
+                            class="nav__link<?= $isActive ? ' active' : '' ?>"
+                            title="<?= htmlspecialchars($item['label']) ?>"
+                            <?= $isActive ? 'aria-current="page"' : '' ?>>
                             <span class="nav__icon"><?= $adminIcon($item['key']) ?></span>
                             <span class="nav__label"><?= htmlspecialchars($item['label']) ?></span>
                         </a>
                     <?php endforeach; ?>
                 <?php endforeach; ?>
             </nav>
+
+            <script>
+                // Centre the active sidebar link inside the scrollable nav.
+                (function() {
+                    var nav = document.querySelector('.sidebar__nav');
+                    var link = nav && nav.querySelector('.nav__link.active');
+                    if (!link) return;
+
+                    function centre() {
+                        var n = nav.getBoundingClientRect();
+                        var l = link.getBoundingClientRect();
+                        var offset = (l.top - n.top) + nav.scrollTop;
+                        nav.scrollTop = offset - (nav.clientHeight - link.offsetHeight) / 2;
+                    }
+                    centre();
+                    window.addEventListener('load', centre);
+                })();
+            </script>
 
             <div class="sidebar__foot">
                 <span class="avatar" aria-hidden="true"><?= htmlspecialchars($adminInitial) ?></span>
@@ -681,7 +706,11 @@ $logoutUrl = $adminUrl('logout.php'); // change if your logout script lives else
                     <?php endif; ?>
                 </span>
                 <a class="sidebar__logout" href="<?= $logoutUrl ?>" title="Sign out" aria-label="Sign out">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <path d="m16 17 5-5-5-5" />
+                        <path d="M21 12H9" />
+                    </svg>
                 </a>
             </div>
         </aside>
@@ -691,7 +720,10 @@ $logoutUrl = $adminUrl('logout.php'); // change if your logout script lives else
         <main class="main">
             <header class="topbar">
                 <button type="button" class="topbar__toggle" data-sb-toggle aria-controls="adminSidebar" aria-expanded="true" aria-label="Toggle sidebar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="16" rx="2.5" />
+                        <path d="M9 4v16" />
+                    </svg>
                 </button>
 
                 <div class="topbar__crumbs">
@@ -702,7 +734,11 @@ $logoutUrl = $adminUrl('logout.php'); // change if your logout script lives else
                 <span class="topbar__spacer"></span>
 
                 <a class="topbar__store" href="<?= htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 9l1.5-5h15L21 9" />
+                        <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+                        <path d="M5 12v8h14v-8" />
+                    </svg>
                     <span>View store</span>
                 </a>
 
