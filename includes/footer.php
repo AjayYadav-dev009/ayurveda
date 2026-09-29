@@ -202,6 +202,48 @@ $footerSocialLinks = [
             height: 26px;
         }
     }
+
+    /* ---- Floating Enquire button ---- */
+
+    .enquire-float {
+        position: fixed;
+        right: 0;
+        top: 40%;
+        transform: translateY(-50%) rotate(-90deg);
+        transform-origin: bottom right;
+        z-index: 999;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 8px 8px 0 0;
+        background: var(--color-primary-dark);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-decoration: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        transition: background 0.15s ease, padding 0.15s ease;
+    }
+
+    .enquire-float:hover {
+        background: var(--color-accent);
+        padding-bottom: 14px;
+    }
+
+    .enquire-float svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+        .enquire-float {
+            padding: 8px 14px;
+            font-size: 12px;
+        }
+    }
 </style>
 
 <footer class="ftr">
@@ -322,6 +364,13 @@ $whatsappUrl = 'https://wa.me/' . rawurlencode($whatsappNumber) . '?text=' . raw
         <path d="M17.5 14.4c-.3-.1-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.5-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.4 0-.5 0-.1-.7-1.7-1-2.3-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.2-.6-.4z"/>
         <path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.6 1.4 5.1L2 22l5-1.3c1.4.8 3 1.2 4.9 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.6 0-3.1-.4-4.5-1.2l-.3-.2-3 .8.8-2.9-.2-.3C4 15 3.5 13.5 3.5 12c0-4.7 3.8-8.5 8.5-8.5s8.5 3.8 8.5 8.5-3.8 8.5-8.5 8.5z"/>
     </svg>
+</a>
+
+<a class="enquire-float" href="<?= htmlspecialchars(BASE_URL . 'contact/index.php', ENT_QUOTES, 'UTF-8') ?>" aria-label="Enquire — go to contact page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 4h16v12H7l-3 3z" />
+    </svg>
+    Enquire
 </a>
 
 </body>
