@@ -160,6 +160,48 @@ $footerSocialLinks = [
             grid-template-columns: repeat(2, 1fr);
         }
     }
+
+    /* ---- Floating WhatsApp button ---- */
+
+    .wa-float {
+        position: fixed;
+        right: 24px;
+        bottom: 0.5in;
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #25D366;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .wa-float:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    }
+
+    .wa-float svg {
+        width: 30px;
+        height: 30px;
+        color: #fff;
+    }
+
+    @media (max-width: 640px) {
+        .wa-float {
+            right: 16px;
+            width: 50px;
+            height: 50px;
+        }
+
+        .wa-float svg {
+            width: 26px;
+            height: 26px;
+        }
+    }
 </style>
 
 <footer class="ftr">
@@ -267,6 +309,21 @@ $footerSocialLinks = [
         <p>&copy; 2026 AYURVEDIC Store Made by Ajay Yadav. All rights reserved.</p>
     </div>
 </footer>
+
+<?php
+// Replace with your WhatsApp Business number, digits only, with country code (no + or spaces).
+$whatsappNumber = '910000000000';
+$whatsappMessage = 'Hi, I have a question about your products.';
+$whatsappUrl = 'https://wa.me/' . rawurlencode($whatsappNumber) . '?text=' . rawurlencode($whatsappMessage);
+?>
+
+<a class="wa-float" href="<?= htmlspecialchars($whatsappUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M17.5 14.4c-.3-.1-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.5-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.4 0-.5 0-.1-.7-1.7-1-2.3-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.2-.6-.4z"/>
+        <path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.6 1.4 5.1L2 22l5-1.3c1.4.8 3 1.2 4.9 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.2c-1.6 0-3.1-.4-4.5-1.2l-.3-.2-3 .8.8-2.9-.2-.3C4 15 3.5 13.5 3.5 12c0-4.7 3.8-8.5 8.5-8.5s8.5 3.8 8.5 8.5-3.8 8.5-8.5 8.5z"/>
+    </svg>
+</a>
+
 </body>
 
 </html>
